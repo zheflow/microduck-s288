@@ -1,0 +1,23 @@
+# ── 环境
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+.idea/
+
+# ── 上游第三方仓库（各自 clone，不进本仓库）
+upstream/
+参考/
+
+# ── CAD 生成产物：由 duckstructure/build.py 重新生成；发布用的那一份放 release/ 并明确纳入
+/cad/
+
+# ── 日志、切片产物、训练日志与视频
+*.log
+*.gcode
+*.3mf.bak
+sim/runs/**/events.out.tfevents.*
+sim/runs/**/*.mp4
+
+# ── 第三方版权文件（宇树手册等），只放链接
+*.pdf
