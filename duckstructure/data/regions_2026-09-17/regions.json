@@ -1,0 +1,409 @@
+{
+ "jaw_soft×neck": {
+  "defect_poses": 7,
+  "parts": {
+   "neck": {
+    "union_mm3": 133.83,
+    "bbox_local": [
+     [
+      -12.8,
+      -40.1,
+      27.8
+     ],
+     [
+      -10.2,
+      10.2,
+      30.8
+     ]
+    ],
+    "stl": "tools/gate/out/policy_steps_2026-09-17/regions/neck__pair_jaw_soft_x_neck.stl",
+    "n": 7
+   },
+   "orig_jaw": {
+    "union_mm3": 214.91,
+    "bbox_local": [
+     [
+      -17.4,
+      -24.6,
+      -76.1
+     ],
+     [
+      -14.5,
+      27.3,
+      -48.9
+     ]
+    ],
+    "stl": "tools/gate/out/policy_steps_2026-09-17/regions/orig_jaw__pair_jaw_soft_x_neck.stl",
+    "n": 4
+   },
+   "head_bottom_shell": {
+    "union_mm3": 5.47,
+    "bbox_local": [
+     [
+      -16.9,
+      -17.7,
+      -37.7
+     ],
+     [
+      -16.0,
+      -13.0,
+      -32.0
+     ]
+    ],
+    "stl": "tools/gate/out/policy_steps_2026-09-17/regions/head_bottom_shell__pair_jaw_soft_x_neck.stl",
+    "n": 3
+   }
+  }
+ },
+ "jaw_soft×trunk_base": {
+  "defect_poses": 18,
+  "parts": {
+   "orig_jaw": {
+    "union_mm3": 295.64,
+    "bbox_local": [
+     [
+      -17.4,
+      5.1,
+      -75.0
+     ],
+     [
+      -13.4,
+      43.6,
+      -43.3
+     ]
+    ],
+    "stl": "tools/gate/out/policy_steps_2026-09-17/regions/orig_jaw__pair_jaw_soft_x_trunk_base.stl",
+    "n": 18
+   },
+   "trunk": {
+    "union_mm3": 226.01,
+    "bbox_local": [
+     [
+      30.0,
+      13.0,
+      24.0
+     ],
+     [
+      39.0,
+      16.0,
+      45.4
+     ]
+    ],
+    "stl": "tools/gate/out/policy_steps_2026-09-17/regions/trunk__pair_jaw_soft_x_trunk_base.stl",
+    "n": 18
+   }
+  }
+ },
+ "hip_l_2×leg_2": {
+  "defect_poses": 6,
+  "parts": {
+   "hip_R": {
+    "union_mm3": 48.38,
+    "bbox_local": [
+     [
+      15.5,
+      0.0,
+      -1.9
+     ],
+     [
+      20.2,
+      9.5,
+      6.5
+     ]
+    ],
+    "stl": "tools/gate/out/policy_steps_2026-09-17/regions/hip_R__pair_hip_l_2_x_leg_2.stl",
+    "n": 6
+   },
+   "lower_leg_R": {
+    "union_mm3": 53.08,
+    "bbox_local": [
+     [
+      -44.4,
+      6.8,
+      0.8
+     ],
+     [
+      -32.8,
+      10.3,
+      5.5
+     ]
+    ],
+    "stl": "tools/gate/out/policy_steps_2026-09-17/regions/lower_leg_R__pair_hip_l_2_x_leg_2.stl",
+    "n": 6
+   }
+  }
+ },
+ "hip_l_2×jaw_soft": {
+  "defect_poses": 4,
+  "parts": {
+   "hip_R": {
+    "union_mm3": 14.17,
+    "bbox_local": [
+     [
+      -8.6,
+      0.4,
+      4.2
+     ],
+     [
+      2.5,
+      8.6,
+      6.0
+     ]
+    ],
+    "stl": "tools/gate/out/policy_steps_2026-09-17/regions/hip_R__pair_hip_l_2_x_jaw_soft.stl",
+    "n": 4
+   },
+   "orig_jaw": {
+    "union_mm3": 22.42,
+    "bbox_local": [
+     [
+      -16.9,
+      37.5,
+      -76.0
+     ],
+     [
+      -13.5,
+      44.9,
+      -66.4
+     ]
+    ],
+    "stl": "tools/gate/out/policy_steps_2026-09-17/regions/orig_jaw__pair_hip_l_2_x_jaw_soft.stl",
+    "n": 4
+   }
+  }
+ },
+ "ankle_right×hip_l_2": {
+  "defect_poses": 3,
+  "parts": {
+   "ankle_rear_arm_R": {
+    "union_mm3": 8.46,
+    "bbox_local": [
+     [
+      -4.9,
+      8.5,
+      -36.6
+     ],
+     [
+      1.6,
+      9.8,
+      -31.9
+     ]
+    ],
+    "stl": "tools/gate/out/policy_steps_2026-09-17/regions/ankle_rear_arm_R__pair_ankle_right_x_hip_l_2.stl",
+    "n": 3
+   },
+   "hip_R": {
+    "union_mm3": 7.62,
+    "bbox_local": [
+     [
+      10.4,
+      3.2,
+      1.8
+     ],
+     [
+      15.1,
+      9.5,
+      6.5
+     ]
+    ],
+    "stl": "tools/gate/out/policy_steps_2026-09-17/regions/hip_R__pair_ankle_right_x_hip_l_2.stl",
+    "n": 3
+   }
+  }
+ },
+ "hip_l×hip_l_2": {
+  "defect_poses": 7,
+  "parts": {
+   "hip": {
+    "union_mm3": 4.86,
+    "bbox_local": [
+     [
+      -9.5,
+      -3.6,
+      2.2
+     ],
+     [
+      -6.2,
+      0.6,
+      6.0
+     ]
+    ],
+    "stl": "tools/gate/out/policy_steps_2026-09-17/regions/hip__pair_hip_l_x_hip_l_2.stl",
+    "n": 7
+   },
+   "hip_R": {
+    "union_mm3": 5.92,
+    "bbox_local": [
+     [
+      -9.5,
+      -2.5,
+      1.9
+     ],
+     [
+      -6.6,
+      1.3,
+      6.0
+     ]
+    ],
+    "stl": "tools/gate/out/policy_steps_2026-09-17/regions/hip_R__pair_hip_l_x_hip_l_2.stl",
+    "n": 7
+   }
+  }
+ },
+ "hip_l_2×trunk_base": {
+  "defect_poses": 1,
+  "parts": {
+   "hip_R": {
+    "union_mm3": 2.86,
+    "bbox_local": [
+     [
+      16.5,
+      -9.5,
+      -21.5
+     ],
+     [
+      20.5,
+      -6.3,
+      -10.7
+     ]
+    ],
+    "stl": "tools/gate/out/policy_steps_2026-09-17/regions/hip_R__pair_hip_l_2_x_trunk_base.stl",
+    "n": 1
+   },
+   "trunk": {
+    "union_mm3": 2.86,
+    "bbox_local": [
+     [
+      4.9,
+      -30.3,
+      -4.7
+     ],
+     [
+      15.5,
+      -26.2,
+      -0.3
+     ]
+    ],
+    "stl": "tools/gate/out/policy_steps_2026-09-17/regions/trunk__pair_hip_l_2_x_trunk_base.stl",
+    "n": 1
+   }
+  }
+ },
+ "jaw_soft×leg_2": {
+  "defect_poses": 1,
+  "parts": {
+   "lower_leg_R": {
+    "union_mm3": 2.17,
+    "bbox_local": [
+     [
+      -51.8,
+      -9.3,
+      -0.7
+     ],
+     [
+      -50.5,
+      -7.4,
+      1.9
+     ]
+    ],
+    "stl": "tools/gate/out/policy_steps_2026-09-17/regions/lower_leg_R__pair_jaw_soft_x_leg_2.stl",
+    "n": 1
+   },
+   "orig_top_head_shell": {
+    "union_mm3": 2.17,
+    "bbox_local": [
+     [
+      39.1,
+      -5.9,
+      -84.2
+     ],
+     [
+      41.0,
+      -3.1,
+      -82.8
+     ]
+    ],
+    "stl": "tools/gate/out/policy_steps_2026-09-17/regions/orig_top_head_shell__pair_jaw_soft_x_leg_2.stl",
+    "n": 1
+   }
+  }
+ },
+ "neck×trunk_base": {
+  "defect_poses": 1,
+  "parts": {
+   "neck": {
+    "union_mm3": 1.67,
+    "bbox_local": [
+     [
+      -12.8,
+      9.7,
+      27.8
+     ],
+     [
+      -11.5,
+      10.2,
+      30.8
+     ]
+    ],
+    "stl": "tools/gate/out/policy_steps_2026-09-17/regions/neck__pair_neck_x_trunk_base.stl",
+    "n": 1
+   },
+   "servo__trunk_base_bearing_roll": {
+    "union_mm3": 1.67,
+    "bbox_local": [
+     [
+      15.0,
+      -16.3,
+      20.2
+     ],
+     [
+      15.5,
+      -13.3,
+      21.5
+     ]
+    ],
+    "stl": "tools/gate/out/policy_steps_2026-09-17/regions/servo__trunk_base_bearing_roll__pair_neck_x_trunk_base.stl",
+    "n": 1
+   }
+  }
+ },
+ "hip_l×trunk_base": {
+  "defect_poses": 2,
+  "parts": {
+   "hip": {
+    "union_mm3": 1.89,
+    "bbox_local": [
+     [
+      18.7,
+      8.6,
+      -15.3
+     ],
+     [
+      20.7,
+      9.5,
+      -11.4
+     ]
+    ],
+    "stl": "tools/gate/out/policy_steps_2026-09-17/regions/hip__pair_hip_l_x_trunk_base.stl",
+    "n": 2
+   },
+   "trunk": {
+    "union_mm3": 1.41,
+    "bbox_local": [
+     [
+      13.5,
+      27.5,
+      -1.0
+     ],
+     [
+      15.5,
+      30.3,
+      -0.5
+     ]
+    ],
+    "stl": "tools/gate/out/policy_steps_2026-09-17/regions/trunk__pair_hip_l_x_trunk_base.stl",
+    "n": 2
+   }
+  }
+ }
+}

@@ -1,0 +1,755 @@
+{
+ "version": "v1-hr45n01（T01 FX_S2 两孔 + T02 / T03 颈根开口挂钩 2 条 + N01 颈柱双指卡槽 FX_HB09R_HOOK_N01 / FX_HB09L_HOOK_N01（左侧用户 08:1x 定做），type hook；was v1-hr45）；08:4x hr45 T02 / T03 钩改一体直棱柱定稿（L s 14 → 13，两钩轴改 PCA 直线）",
+ "generated": "2026-09-25 23:31",
+ "rule": "协调员 22:58/23:30：A 两孔扎带位 Ø2.6×2 孔距 6（壁 ≥1.5 且背后 ≥1.5）/ B 扎带桥 8（沿束）×3×2.5 高、隧道 3.2×1.5 横穿；扎带 2.5×1.1×100 assumed",
+ "anchors": [
+  {
+   "id": "FX_S2_T01",
+   "route": "bus_S2_S34",
+   "station": "frac 0.05",
+   "station_point": [
+    -13.0,
+    0.0,
+    151.0
+   ],
+   "type": "A",
+   "t_dir": [
+    -0.5609,
+    0.8279,
+    0.0
+   ],
+   "u_dir": [
+    -0.8279,
+    -0.5609,
+    0.0
+   ],
+   "part_stem": "trunk",
+   "part": "T01",
+   "dist": 3.2,
+   "point": [
+    -13.0,
+    0.0,
+    147.8
+   ],
+   "normal": [
+    0.0,
+    -0.0,
+    1.0
+   ],
+   "wall": 3.0,
+   "behind": 23.58
+  },
+  {
+   "id": "FX_HB09R_HOOK_T02",
+   "route": "HB09_R",
+   "station": "fix_FX_HB09R_HOOK_T02",
+   "station_point": [
+    16.4388,
+    23.4893,
+    159.5603
+   ],
+   "type": "hook",
+   "t_dir": [
+    -0.7075,
+    -0.0084,
+    0.7067
+   ],
+   "normal": [
+    0.3955,
+    0.8239,
+    0.4058
+   ],
+   "normal_note": "hook 型：normal = 开口轴（世界，⟂ t_dir；wire_fixings._frame 要这个键；type hook 不长几何）",
+   "u_dir": [
+    0.5857,
+    -0.5666,
+    0.5796
+   ],
+   "part_stem": "shell_L",
+   "part": "T02",
+   "point": [
+    16.4388,
+    23.4893,
+    159.5603
+   ],
+   "s_from_via_NP_mm": 11.0,
+   "bundle_d": 5.26,
+   "cavity_d": 5.86,
+   "open_w": 4.06,
+   "wall": 1.6,
+   "length": 6.0,
+   "roof_deg": 50.0,
+   "open_deg_from_world_up_to_outboard": 55.0,
+   "print_up_world": [
+    0.0,
+    -1.0,
+    0.0
+   ],
+   "open_axis_world": [
+    0.3955,
+    0.8239,
+    0.4058
+   ],
+   "geometry_in": "duckstructure/trunk.py:wire_hook（WIRE_HOOK / WIRE_HOOK_DIM；build_trunk_shell 开头并进原壳、末尾清线槽）",
+   "feature_id": "T02-FX_HB09R_HOOK_T02",
+   "src": "hr45（2026-09-26）用户 06:30 定开口挂钩；主设计 07:2x 放宽 + 07:3x 定案'外偏上 55°'；选型表 / 真切片 / 检查见 docs/design_2026-09-17_bearing_rebuild/hr43_work/hr45_挂钩报告.md",
+   "assumed": [
+    "cavity_d = 束径 + 0.6",
+    "open_w = 束径 − 1.2（PETG 弹性按进不掉）",
+    "wall 1.6",
+    "length 6",
+    "roof 55°",
+    "开口轴外偏上 55°"
+   ],
+   "axis_note": "钩轴 = 钩窗 [s−3, s+3] 内站点折线的主方向直线（trunk._hook_line），折线离轴 ≤0.109；一体直棱柱（主设计 08:40）"
+  },
+  {
+   "id": "FX_HB09L_HOOK_T03",
+   "route": "HB09_L",
+   "station": "fix_FX_HB09L_HOOK_T03",
+   "station_point": [
+    15.8864,
+    -23.5,
+    160.0436
+   ],
+   "type": "hook",
+   "t_dir": [
+    -0.7334,
+    0.0,
+    0.6798
+   ],
+   "normal": [
+    0.3899,
+    -0.8192,
+    0.4207
+   ],
+   "normal_note": "hook 型：normal = 开口轴（世界，⟂ t_dir；wire_fixings._frame 要这个键；type hook 不长几何）",
+   "u_dir": [
+    -0.5568,
+    -0.5736,
+    -0.6008
+   ],
+   "part_stem": "shell_R",
+   "part": "T03",
+   "point": [
+    15.8864,
+    -23.5,
+    160.0436
+   ],
+   "s_from_via_NP_mm": 13.0,
+   "bundle_d": 5.96,
+   "cavity_d": 6.56,
+   "open_w": 4.76,
+   "wall": 1.6,
+   "length": 6.0,
+   "roof_deg": 50.0,
+   "open_deg_from_world_up_to_outboard": 55.0,
+   "print_up_world": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "open_axis_world": [
+    0.3899,
+    -0.8192,
+    0.4207
+   ],
+   "geometry_in": "duckstructure/trunk.py:wire_hook（WIRE_HOOK / WIRE_HOOK_DIM；build_trunk_shell 开头并进原壳、末尾清线槽）",
+   "feature_id": "T03-FX_HB09L_HOOK_T03",
+   "src": "hr45（2026-09-26）用户 06:30 定开口挂钩；主设计 07:2x 放宽 + 07:3x 定案'外偏上 55°'；选型表 / 真切片 / 检查见 docs/design_2026-09-17_bearing_rebuild/hr43_work/hr45_挂钩报告.md",
+   "assumed": [
+    "cavity_d = 束径 + 0.6",
+    "open_w = 束径 − 1.2（PETG 弹性按进不掉）",
+    "wall 1.6",
+    "length 6",
+    "roof 55°",
+    "开口轴外偏上 55°"
+   ],
+   "axis_note": "钩轴 = 钩窗 [s−3, s+3] 内站点折线的主方向直线（trunk._hook_line），折线离轴 ≤0.228；一体直棱柱（主设计 08:40）"
+  },
+  {
+   "id": "FX_HB09R_HOOK_N01",
+   "route": "HB09_R",
+   "station": "fix_N01_hook_in / fix_N01_hook_out",
+   "station_point": [
+    26.5,
+    15.13,
+    180.9
+   ],
+   "type": "hook",
+   "t_dir": [
+    0.0,
+    0.0,
+    -1.0
+   ],
+   "normal": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "normal_note": "hook 型：normal = 开口轴（世界，⟂ t_dir；wire_fixings._frame 要这个键；type hook 不长几何）",
+   "u_dir": [
+    -1.0,
+    0.0,
+    0.0
+   ],
+   "part_stem": "neck",
+   "part": "N01",
+   "point": [
+    26.5,
+    15.13,
+    180.9
+   ],
+   "bundle_d": 5.26,
+   "slot_w": 5.66,
+   "open_w": 4.06,
+   "finger_t": 1.2,
+   "finger_h": 5.5,
+   "lip": 0.8,
+   "lip_h": 1.2,
+   "under_deg": 54.0,
+   "length": 7.2,
+   "z_world": [
+    177.3,
+    184.5
+   ],
+   "print_up_world": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "open_axis_world": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "geometry_in": "duckstructure/neck.py:n01_hook_R（NK_HOOK；_n01_hook 截面；build_neck 并入，先于舵机包络 / 通道 / 扫掠刀）",
+   "feature_id": "N01-FX_HB09R_HOOK_N01",
+   "src": "hr45n01（2026-09-26）用户 06:40 定 N01 颈柱非闭合挂钩；主设计规格 hr43_work/hr45n01/n01_hook_R_spec.json（x 26.5：T02 首碰 65°）；07:2x 批唇下 54°（45° 卡 PrusaSlicer 悬垂门槛）与钩站两点外延；检查见 docs/design_2026-09-17_bearing_rebuild/hr43_work/hr45n01/hr45n01_挂钩报告.md",
+   "assumed": [
+    "槽宽 = 束径 + 0.4",
+    "开口 = 槽宽 − 2 × 唇 0.8 = 4.06（PETG 弹性按进不掉）",
+    "指厚 1.2 / 高 5.5",
+    "唇 0.8 × 1.2，唇下 54°",
+    "槽侧与外侧指根 0.5 × 45° 倒角"
+   ]
+  },
+  {
+   "id": "FX_HB09L_HOOK_N01",
+   "route": "HB09_L",
+   "station": "fix_N01_hookL_in / fix_N01_hookL_out",
+   "station_point": [
+    26.5,
+    -19.28,
+    181.9
+   ],
+   "type": "hook",
+   "t_dir": [
+    0.0,
+    0.0,
+    -1.0
+   ],
+   "normal": [
+    0.0,
+    -1.0,
+    0.0
+   ],
+   "normal_note": "hook 型：normal = 开口轴（世界，⟂ t_dir；wire_fixings._frame 要这个键；type hook 不长几何）",
+   "u_dir": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "part_stem": "neck",
+   "part": "N01",
+   "point": [
+    26.5,
+    -19.28,
+    181.9
+   ],
+   "bundle_d": 5.96,
+   "slot_w": 6.36,
+   "open_w": 4.76,
+   "finger_t": 1.2,
+   "finger_h": 6.0,
+   "lip": 0.8,
+   "lip_h": 1.2,
+   "under_deg": 54.0,
+   "tip_chamfer": 0.6,
+   "tip_end_chamfer": 0.6,
+   "length": 7.2,
+   "z_world": [
+    178.3,
+    185.5
+   ],
+   "print_up_world": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "open_axis_world": [
+    0.0,
+    -1.0,
+    0.0
+   ],
+   "geometry_in": "duckstructure/neck.py:n01_hook_L（NK_HOOK_L = NK_HOOK_L_STUDY；_n01_hook 截面 + 指尖上端棱减料；build_neck 并入）",
+   "feature_id": "N01-FX_HB09L_HOOK_N01",
+   "src": "hr45n01（2026-09-26）用户 07:4x 要左侧也做、08:1x 拍板'左勾先做吧，我用不上再说'（推翻主设计 08:0x 的不做）；位置 x 26.5 / z 178.3–185.5 / 外侧指根不倒角由 F13 螺丝净距与 T03 首碰定（p15 / p17）；检查见 docs/design_2026-09-17_bearing_rebuild/hr43_work/hr45n01/hr45n01_挂钩报告.md §7",
+   "user_accepted": [
+    "服务环搭钩（①，真实姿态大量命中）",
+    "躯干顶线在颈俯仰翻身段的残余压入（②）",
+    "打印整件抬高 6 mm 靠支撑、拆后左脸打磨"
+   ],
+   "assumed": [
+    "槽宽 = 束径 + 0.4",
+    "开口 = 槽宽 − 2 × 唇 0.8 = 4.76",
+    "指厚 1.2 / 高 6.0（唇带在束面外 0.03）",
+    "唇 0.8 × 1.2，唇下 54°",
+    "槽侧指根 0.5 × 45° 倒角、外侧不倒角",
+    "指尖外棱 / 指尖上端棱 0.6 × 45° 倒角"
+   ]
+  }
+ ],
+ "dropped": [
+  {
+   "id": "FX_L_L01",
+   "why": "L01 锚点就近面在髋横滚舵机插座正上方（线出插头即到），插头本身已定住这段；腿每侧只留 L02 + L04 两个（协调员上限 ≤3）"
+  },
+  {
+   "id": "FX_R_L01",
+   "why": "L01 锚点就近面在髋横滚舵机插座正上方（线出插头即到），插头本身已定住这段；腿每侧只留 L02 + L04 两个（协调员上限 ≤3）"
+  },
+  {
+   "id": "FX_L_L02",
+   "why": "build #2：髋件 L02 底面桥被脚 / 踝后臂在膝 +90 扫到（膝扫掠 +11 对）；上半没有离线 ≤10 mm 的面（最近 26）→ 去掉，髋 1→2 跳靠两端插头 + L04 定"
+  },
+  {
+   "id": "FX_R_L02",
+   "why": "build #2：髋件 L02 底面桥被脚 / 踝后臂在膝 +90 扫到（膝扫掠 +11 对）；上半没有离线 ≤10 mm 的面（最近 26）→ 去掉，髋 1→2 跳靠两端插头 + L04 定"
+  },
+  {
+   "id": "FX_L_L04",
+   "why": "build #3：小腿上段桥与 L04 里的踝舵机 3.06 mm³ / 膝轴承 0.41 静态干涉、膝扫掠 +143 对；该处壁 1.4 < 1.5 不能退 A → 去掉（协调员 23:52：腿上少一个锚点不算失败）"
+  },
+  {
+   "id": "FX_R_L04",
+   "why": "build #3：小腿上段桥与 L04 里的踝舵机 3.06 mm³ / 膝轴承 0.41 静态干涉、膝扫掠 +143 对；该处壁 1.4 < 1.5 不能退 A → 去掉（协调员 23:52：腿上少一个锚点不算失败）"
+  },
+  {
+   "id": "FX_HB09R_H03",
+   "part": "H03",
+   "was_until_2026_09_26_hr44": {
+    "id": "FX_HB09R_H03",
+    "route": "HB09_R",
+    "station": "fix_FX_HB09R_H03",
+    "station_point": [
+     43.14,
+     21.52,
+     213.6
+    ],
+    "type": "B",
+    "t_dir": [
+     -0.0755,
+     0.9971,
+     0.0102
+    ],
+    "u_dir": [
+     0.9971,
+     0.0756,
+     -0.0054
+    ],
+    "part_stem": "head_bottom_shell",
+    "part": "H03",
+    "dist": 5.33,
+    "point": [
+     43.172,
+     21.471,
+     218.929
+    ],
+    "normal": [
+     -0.0062,
+     0.0099,
+     -0.9999
+    ],
+    "wall": 0.77,
+    "behind": 0.79
+   },
+   "reason": "协调员 01:45 拍板：build #4 八个颈桥整组作废（全链 hr44 暴露）—— 真实姿态 撞 N02 3 / N01 1（3.1 mm³）；L1 H03 支撑 11344→15755；过颈线束改为不固定（头出口头内胶带，不登几何），见 hr44neck/过颈线束研究.md §9.1"
+  },
+  {
+   "id": "FX_HB09L_H03",
+   "part": "H03",
+   "was_until_2026_09_26_hr44": {
+    "id": "FX_HB09L_H03",
+    "route": "HB09_L",
+    "station": "fix_FX_HB09L_H03",
+    "station_point": [
+     43.53,
+     -16.9,
+     216.1
+    ],
+    "type": "B",
+    "t_dir": [
+     0.608,
+     -0.7939,
+     0.0009
+    ],
+    "u_dir": [
+     -0.7939,
+     -0.6079,
+     0.011
+    ],
+    "part_stem": "head_bottom_shell",
+    "part": "H03",
+    "dist": 3.03,
+    "point": [
+     44.752,
+     -16.765,
+     218.871
+    ],
+    "normal": [
+     -0.008,
+     -0.0076,
+     -0.9999
+    ],
+    "wall": null,
+    "behind": 99.0
+   },
+   "reason": "协调员 01:45 拍板：build #4 八个颈桥整组作废（全链 hr44 暴露）—— 真实姿态 H03×N02 757 姿态（最大 24.7 mm³）+ ×N01 19（44.4 mm³）—— 全链 750/5601 主因；过颈线束改为不固定（头出口头内胶带，不登几何），见 hr44neck/过颈线束研究.md §9.1"
+  },
+  {
+   "id": "FX_HB09R_N02",
+   "part": "N02",
+   "was_until_2026_09_26_hr44": {
+    "id": "FX_HB09R_N02",
+    "route": "HB09_R",
+    "station": "fix_FX_HB09R_N02",
+    "station_point": [
+     28.5,
+     21.73,
+     200.5
+    ],
+    "type": "B",
+    "t_dir": [
+     -0.8749,
+     0.0,
+     -0.4844
+    ],
+    "u_dir": [
+     -0.4844,
+     -0.0,
+     0.8749
+    ],
+    "part_stem": "neck_pitch",
+    "part": "N02",
+    "dist": 5.33,
+    "point": [
+     28.5,
+     16.4,
+     200.5
+    ],
+    "normal": [
+     -0.0,
+     1.0,
+     0.0
+    ],
+    "wall": 3.4,
+    "behind": 25.98,
+    "A_rejected": "两孔 / 孔周不全在同一块 ≥1.5 板上（p40 校核）"
+   },
+   "reason": "协调员 01:45 拍板：build #4 八个颈桥整组作废（全链 hr44 暴露）—— N02 舵盘螺丝头 horn3/4/5 KO06 11.0/1.8/0.5 mm³、螺丝座叠厚 3.40→5.90（L3/KO06、L5/F14）；过颈线束改为不固定（头出口头内胶带，不登几何），见 hr44neck/过颈线束研究.md §9.1"
+  },
+  {
+   "id": "FX_HB09L_N02",
+   "part": "N02",
+   "was_until_2026_09_26_hr44": {
+    "id": "FX_HB09L_N02",
+    "route": "HB09_L",
+    "station": "fix_FX_HB09L_N02",
+    "station_point": [
+     28.5,
+     -22.08,
+     200.5
+    ],
+    "type": "B",
+    "t_dir": [
+     -0.89,
+     0.0,
+     -0.4559
+    ],
+    "u_dir": [
+     0.4559,
+     0.0,
+     -0.89
+    ],
+    "part_stem": "neck_pitch",
+    "part": "N02",
+    "dist": 5.68,
+    "point": [
+     28.5,
+     -16.4,
+     200.5
+    ],
+    "normal": [
+     0.0,
+     -1.0,
+     0.0
+    ],
+    "wall": 3.4,
+    "behind": 25.98,
+    "A_rejected": "两孔 / 孔周不全在同一块 ≥1.5 板上（p40 校核）"
+   },
+   "reason": "协调员 01:45 拍板：build #4 八个颈桥整组作废（全链 hr44 暴露）—— 同上（N02 侧，F14b）；过颈线束改为不固定（头出口头内胶带，不登几何），见 hr44neck/过颈线束研究.md §9.1"
+  },
+  {
+   "id": "FX_HB09R_N01",
+   "part": "N01",
+   "was_until_2026_09_26_hr44": {
+    "id": "FX_HB09R_N01",
+    "route": "HB09_R",
+    "station": "fix_FX_HB09R_N01",
+    "station_point": [
+     24.5,
+     17.83,
+     184.5
+    ],
+    "type": "B",
+    "t_dir": [
+     0.0,
+     0.0,
+     -1.0
+    ],
+    "u_dir": [
+     -1.0,
+     0.0,
+     0.0
+    ],
+    "part_stem": "neck",
+    "part": "N01",
+    "dist": 5.33,
+    "point": [
+     24.5,
+     12.5,
+     184.5
+    ],
+    "normal": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "wall": 2.2,
+    "behind": 0.28
+   },
+   "reason": "协调员 01:45 拍板：build #4 八个颈桥整组作废（全链 hr44 暴露）—— L1 N01 支撑 15.7→1039.6 mm³（N01 打印 −y 朝下，侧桥悬空）；过颈线束改为不固定（头出口头内胶带，不登几何），见 hr44neck/过颈线束研究.md §9.1"
+  },
+  {
+   "id": "FX_HB09L_N01",
+   "part": "N01",
+   "was_until_2026_09_26_hr44": {
+    "id": "FX_HB09L_N01",
+    "route": "HB09_L",
+    "station": "fix_FX_HB09L_N01",
+    "station_point": [
+     24.5,
+     -21.98,
+     186.0
+    ],
+    "type": "B",
+    "t_dir": [
+     0.0,
+     0.0,
+     -1.0
+    ],
+    "u_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "part_stem": "neck",
+    "part": "N01",
+    "dist": 5.68,
+    "point": [
+     24.5,
+     -16.3,
+     186.0
+    ],
+    "normal": [
+     0.0,
+     -1.0,
+     0.0
+    ],
+    "wall": 3.0,
+    "behind": 0.28
+   },
+   "reason": "协调员 01:45 拍板：build #4 八个颈桥整组作废（全链 hr44 暴露）—— 同上；过颈线束改为不固定（头出口头内胶带，不登几何），见 hr44neck/过颈线束研究.md §9.1"
+  },
+  {
+   "id": "FX_HB09R_NP",
+   "part": "T02",
+   "was_until_2026_09_26_hr44": {
+    "id": "FX_HB09R_NP",
+    "route": "HB09_R",
+    "station": "frac 0.7",
+    "station_point": [
+     25.47,
+     23.87,
+     152.12
+    ],
+    "type": "B",
+    "t_dir": [
+     0.4352,
+     0.1019,
+     -0.8945
+    ],
+    "u_dir": [
+     -0.0921,
+     0.9934,
+     0.0684
+    ],
+    "part_stem": "shell_L",
+    "part": "T02",
+    "dist": 6.89,
+    "point": [
+     19.302,
+     23.51,
+     149.079
+    ],
+    "normal": [
+     0.8956,
+     0.0526,
+     0.4417
+    ],
+    "wall": 2.2,
+    "behind": 0.48
+   },
+   "reason": "协调员 01:45 拍板：build #4 八个颈桥整组作废（全链 hr44 暴露）—— L4 F12b/F14 tool_origin_on_seat 红（桥挡起子路径）；过颈线束改为不固定（头出口头内胶带，不登几何），见 hr44neck/过颈线束研究.md §9.1"
+  },
+  {
+   "id": "FX_HB09L_NP",
+   "part": "T03",
+   "was_until_2026_09_26_hr44": {
+    "id": "FX_HB09L_NP",
+    "route": "HB09_L",
+    "station": "frac 0.7",
+    "station_point": [
+     26.03,
+     -24.07,
+     152.24
+    ],
+    "type": "B",
+    "t_dir": [
+     0.4768,
+     0.0,
+     -0.879
+    ],
+    "u_dir": [
+     0.879,
+     0.0,
+     0.4768
+    ],
+    "part_stem": "shell_R",
+    "part": "T03",
+    "dist": 5.67,
+    "point": [
+     26.033,
+     -18.4,
+     152.236
+    ],
+    "normal": [
+     0.0,
+     -1.0,
+     0.0
+    ],
+    "wall": 2.3,
+    "behind": 3.08,
+    "A_rejected": "两孔 / 孔周不全在同一块 ≥1.5 板上（p40 校核）"
+   },
+   "reason": "协调员 01:45 拍板：build #4 八个颈桥整组作废（全链 hr44 暴露）—— T03 F12 螺丝头对 shell_L 10.97/15.43 mm³（L4 起子路径）；过颈线束改为不固定（头出口头内胶带，不登几何），见 hr44neck/过颈线束研究.md §9.1"
+  },
+  {
+   "id": "FX_S34_T01",
+   "part": "T01",
+   "was_until_2026_09_26_hr44b": {
+    "id": "FX_S34_T01",
+    "route": "bus_S2_S34",
+    "station": "frac 0.95",
+    "station_point": [
+     -30.0,
+     21.0,
+     126.0
+    ],
+    "type": "B",
+    "t_dir": [
+     -0.5418,
+     -0.8405,
+     0.0
+    ],
+    "u_dir": [
+     -0.8405,
+     0.5418,
+     -0.0
+    ],
+    "part_stem": "trunk",
+    "part": "T01",
+    "dist": 2.8,
+    "point": [
+     -31.25,
+     18.5,
+     126.0
+    ],
+    "normal": [
+     0.0,
+     -0.0,
+     -1.0
+    ],
+    "wall": 10.0,
+    "behind": 22.42
+   },
+   "reason": "复审 #3 M1：桥根只 36% 落实体（r02 43/119 格）、离 shell_L 0.76、按 build #4 前一分二位做的（S4 已挪到 z 132，离桥顶 1.2）、倒放要支撑 +860 mm³、bus_S2_S34 最小弯 1.19 就在此站；协调员 02:22 定：删桥，侧腔一分二 S3/S4/S5 改泡棉平贴 T01 内墙 + 扎带绕线束（内墙 1.9 厚、背后净空 0.6 < 1.5，不开 A 两孔）"
+  },
+  {
+   "id": "FX_S5_T01",
+   "part": "T01",
+   "was_until_2026_09_26_hr44b": {
+    "id": "FX_S5_T01",
+    "route": "bus_S34_S5",
+    "station": "frac 0.95",
+    "station_point": [
+     -30.0,
+     -21.0,
+     126.0
+    ],
+    "type": "B",
+    "t_dir": [
+     -0.9084,
+     -0.418,
+     0.0
+    ],
+    "u_dir": [
+     -0.418,
+     0.9084,
+     0.0
+    ],
+    "part_stem": "trunk",
+    "part": "T01",
+    "dist": 2.8,
+    "point": [
+     -31.25,
+     -18.5,
+     126.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     -1.0
+    ],
+    "wall": 10.0,
+    "behind": 22.5
+   },
+   "reason": "复审 #3 M1：桥根只 14% 落实体（17/119 格）、离 shell_R 0.42、位置过时（S5 z 132）、挡右髋横滚镜像走法逼出 236 mm 绕行、bus_S34_S5 为去此站绕 148.9 mm；协调员 02:22 定：删桥，侧腔一分二 S3/S4/S5 改泡棉平贴 T01 内墙 + 扎带绕线束（内墙 1.9 厚、背后净空 0.6 < 1.5，不开 A 两孔）"
+  }
+ ],
+ "version_was_until_2026_09_26_hr44": "v1",
+ "version_was_until_2026_09_26_hr44b": "v1-build5（颈桥 8 条删，只剩 T01 三个）",
+ "version_was_until_2026_09_26_hr45": "v1-build6（只剩 T01 FX_S2 两孔）"
+}
