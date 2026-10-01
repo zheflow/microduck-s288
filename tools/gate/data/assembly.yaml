@@ -1,0 +1,5167 @@
+# 本文件由 docs/gate/inventory_v2.json + inventory_original.json + comparison_original_vs_v2.md 机械转换而来。
+# 字段约定见 tools/gate/data/README.md：
+#   · 每条记录必须有 provenance（duck.py:行 / s288.py:行 / ankle_split.py:行 / mechanical_audit.json:键 /
+#     inventory_original.json:路径 / inventory_v2.json:路径 / MJCF:行 / comparison_original_vs_v2.md:编号）
+#   · 数值字段统一写成 {v: <值>, src: measured|datasheet|assumed}
+#   · 搬不过来的值写 v: null，并在同条记录里给 unknown_class + unknown_reason
+# 单位：mm / mm^3 / g / N / degC，除非字段名另有后缀。不四舍五入。
+# assembly.yaml —— 19 步装配序 + 拆卸序。第 4 层按这里逐步做扫掠。
+# already_installed 是按 seq（物理顺序，2026-09-13 起）累加出来的，扫掠时移动件要对它做碰撞。
+# verified=false 的步没有任何几何证据，第 4 层对它判 BLOCK（元规则 4）。
+schema_version: 1
+counts:
+  steps: 21
+  verified_steps_was_until_2026_09_29_hr52: 11
+  verified_steps: 10
+  disassembly_entries: 10
+  steps_with_declared_motions: 20
+  tool_states_was_until_2026_09_29_hr52: 26
+  tool_states: 31
+  counts_note_2026-09-22_hr34: 步 20 = 头子总成挂头俯仰舵机（原 14b）；seq 重排见各步 order_note
+  counts_note_2026-09-23_hr39c: hr39c：步 18 动作 5 → 6（加 eyes_onto_face_plate，嘴子总成挪到脸板之后）；zz_ubec 步 19 → 步 18（随 H03）；步
+    13 与 H02_on / headyaw_servo_in_N03 / N02_on_headyaw 去掉误塞的嘴三件；步 20 / 拆序 0 / head_on_headpitch 补头里新件与圆眼
+  counts_note_2026-09-22_hr37: hr37：tool_states + h04_bench；步 18 加 sbc_onto_posts / face_plate_into_groove 两组动作
+  counts_note_2026-09-24_hr39f: 新增末步21对插+盖子；拆序先盖/断电再原流程；新几何未复用旧proven。
+  counts_note_2026-09-25_hr44reg: "线束装配子步（一分二就位 / 接链顺序 / 头内扎束 + 胶带）登在步 18 / 19 的 harness_steps_2026-09-25_hr44reg，不进 assembly_order、不加 L4 步（插线 / 扎线动作不可扫，plugging_steps_hr43* 先例）；步数 21 不变"
+  counts_note_2026-09-29_hr52: 'hr52 本轮没加步 / 动作 / 工位（ToF 装在已有的 h04_bench 工位、随已有的 18d 组走）；按实际条目重算：steps 21、disassembly_entries 10、steps_with_declared_motions 20 不变；verified_steps 11 → 10（verified: true 的是步 1/2/3/4/9/10/14/15/17/20）、tool_states 26 → 31（多出的 j02_bench / h05_keep_screws / h07_bench / h07_on_h01 / h05_bench_radxa 按各自 provenance 是 hr41 / hr43 加的，当时计数没跟）—— 这两处是旧口径差，不是 hr52 改的'
+subassemblies:
+  ankle_arm:
+    members: []
+    note: L07 座单独喂 6700（步 3，workspace *_detached_ankle_arm）
+  ankle:
+    members:
+    - ankle_arm
+    note: 踝子总成 L05+踝舵机+L04+L07+6700+L06（步 1,2,4,5）
+  upper_leg:
+    members: []
+    note: L03+髋俯仰/膝舵机+膝 6704（步 7、8a 膝轴承）
+  leg:
+    members:
+    - upper_leg
+    - ankle
+    note: 踝子总成穿入膝轴承（8b）起，踝与大腿合为一条腿
+  trunk:
+    members: []
+    note: T01+偏航舵机+6702+L01+横滚舵机+横滚 6704+L02（步 9,10,6,8c,8d）—— 09-17 横滚 6704 取消，8c 压装成空步
+  body:
+    members:
+    - trunk
+    - leg
+    note: 腿子总成贴上 L02 俯仰盘（8e）起
+  head:
+    members: []
+    note: 09-17 hr12 新序：N03 台架（偏航 6704/N08/N02/N06/B 22×16×4/A 6704+N05/横滚舵机/N04/N07，步 11）→ 偏航舵机 −y 横进 + F16（步 12）→ H01 从上套下 + H02（步 13）→ H03/顶壳（步 18）；hr34：这四步 seq 15–18，在壳（seq 14）之后做，然后步 20 挂上
+  neck:
+    members: []
+    note: N01 + 头俯仰舵机（步 14，seq 11）+ 颈俯仰舵机（步 15a，seq 12）；hr34 起颈单独上躯干轭（15b）
+  neck_head:
+    members:
+    - neck
+    - head
+    note: hr34：头子总成在壳之后（步 20，seq 19）挂上头俯仰舵机；此前 neck_head 在 14b 就合体的旧序作废
+  robot:
+    members:
+    - body
+    - neck_head
+    note: 颈上躯干轭（15b，seq 12）起；电池（16）、壳（17）、头子总成挂上（20）、电子件（19）
+pre_assembly_2026-09-15:
+  id: pre_tap_servo_holes
+  action: 所有 S288 的法兰 6 孔（Ø1.7 光孔，手册"深 3.0 MAX 用 M2 自攻"）与背面 4 角孔（Ø1.7）在装任何件之前，先用装机同款 M2 自攻螺丝**空拧到底再退出**，把牙切好；或用 M2 丝锥攻到 3.0。
+  why: 2026-09-15 测试台实物：TB02 摆臂 6 孔对位正确（分度圆 Ø10.5 定案），但 M2×10 露出只 2.5 mm（7.0 承压层 + 0.5 垫圈），自攻锥形导入段占 ~1 mm，剩 1.5 mm 切不动光孔 → "吃不上劲"拧不进。整鸭法兰组同样：F02 露出 2.0、F04/F06/F08 2.5，全是自攻进光孔；预先开牙后短露出也能咬住。
+  applies_to:
+  - F02_hipyaw_flange
+  - F04_hiproll_flange
+  - F06_hippitch_flange
+  - F08_knee_flange
+  - F10
+  - F11
+  - F13
+  - F14
+  - F17
+  - F19
+  - F21
+  - F03_hiproll_back
+  - F01_hipyaw_back
+  - F05_hippitch_back
+  - F09
+  - F15
+  - F18
+  - F22
+  note: 空拧时舵机不通电、手拧，感觉到底就停（塑料盲孔顶死会滑牙）；每个孔只开一次牙，反复拆装次数见 S288 全塑料约束。
+  tool: PH0 + M2 自攻（或 M2 丝锥）
+  gate_note: 不是装配步（无零件运动），第 4 层不判；只作装配前置说明。
+assembly_order:
+- step: 1
+  id: step01
+  seq: 1
+  subassembly_of: ankle
+  action: L05 从法兰侧套到踝舵机，拧 6×M2×8
+  parts:
+  - L05
+  - servo_ankle
+  direction: +ex（舵机法兰方向）
+  tool: PH0
+  path:
+    kind: linear
+    axis: +ex（舵机法兰方向）
+    len_mm: 60.0
+    step_mm: 0.25
+    peak_mm3: 0.000208
+  fasteners:
+  - F10_ankle_flange
+  already_installed: []
+  verified_by: assembly_audit ankle_paths main_to_servo 0.000208
+  verified: true
+  provenance:
+  - duck.py:543-555
+  - mechanical_audit.json:assembly_and_fits.ankle_paths
+  - inventory_v2.json:assembly_order[0]
+  required_motion_groups:
+    left_foot_to_servo:
+      workspace: left_ankle
+      movers:
+      - ankle_foot
+      present:
+      - ankle_foot
+      - servo__leg_ankle_left
+    right_foot_to_servo:
+      workspace: right_ankle
+      movers:
+      - ankle_foot_R
+      present:
+      - ankle_foot_R
+      - servo__leg_2_ankle_right
+  motions:
+  - id: left_foot_to_servo
+    workspace: left_ankle
+    movers:
+    - ankle_foot
+    present:
+    - ankle_foot
+    - servo__leg_ankle_left
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0
+    - 1
+    - 0
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: tools/cad/assembly_audit.py:verify_assembly；零位实体读回，指定工位先保持与其他子总成分离
+  - id: right_foot_to_servo
+    workspace: right_ankle
+    movers:
+    - ankle_foot_R
+    present:
+    - ankle_foot_R
+    - servo__leg_2_ankle_right
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0
+    - -1
+    - 0
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: tools/cad/assembly_audit.py:verify_assembly；零位实体读回，指定工位先保持与其他子总成分离
+- step: 2
+  id: step02
+  seq: 2
+  subassembly_of: ankle
+  action: L05+舵机一起装入 L04，拧背面 4×M2×6（上排经 L05 Ø4.6 通道）
+  parts:
+  - L05
+  - servo_ankle
+  - L04
+  direction: +ex
+  tool: PH0（通道 Ø4.6 未验证）
+  path:
+    kind: linear
+    axis: +ex
+    len_mm: 60.0
+    step_mm: 0.25
+    peak_mm3: 0.0
+  fasteners:
+  - F09_ankle_back
+  already_installed:
+  - L05
+  - servo_ankle
+  verified_by: ankle_paths main_and_servo_to_L04 0.0
+  verified: true
+  provenance:
+  - duck.py:526-527
+  - duck.py:552
+  - mechanical_audit.json:assembly_and_fits.ankle_paths
+  - inventory_v2.json:assembly_order[1]
+  required_motion_groups:
+    left_foot_and_servo:
+      workspace: left_ankle
+      movers:
+      - ankle_foot
+      - servo__leg_ankle_left
+      present:
+      - ankle_foot
+      - servo__leg_ankle_left
+      - lower_leg
+    right_foot_and_servo:
+      workspace: right_ankle
+      movers:
+      - ankle_foot_R
+      - servo__leg_2_ankle_right
+      present:
+      - ankle_foot_R
+      - servo__leg_2_ankle_right
+      - lower_leg_R
+  motions:
+  - id: left_foot_and_servo
+    workspace: left_ankle
+    movers:
+    - ankle_foot
+    - servo__leg_ankle_left
+    present:
+    - ankle_foot
+    - servo__leg_ankle_left
+    - lower_leg
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0
+    - 1
+    - 0
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: tools/cad/assembly_audit.py:verify_assembly；零位实体读回，指定工位先保持与其他子总成分离
+  - id: right_foot_and_servo
+    workspace: right_ankle
+    movers:
+    - ankle_foot_R
+    - servo__leg_2_ankle_right
+    present:
+    - ankle_foot_R
+    - servo__leg_2_ankle_right
+    - lower_leg_R
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0
+    - -1
+    - 0
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: tools/cad/assembly_audit.py:verify_assembly；零位实体读回，指定工位先保持与其他子总成分离
+- step: 3
+  id: step03
+  seq: 3
+  subassembly_of: ankle_arm
+  action: 6700 从内侧(+x)喂入拆下的 L07 座
+  parts_note_2026-09-23_hr39c: "'6700' → 两颗踝轴承显式实例：型号名按外径 Ø15 解析会把嘴那颗 bearing_jaw（hr38 起第 3 颗 6700ZZ）也算进踝子总成，L4 约 15 格 present 缺 bearing_jaw 的根因"
+  parts:
+  - bearing_left_ankle
+  - bearing_right_ankle
+  - L07
+  direction: +ex
+  tool: 手/压
+  path:
+    kind: linear
+    axis: +ex
+    len_mm: 60.0
+    step_mm: 0.25
+    peak_mm3: 1e-06
+  fasteners: []
+  already_installed:
+  - L05
+  - servo_ankle
+  - L04
+  verified_by: ankle_paths bearing_to_detached_arm 1e-6
+  verified: true
+  provenance:
+  - ankle_split.py:51
+  - mechanical_audit.json:assembly_and_fits.ankle_paths
+  - inventory_v2.json:assembly_order[2]
+  required_motion_groups:
+    left_bearing_to_detached_arm:
+      workspace: left_detached_ankle_arm
+      movers:
+      - bearing_left_ankle
+      present:
+      - bearing_left_ankle
+      - ankle_rear_arm
+    right_bearing_to_detached_arm:
+      workspace: right_detached_ankle_arm
+      movers:
+      - bearing_right_ankle
+      present:
+      - bearing_right_ankle
+      - ankle_rear_arm_R
+  motions:
+  - id: left_bearing_to_detached_arm
+    workspace: left_detached_ankle_arm
+    movers:
+    - bearing_left_ankle
+    present:
+    - bearing_left_ankle
+    - ankle_rear_arm
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0
+    - 1
+    - 0
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: tools/cad/assembly_audit.py:verify_assembly；零位实体读回，指定工位先保持与其他子总成分离
+  - id: right_bearing_to_detached_arm
+    workspace: right_detached_ankle_arm
+    movers:
+    - bearing_right_ankle
+    present:
+    - bearing_right_ankle
+    - ankle_rear_arm_R
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0
+    - -1
+    - 0
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: tools/cad/assembly_audit.py:verify_assembly；零位实体读回，指定工位先保持与其他子总成分离
+- step: 4
+  id: step04
+  seq: 4
+  subassembly_of: ankle
+  action: L07+轴承从背侧套上 L04 轴颈，榫对位，拧 2×M2×12 进 L05
+  parts_note_2026-09-23_hr39c: "'6700' → 两颗踝轴承显式实例：型号名按外径 Ø15 解析会把嘴那颗 bearing_jaw（hr38 起第 3 颗 6700ZZ）也算进踝子总成，L4 约 15 格 present 缺 bearing_jaw 的根因"
+  parts:
+  - L07
+  - bearing_left_ankle
+  - bearing_right_ankle
+  - L04
+  - L05
+  direction: -ex
+  tool: PH0 经 L06 开口/Ø2.6
+  path:
+    kind: linear
+    axis: -ex
+    len_mm: 60.0
+    step_mm: 0.25
+    peak_mm3: 1.3e-05
+  fasteners:
+  - F24_L07_to_L05
+  already_installed:
+  - L05
+  - servo_ankle
+  - L04
+  - '6700'
+  - L07
+  verified_by: ankle_paths arm_and_bearing_to_assembly 1.3e-5；报告 工具 0
+  verified: true
+  provenance:
+  - ankle_split.py:44-58
+  - mechanical_audit.json:assembly_and_fits.ankle_paths
+  - inventory_v2.json:assembly_order[3]
+  required_motion_groups:
+    left_arm_and_bearing:
+      workspace: left_ankle
+      movers:
+      - ankle_rear_arm
+      - bearing_left_ankle
+      present:
+      - ankle_rear_arm
+      - bearing_left_ankle
+      - ankle_foot
+      - servo__leg_ankle_left
+      - lower_leg
+    right_arm_and_bearing:
+      workspace: right_ankle
+      movers:
+      - ankle_rear_arm_R
+      - bearing_right_ankle
+      present:
+      - ankle_rear_arm_R
+      - bearing_right_ankle
+      - ankle_foot_R
+      - servo__leg_2_ankle_right
+      - lower_leg_R
+  motions:
+  - id: left_arm_and_bearing
+    workspace: left_ankle
+    movers:
+    - ankle_rear_arm
+    - bearing_left_ankle
+    present:
+    - ankle_rear_arm
+    - bearing_left_ankle
+    - ankle_foot
+    - servo__leg_ankle_left
+    - lower_leg
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0
+    - -1
+    - 0
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: tools/cad/assembly_audit.py:verify_assembly；零位实体读回，指定工位先保持与其他子总成分离
+  - id: right_arm_and_bearing
+    workspace: right_ankle
+    movers:
+    - ankle_rear_arm_R
+    - bearing_right_ankle
+    present:
+    - ankle_rear_arm_R
+    - bearing_right_ankle
+    - ankle_foot_R
+    - servo__leg_2_ankle_right
+    - lower_leg_R
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0
+    - 1
+    - 0
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: tools/cad/assembly_audit.py:verify_assembly；零位实体读回，指定工位先保持与其他子总成分离
+- step: 5
+  id: step05
+  seq: 5
+  subassembly_of: ankle
+  action: 装 L06 鞋底（TPU，从下套上贴脚，内壁点软胶；无螺丝——2026-09-19 用户定 (a)）
+  parts:
+  - L06
+  - L05
+  - L07
+  direction: -z（鞋底从下贴上；抽出 −z）
+  tool: 无（胶：B7000/E6000 类软胶，502 粘不住 TPU）
+  path:
+    kind: linear
+    axis: -z
+    len_mm: 30.0
+    step_mm: 0.25
+    peak_mm3: null
+  fasteners: []
+  fasteners_note_2026-09-19: F23 改为无螺丝点胶（fasteners.yaml:F23 qty 0 / none_adhesive）；原版 sole_left/foot_left 无孔、靠 TPU 撑紧
+  already_installed:
+  - L05
+  - servo_ankle
+  - L04
+  - '6700'
+  - L07
+  verified_by: 无
+  verified: false
+  provenance:
+  - ankle_split.py:94-96
+  - 打印清单与参数.md 螺丝表
+  - inventory_v2.json:assembly_order[4]
+  unknown_class: not_modeled
+  unknown_reason: 2026-09-19 前写"4×M2×8 孔位来自原版网格、未建模"——原版网格根本没孔，现按点胶；装入路径由 motions 判
+  required_motion_groups:
+    L_sole:
+      workspace: L_ankle_bench
+      movers:
+      - sole
+      present:
+      - lower_leg
+      - ankle_foot
+      - ankle_rear_arm
+      - bearing_left_ankle
+      - servo__leg_ankle_left
+      - sole
+    R_sole:
+      workspace: R_ankle_bench
+      movers:
+      - sole_R
+      present:
+      - lower_leg_R
+      - ankle_foot_R
+      - ankle_rear_arm_R
+      - bearing_right_ankle
+      - servo__leg_2_ankle_right
+      - sole_R
+  motions:
+  - id: L_sole
+    workspace: L_ankle_bench
+    movers:
+    - sole
+    present:
+    - lower_leg
+    - ankle_foot
+    - ankle_rear_arm
+    - bearing_left_ankle
+    - servo__leg_ankle_left
+    - sole
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0.0
+    - 0.0
+    - -1.0
+    len_mm: 30.0
+    step_mm: 0.25
+    provenance: tools/gate/data/assembly.yaml 09-12 第二批：工位按 09-12 ⑤ 修正的物理顺序声明（腿从躯干往下逐级装），方向来自 duckstructure.lib.sfw 舵机帧 + mechanical_audit.servo_paths 的自由抽出方向；零位实体读回
+  - id: R_sole
+    workspace: R_ankle_bench
+    movers:
+    - sole_R
+    present:
+    - lower_leg_R
+    - ankle_foot_R
+    - ankle_rear_arm_R
+    - bearing_right_ankle
+    - servo__leg_2_ankle_right
+    - sole_R
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0.0
+    - 0.0
+    - -1.0
+    len_mm: 30.0
+    step_mm: 0.25
+    provenance: tools/gate/data/assembly.yaml 09-12 第二批：工位按 09-12 ⑤ 修正的物理顺序声明（腿从躯干往下逐级装），方向来自 duckstructure.lib.sfw 舵机帧 + mechanical_audit.servo_paths 的自由抽出方向；零位实体读回
+  order_note_2026-09-12: 鞋底在踝子总成（1–4 步）做完后、上小腿子总成之前从 −z 贴上；~~4×M2×8 从下往上拧（F23）~~ 2026-09-19 起点胶固定
+- step: 6
+  id: step06
+  seq: 9
+  subassembly_of: trunk
+  action: 髋横滚舵机自下(−z)装入 L01（6703 整体座挡肩在法兰顶面 13.0 外 0.3，顶开 60°），拧上排 2×M2×6；6703 套上 L10 轴套后从法兰侧沿 −x 推入 L01 整体座到座唇（轴套后肩→内圈→L02 压面为夹紧路径，外圈 +x 无压盖）
+  parts_note_2026-09-17_hr12: 6703 与 L10 从本步移到步 8（横滚轴承+轴套是舵机装入 L01 之后沿法兰推入座，不与舵机同装；hr12 Gate 复跑：轴套在场时舵机 −z 装入撞 50 mm³ = 声明顺序错）
+  parts:
+  - servo_hip_roll
+  - L01
+  direction: 世界 -z→+z
+  tool: PH0
+  path:
+    kind: linear
+    axis: 世界 -z→+z
+    len_mm: 60.0
+    step_mm: 0.5
+    peak_mm3: 0.0
+  fasteners:
+  - F03_hiproll_back
+  already_installed:
+  - L05
+  - servo_ankle
+  - L04
+  - '6700'
+  - L07
+  - L06
+  - servo_hip_pitch
+  - servo_knee
+  - L03
+  - servo_hip_yaw×2
+  - T01
+  - 6702×2
+  - L01×2
+  verified_by: 待 hr09 后完整装配路径仿真；局部：restored_bearing_audit（髋两站装配路径）/ head_specs 审计（头三站 stage 采样）
+  verified: false
+  provenance:
+  - duck.py:462
+  - duck.py:469
+  - mechanical_audit.json:assembly_and_fits.servo_paths
+  - inventory_v2.json:assembly_order[5]
+  required_motion_groups:
+    left_roll_servo:
+      workspace: L_hip_carrier_on_trunk
+      movers:
+      - servo__yaw2roll_hip_l
+      present:
+      - trunk
+      - servo__trunk_base_yaw2roll
+      - servo__trunk_base_bearing_roll
+      - bearing_left_hip_yaw
+      - bearing_right_hip_yaw
+      - yaw2roll
+      - yaw2roll_R
+      - servo__yaw2roll_hip_l
+    right_roll_servo:
+      workspace: R_hip_carrier_on_trunk
+      movers:
+      - servo__bearing_roll_hip_l_2
+      present:
+      - trunk
+      - servo__trunk_base_yaw2roll
+      - servo__trunk_base_bearing_roll
+      - bearing_left_hip_yaw
+      - bearing_right_hip_yaw
+      - yaw2roll
+      - yaw2roll_R
+      - servo__bearing_roll_hip_l_2
+      - servo__yaw2roll_hip_l
+      - hip
+      - upper_leg
+      - servo__upper_leg_left_upper_leg_left
+      - servo__upper_leg_left_leg
+      - bearing_left_knee
+      - lower_leg
+      - ankle_foot
+      - ankle_rear_arm
+      - bearing_left_ankle
+      - servo__leg_ankle_left
+      - sole
+  motions:
+  - id: left_roll_servo
+    workspace: L_hip_carrier_on_trunk
+    movers:
+    - servo__yaw2roll_hip_l
+    present:
+    - trunk
+    - servo__trunk_base_yaw2roll
+    - servo__trunk_base_bearing_roll
+    - bearing_left_hip_yaw
+    - bearing_right_hip_yaw
+    - yaw2roll
+    - yaw2roll_R
+    - servo__yaw2roll_hip_l
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0
+    - 0
+    - -1
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: tools/gate/data/assembly.yaml 09-12 第二批：工位按 09-12 ⑤ 修正的物理顺序声明（腿从躯干往下逐级装），方向来自 duckstructure.lib.sfw 舵机帧 + mechanical_audit.servo_paths 的自由抽出方向；零位实体读回；09-12 第二批：工位改为 L01 已装在躯干上（F02 六颗要从空杯腔拧，横滚舵机必须后装）
+  - id: right_roll_servo
+    workspace: R_hip_carrier_on_trunk
+    movers:
+    - servo__bearing_roll_hip_l_2
+    present:
+    - trunk
+    - servo__trunk_base_yaw2roll
+    - servo__trunk_base_bearing_roll
+    - bearing_left_hip_yaw
+    - bearing_right_hip_yaw
+    - yaw2roll
+    - yaw2roll_R
+    - servo__bearing_roll_hip_l_2
+    - servo__yaw2roll_hip_l
+    - hip
+    - upper_leg
+    - servo__upper_leg_left_upper_leg_left
+    - servo__upper_leg_left_leg
+    - bearing_left_knee
+    - lower_leg
+    - ankle_foot
+    - ankle_rear_arm
+    - bearing_left_ankle
+    - servo__leg_ankle_left
+    - sole
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0
+    - 0
+    - -1
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: tools/gate/data/assembly.yaml 09-12 第二批：工位按 09-12 ⑤ 修正的物理顺序声明（腿从躯干往下逐级装），方向来自 duckstructure.lib.sfw 舵机帧 + mechanical_audit.servo_paths 的自由抽出方向；零位实体读回；09-12 第二批：工位改为 L01 已装在躯干上（F02 六颗要从空杯腔拧，横滚舵机必须后装）
+  order_note_2026-09-12: 本步在第 10 步（L01 上躯干、F02 拧紧）之后执行；右侧装入时左腿已完整（present 含左腿全部）
+  note_2026-09-15: F03 可达性复算（r3 placed STL，工位 tool:hiproll_back_L/R = T01+偏航舵机+L01+横滚舵机在场；docs/reports/F03可达性_2026-09-15.md）：4 个坐面在新 L01 上重找于 x=−7.29（export y −13.29，比 09-13 的 −13.24 外移 0.05）；外排 y=±25.5
+    两颗 Ø4.2 直杆到机外 37.5/44.5 mm 交集 0 mm³、畅通；内排 y=±9.5 两颗从坐面沿 −x 13.81 mm（头顶起 12.2 mm）撞 T01 电池仓前壁（x −21.2..−24.6，厚 3.4，壁在 |y|≤14.5；Ø4.2 全程交集 48.5 mm³，Ø4.0 44.0 mm³），壁后 18.0..35.9 mm 是电池。① 短批头：任何 1/4" 批头（≥20
+    mm）+ 手拧套沿轴都放不进 12.2 mm，直杆不成立；只有弯头/L 形 PH0（短脚含头 ≤11 mm，长脚朝 +y（外侧，5 mm 外过壁沿）或 −z（下方，z 118→70 以内无件））几何上成立；② 改下排 (y±8, z−22.5)=世界 z 80：L01 下缘 z=87、下排处无料；即便加料，内排 y=±9.5 仍在壁后（舵机背面 x=−7.0 起 14.2 mm 撞同一堵壁），不成立；③
+    改序『横滚舵机先入 L01 拧 F03 → 整体上 T01 → 再拧 F02』：F02 六颗坐面 z=114.5 头朝 −z，舵机顶面在坐面下 2.5 mm（头高 1.6，头顶到舵机 0.9 mm），无任何直杆通道，不成立。本步 seq/action 未改，只加本注释。
+  action_was_until_2026-09-17: 髋横滚舵机自下(-z)装入 L01，拧上排 2×M2×6
+  current_design_ref: docs/design_2026-09-17_bearing_rebuild/记录.md（10–14 条，hr07/hr08 整体座；头部 Codex 补丁 + 修正）
+- step: 7
+  id: step07
+  seq: 6
+  subassembly_of: upper_leg
+  action: 髋俯仰、膝舵机自下(−z)装入 L03（俯仰 6703 整体座挡肩在法兰顶面外 0.3；座靠腹板接后下块），各 4×M2×6
+  parts:
+  - servo_hip_pitch
+  - servo_knee
+  - L03
+  direction: -z
+  tool: PH0
+  path:
+    kind: linear
+    axis: -z
+    len_mm: 60.0
+    step_mm: 0.5
+    peak_mm3: 0.0
+  fasteners:
+  - F05_hippitch_back
+  - F07_knee_back
+  already_installed:
+  - L05
+  - servo_ankle
+  - L04
+  - '6700'
+  - L07
+  - L06
+  verified_by: 待 hr09 后完整装配路径仿真；局部：restored_bearing_audit（髋两站装配路径）/ head_specs 审计（头三站 stage 采样）
+  verified: false
+  provenance:
+  - duck.py:500
+  - duck.py:503
+  - mechanical_audit.json:assembly_and_fits.servo_paths
+  - inventory_v2.json:assembly_order[6]
+  required_motion_groups:
+    left_hip_servo:
+      workspace: left_upper_leg
+      movers:
+      - servo__upper_leg_left_upper_leg_left
+      present:
+      - servo__upper_leg_left_upper_leg_left
+      - upper_leg
+      - servo__upper_leg_left_leg
+    left_knee_servo:
+      workspace: left_upper_leg
+      movers:
+      - servo__upper_leg_left_leg
+      present:
+      - servo__upper_leg_left_leg
+      - upper_leg
+      - servo__upper_leg_left_upper_leg_left
+    right_hip_servo:
+      workspace: right_upper_leg
+      movers:
+      - servo__upper_leg_right_upper_leg_right
+      present:
+      - servo__upper_leg_right_upper_leg_right
+      - upper_leg_R
+      - servo__upper_leg_right_leg_2
+    right_knee_servo:
+      workspace: right_upper_leg
+      movers:
+      - servo__upper_leg_right_leg_2
+      present:
+      - servo__upper_leg_right_leg_2
+      - upper_leg_R
+      - servo__upper_leg_right_upper_leg_right
+  motions:
+  - id: left_hip_servo
+    workspace: left_upper_leg
+    movers:
+    - servo__upper_leg_left_upper_leg_left
+    present:
+    - servo__upper_leg_left_upper_leg_left
+    - upper_leg
+    - servo__upper_leg_left_leg
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0
+    - 0
+    - -1
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: tools/cad/assembly_audit.py:verify_assembly；零位实体读回，指定工位先保持与其他子总成分离
+  - id: left_knee_servo
+    workspace: left_upper_leg
+    movers:
+    - servo__upper_leg_left_leg
+    present:
+    - servo__upper_leg_left_leg
+    - upper_leg
+    - servo__upper_leg_left_upper_leg_left
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0
+    - 0
+    - -1
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: tools/cad/assembly_audit.py:verify_assembly；零位实体读回，指定工位先保持与其他子总成分离
+  - id: right_hip_servo
+    workspace: right_upper_leg
+    movers:
+    - servo__upper_leg_right_upper_leg_right
+    present:
+    - servo__upper_leg_right_upper_leg_right
+    - upper_leg_R
+    - servo__upper_leg_right_leg_2
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0
+    - 0
+    - -1
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: tools/cad/assembly_audit.py:verify_assembly；零位实体读回，指定工位先保持与其他子总成分离
+  - id: right_knee_servo
+    workspace: right_upper_leg
+    movers:
+    - servo__upper_leg_right_leg_2
+    present:
+    - servo__upper_leg_right_leg_2
+    - upper_leg_R
+    - servo__upper_leg_right_upper_leg_right
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0
+    - 0
+    - -1
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: tools/cad/assembly_audit.py:verify_assembly；零位实体读回，指定工位先保持与其他子总成分离
+  action_was_until_2026-09-17: 髋俯仰、膝舵机自下(-z)装入 L03（另一颗已装也通过），各 4×M2×6
+  current_design_ref: docs/design_2026-09-17_bearing_rebuild/记录.md（10–14 条，hr07/hr08 整体座；头部 Codex 补丁 + 修正）
+- step: 8
+  id: step08
+  order_note_2026-09-13: 8b' L02 先在腿台面贴俯仰法兰拧 F06（D15），再连腿一起套横滚法兰拧 F04；见 motions 顺序
+  seq: 10
+  subassembly_of: body
+  action: 8a 膝：6704 压入 L03 膝座 → L04 毂穿入 → 6×M2×10；8b 髋俯仰：6703 套上 L13 轴套，从法兰侧沿局部 −x 推入 L03 整体座到座唇；8c **L02 先装到俯仰站**：Ø18.2 压面贴 6703 内圈，F06 6×M2×10 从 L02 横滚侧的空闲面拧（此时横滚模块尚未接）；8d L02+整条腿沿横滚轴 +x 套上 L10 轴套（压面贴内圈），F04
+    6×M2×10 从 +x 拧。顺序不可反：F06 的起子被 L01/横滚舵机挡（hr06 审计 251 mm³）
+  action_was_until_2026-09-17: 6704 压入 L03 膝座 → L04 毂穿入 → 6×M2×10；（09-17 取消：6704 压入 L01 座 → L02 毂穿入）L02 Ø20 盘直接贴横滚法兰 → 6×M2×10；L02 另一面接髋俯仰法兰 6×M2×10
+  motions_note_2026-09-17_hr12: 新增 4 条：左右 俯仰 6703+L13 沿法兰推入 L03 座、横滚 6703+L10 推入 L01 座；hip_onto_roll_flange 的 movers 加俯仰轴承+轴套（它们随腿一起套上横滚法兰）
+  parts_note_2026-09-18: '''6704×1'' 改成显式 placed 实例：型号→外径解析会把头部两颗 6704 也算进本步（L4 present_covers_derived 假红）'
+  parts:
+  - bearing_left_knee
+  - bearing_right_knee
+  - 6703×2
+  - L10
+  - L13
+  - L01
+  - L02
+  - L03
+  - L04
+  direction: 膝/俯仰沿舵机轴（世界 ±y）；横滚沿 +x
+  tool: PH0 / 压装
+  path:
+    kind: linear
+    axis: 见 motions
+    len_mm: 60.0
+    step_mm: 0.25
+    peak_mm3: null
+  fasteners:
+  - F04_hiproll_flange
+  - F06_hippitch_flange
+  - F08_knee_flange
+  already_installed:
+  - L05
+  - servo_ankle
+  - L04
+  - '6700'
+  - L07
+  - L06
+  - servo_hip_pitch
+  - servo_knee
+  - L03
+  - servo_hip_yaw×2
+  - T01
+  - 6702×2
+  - L01×2
+  - servo_hip_roll
+  - L01
+  verified_by: 待 hr09 后完整装配路径仿真；局部：restored_bearing_audit（髋两站装配路径）/ head_specs 审计（头三站 stage 采样）
+  verified: false
+  provenance:
+  - duck.py:464
+  - duck.py:478
+  - duck.py:502
+  - duck.py:517
+  - mechanical_audit.json:assembly_and_fits.bearings
+  - inventory_v2.json:assembly_order[7]
+  required_motion_groups:
+    L_knee_bearing_into_L03:
+      workspace: L_upper_leg_bench
+      movers:
+      - bearing_left_knee
+      present:
+      - upper_leg
+      - servo__upper_leg_left_upper_leg_left
+      - servo__upper_leg_left_leg
+      - bearing_left_knee
+    L_lower_sub_onto_knee:
+      workspace: L_upper_leg_bench
+      movers:
+      - lower_leg
+      - ankle_foot
+      - ankle_rear_arm
+      - bearing_left_ankle
+      - servo__leg_ankle_left
+      - sole
+      present:
+      - upper_leg
+      - servo__upper_leg_left_upper_leg_left
+      - servo__upper_leg_left_leg
+      - bearing_left_knee
+      - lower_leg
+      - ankle_foot
+      - ankle_rear_arm
+      - bearing_left_ankle
+      - servo__leg_ankle_left
+      - sole
+    L_pitch_bearing_sleeve_into_L03:
+      workspace: L_upper_leg_bench
+      movers:
+      - bearing_left_hip_pitch
+      - hip_pitch_sleeve
+      present:
+      - upper_leg
+      - servo__upper_leg_left_upper_leg_left
+      - servo__upper_leg_left_leg
+      - bearing_left_knee
+      - lower_leg
+      - ankle_foot
+      - ankle_rear_arm
+      - bearing_left_ankle
+      - servo__leg_ankle_left
+      - sole
+      - bearing_left_hip_pitch
+      - hip_pitch_sleeve
+    L_hip_onto_pitch_flange:
+      workspace: L_upper_leg_bench
+      movers:
+      - hip
+      present:
+      - hip
+      - upper_leg
+      - servo__upper_leg_left_upper_leg_left
+      - servo__upper_leg_left_leg
+      - bearing_left_knee
+      - lower_leg
+      - ankle_foot
+      - ankle_rear_arm
+      - bearing_left_ankle
+      - servo__leg_ankle_left
+      - sole
+      - bearing_left_hip_pitch
+      - hip_pitch_sleeve
+    L_roll_bearing_sleeve_into_L01:
+      workspace: L_hip_on_trunk
+      movers:
+      - bearing_left_hip_roll
+      - hip_roll_sleeve
+      present:
+      - trunk
+      - servo__trunk_base_yaw2roll
+      - servo__trunk_base_bearing_roll
+      - bearing_left_hip_yaw
+      - bearing_right_hip_yaw
+      - yaw2roll
+      - yaw2roll_R
+      - servo__yaw2roll_hip_l
+      - servo__bearing_roll_hip_l_2
+      - bearing_left_hip_roll
+      - hip_roll_sleeve
+    L_hip_onto_roll_flange:
+      workspace: L_hip_on_trunk
+      movers:
+      - hip
+      - upper_leg
+      - servo__upper_leg_left_upper_leg_left
+      - servo__upper_leg_left_leg
+      - bearing_left_knee
+      - lower_leg
+      - ankle_foot
+      - ankle_rear_arm
+      - bearing_left_ankle
+      - servo__leg_ankle_left
+      - sole
+      - bearing_left_hip_pitch
+      - hip_pitch_sleeve
+      present:
+      - trunk
+      - servo__trunk_base_yaw2roll
+      - servo__trunk_base_bearing_roll
+      - bearing_left_hip_yaw
+      - bearing_right_hip_yaw
+      - yaw2roll
+      - yaw2roll_R
+      - servo__yaw2roll_hip_l
+      - servo__bearing_roll_hip_l_2
+      - hip
+      - upper_leg
+      - servo__upper_leg_left_upper_leg_left
+      - servo__upper_leg_left_leg
+      - bearing_left_knee
+      - lower_leg
+      - ankle_foot
+      - ankle_rear_arm
+      - bearing_left_ankle
+      - servo__leg_ankle_left
+      - sole
+      - bearing_left_hip_pitch
+      - bearing_left_hip_roll
+      - hip_roll_sleeve
+      - hip_pitch_sleeve
+    R_knee_bearing_into_L03:
+      workspace: R_upper_leg_bench
+      movers:
+      - bearing_right_knee
+      present:
+      - upper_leg_R
+      - servo__upper_leg_right_upper_leg_right
+      - servo__upper_leg_right_leg_2
+      - bearing_right_knee
+    R_lower_sub_onto_knee:
+      workspace: R_upper_leg_bench
+      movers:
+      - lower_leg_R
+      - ankle_foot_R
+      - ankle_rear_arm_R
+      - bearing_right_ankle
+      - servo__leg_2_ankle_right
+      - sole_R
+      present:
+      - upper_leg_R
+      - servo__upper_leg_right_upper_leg_right
+      - servo__upper_leg_right_leg_2
+      - bearing_right_knee
+      - lower_leg_R
+      - ankle_foot_R
+      - ankle_rear_arm_R
+      - bearing_right_ankle
+      - servo__leg_2_ankle_right
+      - sole_R
+    R_pitch_bearing_sleeve_into_L03:
+      workspace: R_upper_leg_bench
+      movers:
+      - bearing_right_hip_pitch
+      - hip_pitch_sleeve_R
+      present:
+      - upper_leg_R
+      - servo__upper_leg_right_upper_leg_right
+      - servo__upper_leg_right_leg_2
+      - bearing_right_knee
+      - lower_leg_R
+      - ankle_foot_R
+      - ankle_rear_arm_R
+      - bearing_right_ankle
+      - servo__leg_2_ankle_right
+      - sole_R
+      - bearing_right_hip_pitch
+      - hip_pitch_sleeve_R
+    R_hip_onto_pitch_flange:
+      workspace: R_upper_leg_bench
+      movers:
+      - hip_R
+      present:
+      - hip_R
+      - upper_leg_R
+      - servo__upper_leg_right_upper_leg_right
+      - servo__upper_leg_right_leg_2
+      - bearing_right_knee
+      - lower_leg_R
+      - ankle_foot_R
+      - ankle_rear_arm_R
+      - bearing_right_ankle
+      - servo__leg_2_ankle_right
+      - sole_R
+      - bearing_right_hip_pitch
+      - hip_pitch_sleeve_R
+    R_roll_bearing_sleeve_into_L01:
+      workspace: R_hip_on_trunk
+      movers:
+      - bearing_right_hip_roll
+      - hip_roll_sleeve_R
+      present:
+      - trunk
+      - servo__trunk_base_yaw2roll
+      - servo__trunk_base_bearing_roll
+      - bearing_left_hip_yaw
+      - bearing_right_hip_yaw
+      - yaw2roll
+      - yaw2roll_R
+      - servo__yaw2roll_hip_l
+      - servo__bearing_roll_hip_l_2
+      - bearing_right_hip_roll
+      - hip_roll_sleeve_R
+    R_hip_onto_roll_flange:
+      workspace: R_hip_on_trunk
+      movers:
+      - hip_R
+      - upper_leg_R
+      - servo__upper_leg_right_upper_leg_right
+      - servo__upper_leg_right_leg_2
+      - bearing_right_knee
+      - lower_leg_R
+      - ankle_foot_R
+      - ankle_rear_arm_R
+      - bearing_right_ankle
+      - servo__leg_2_ankle_right
+      - sole_R
+      - bearing_right_hip_pitch
+      - hip_pitch_sleeve_R
+      present:
+      - trunk
+      - servo__trunk_base_yaw2roll
+      - servo__trunk_base_bearing_roll
+      - bearing_left_hip_yaw
+      - bearing_right_hip_yaw
+      - yaw2roll
+      - yaw2roll_R
+      - servo__yaw2roll_hip_l
+      - servo__bearing_roll_hip_l_2
+      - hip
+      - upper_leg
+      - servo__upper_leg_left_upper_leg_left
+      - servo__upper_leg_left_leg
+      - bearing_left_knee
+      - lower_leg
+      - ankle_foot
+      - ankle_rear_arm
+      - bearing_left_ankle
+      - servo__leg_ankle_left
+      - sole
+      - hip_R
+      - upper_leg_R
+      - servo__upper_leg_right_upper_leg_right
+      - servo__upper_leg_right_leg_2
+      - bearing_right_knee
+      - lower_leg_R
+      - ankle_foot_R
+      - ankle_rear_arm_R
+      - bearing_right_ankle
+      - servo__leg_2_ankle_right
+      - sole_R
+      - bearing_right_hip_pitch
+      - bearing_right_hip_roll
+      - hip_roll_sleeve_R
+      - hip_pitch_sleeve_R
+  motions:
+  - id: L_knee_bearing_into_L03
+    subassembly_of: upper_leg
+    workspace: L_upper_leg_bench
+    movers:
+    - bearing_left_knee
+    present:
+    - upper_leg
+    - servo__upper_leg_left_upper_leg_left
+    - servo__upper_leg_left_leg
+    - bearing_left_knee
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0.0
+    - -1.0
+    - 0.0
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: tools/gate/data/assembly.yaml 09-12 第二批：工位按 09-12 ⑤ 修正的物理顺序声明（腿从躯干往下逐级装），方向来自 duckstructure.lib.sfw 舵机帧 + mechanical_audit.servo_paths 的自由抽出方向；零位实体读回
+  - id: L_lower_sub_onto_knee
+    subassembly_of: leg
+    workspace: L_upper_leg_bench
+    movers:
+    - lower_leg
+    - ankle_foot
+    - ankle_rear_arm
+    - bearing_left_ankle
+    - servo__leg_ankle_left
+    - sole
+    present:
+    - upper_leg
+    - servo__upper_leg_left_upper_leg_left
+    - servo__upper_leg_left_leg
+    - bearing_left_knee
+    - lower_leg
+    - ankle_foot
+    - ankle_rear_arm
+    - bearing_left_ankle
+    - servo__leg_ankle_left
+    - sole
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0.0
+    - -1.0
+    - 0.0
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: tools/gate/data/assembly.yaml 09-12 第二批：工位按 09-12 ⑤ 修正的物理顺序声明（腿从躯干往下逐级装），方向来自 duckstructure.lib.sfw 舵机帧 + mechanical_audit.servo_paths 的自由抽出方向；零位实体读回
+  - id: L_pitch_bearing_sleeve_into_L03
+    subassembly_of: upper_leg
+    workspace: L_upper_leg_bench
+    movers:
+    - bearing_left_hip_pitch
+    - hip_pitch_sleeve
+    present:
+    - upper_leg
+    - servo__upper_leg_left_upper_leg_left
+    - servo__upper_leg_left_leg
+    - bearing_left_knee
+    - lower_leg
+    - ankle_foot
+    - ankle_rear_arm
+    - bearing_left_ankle
+    - servo__leg_ankle_left
+    - sole
+    - bearing_left_hip_pitch
+    - hip_pitch_sleeve
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0.0
+    - -1.0
+    - 0.0
+    len_mm: 20.0
+    step_mm: 0.25
+    provenance: 2026-09-17 hr12 收尾：hr07/hr08 整体座顺序（记录.md 12/14；restored_bearing_audit 路径 bearing_sleeve_into_seat_over_horn）——轴承+轴套沿法兰推入座，不是与舵机一起装
+  - id: L_hip_onto_pitch_flange
+    subassembly_of: leg
+    workspace: L_upper_leg_bench
+    movers:
+    - hip
+    present:
+    - hip
+    - upper_leg
+    - servo__upper_leg_left_upper_leg_left
+    - servo__upper_leg_left_leg
+    - bearing_left_knee
+    - lower_leg
+    - ankle_foot
+    - ankle_rear_arm
+    - bearing_left_ankle
+    - servo__leg_ankle_left
+    - sole
+    - bearing_left_hip_pitch
+    - hip_pitch_sleeve
+    sense: withdrawal_from_assembled
+    outward_world:
+    - -0.0
+    - -1.0
+    - -0.0
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: 2026-09-13 审计第二批 D15：F06 起子探针（tools/gate/out/probe/F06_hippitch_flange.log + L4 tool_access 复算）证明髋俯仰法兰 12 颗头朝 −y（左）/+y（右），在 L02 已上躯干的工位被髋横滚舵机挡在 7.15 mm 处（12/12 不可见，323 mm³）；在腿台面上（无躯干）0 mm³、12/12
+      可见。故 L02 先在腿台面贴上俯仰法兰拧 F06，再连腿一起套上横滚法兰拧 F04（F04 带腿复算：3e-6 mm³、12/12 可见）。原动作 *_upper_sub_onto_hip 作废。方向沿俯仰舵机轴取反
+  - id: L_roll_bearing_sleeve_into_L01
+    subassembly_of: trunk
+    workspace: L_hip_on_trunk
+    movers:
+    - bearing_left_hip_roll
+    - hip_roll_sleeve
+    present:
+    - trunk
+    - servo__trunk_base_yaw2roll
+    - servo__trunk_base_bearing_roll
+    - bearing_left_hip_yaw
+    - bearing_right_hip_yaw
+    - yaw2roll
+    - yaw2roll_R
+    - servo__yaw2roll_hip_l
+    - servo__bearing_roll_hip_l_2
+    - bearing_left_hip_roll
+    - hip_roll_sleeve
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 1.0
+    - 0.0
+    - 0.0
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: 2026-09-17 hr12 收尾：hr07/hr08 整体座顺序（记录.md 12/14；restored_bearing_audit 路径 bearing_sleeve_into_seat_over_horn）——轴承+轴套沿法兰推入座，不是与舵机一起装
+  - id: L_hip_onto_roll_flange
+    subassembly_of: trunk
+    workspace: L_hip_on_trunk
+    movers:
+    - hip
+    - upper_leg
+    - servo__upper_leg_left_upper_leg_left
+    - servo__upper_leg_left_leg
+    - bearing_left_knee
+    - lower_leg
+    - ankle_foot
+    - ankle_rear_arm
+    - bearing_left_ankle
+    - servo__leg_ankle_left
+    - sole
+    - bearing_left_hip_pitch
+    - hip_pitch_sleeve
+    present:
+    - trunk
+    - servo__trunk_base_yaw2roll
+    - servo__trunk_base_bearing_roll
+    - bearing_left_hip_yaw
+    - bearing_right_hip_yaw
+    - yaw2roll
+    - yaw2roll_R
+    - servo__yaw2roll_hip_l
+    - servo__bearing_roll_hip_l_2
+    - hip
+    - upper_leg
+    - servo__upper_leg_left_upper_leg_left
+    - servo__upper_leg_left_leg
+    - bearing_left_knee
+    - lower_leg
+    - ankle_foot
+    - ankle_rear_arm
+    - bearing_left_ankle
+    - servo__leg_ankle_left
+    - sole
+    - bearing_left_hip_pitch
+    - bearing_left_hip_roll
+    - hip_roll_sleeve
+    - hip_pitch_sleeve
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 1.0
+    - 0.0
+    - 0.0
+    len_mm: 100.0
+    len_mm_note: 2026-09-13 D15：movers 变成 L02+整条腿后，60 mm 内 lower_leg 与 trunk/yaw2roll/横滚 6704 的 ⊥ 投影仍重叠（末端脱离证不出）；100 mm 全程 0 mm³ 且证得脱离（09-17 起横滚 6704 已不在 placed/ 里，投影集合少一件）
+    step_mm: 0.25
+    provenance: tools/gate/data/assembly.yaml 09-12 第二批：工位按 09-12 ⑤ 修正的物理顺序声明（腿从躯干往下逐级装），方向来自 duckstructure.lib.sfw 舵机帧 + mechanical_audit.servo_paths 的自由抽出方向；零位实体读回
+    note: 09-12 I5 legs.py:54 俯仰侧 4 根 Ø5.2 填柱由 y 32.3..40.3 退到板内面 y 34.0..40.3（世界 y 中心 36.3→37.15、t 8.0→6.3，L02-F05）后，L02 沿横滚轴 +x 抽离 L01 时不再撞 L01 6704 座凸台外缘 r 15.5（调查预计峰值 4.55 → 0，抽出全程留 1.0）；预计峰值 0，待 L4
+      正式扫掠回填 peak，本条不填数｜2026-09-13 D15：movers 改为 L02 + 整条腿（F06 已在腿台面拧好），本动作扫掠的是带腿的刚性组，peak 待本轮全量回填（09-17 起 L01 6704 座取消，此撞点不复存在）
+  - id: R_knee_bearing_into_L03
+    subassembly_of: upper_leg
+    workspace: R_upper_leg_bench
+    movers:
+    - bearing_right_knee
+    present:
+    - upper_leg_R
+    - servo__upper_leg_right_upper_leg_right
+    - servo__upper_leg_right_leg_2
+    - bearing_right_knee
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0.0
+    - 1.0
+    - 0.0
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: tools/gate/data/assembly.yaml 09-12 第二批：工位按 09-12 ⑤ 修正的物理顺序声明（腿从躯干往下逐级装），方向来自 duckstructure.lib.sfw 舵机帧 + mechanical_audit.servo_paths 的自由抽出方向；零位实体读回
+  - id: R_lower_sub_onto_knee
+    subassembly_of: leg
+    workspace: R_upper_leg_bench
+    movers:
+    - lower_leg_R
+    - ankle_foot_R
+    - ankle_rear_arm_R
+    - bearing_right_ankle
+    - servo__leg_2_ankle_right
+    - sole_R
+    present:
+    - upper_leg_R
+    - servo__upper_leg_right_upper_leg_right
+    - servo__upper_leg_right_leg_2
+    - bearing_right_knee
+    - lower_leg_R
+    - ankle_foot_R
+    - ankle_rear_arm_R
+    - bearing_right_ankle
+    - servo__leg_2_ankle_right
+    - sole_R
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0.0
+    - 1.0
+    - 0.0
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: tools/gate/data/assembly.yaml 09-12 第二批：工位按 09-12 ⑤ 修正的物理顺序声明（腿从躯干往下逐级装），方向来自 duckstructure.lib.sfw 舵机帧 + mechanical_audit.servo_paths 的自由抽出方向；零位实体读回
+  - id: R_pitch_bearing_sleeve_into_L03
+    subassembly_of: upper_leg
+    workspace: R_upper_leg_bench
+    movers:
+    - bearing_right_hip_pitch
+    - hip_pitch_sleeve_R
+    present:
+    - upper_leg_R
+    - servo__upper_leg_right_upper_leg_right
+    - servo__upper_leg_right_leg_2
+    - bearing_right_knee
+    - lower_leg_R
+    - ankle_foot_R
+    - ankle_rear_arm_R
+    - bearing_right_ankle
+    - servo__leg_2_ankle_right
+    - sole_R
+    - bearing_right_hip_pitch
+    - hip_pitch_sleeve_R
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0.0
+    - 1.0
+    - 0.0
+    len_mm: 20.0
+    step_mm: 0.25
+    provenance: 2026-09-17 hr12 收尾：hr07/hr08 整体座顺序（记录.md 12/14；restored_bearing_audit 路径 bearing_sleeve_into_seat_over_horn）——轴承+轴套沿法兰推入座，不是与舵机一起装
+  - id: R_hip_onto_pitch_flange
+    subassembly_of: leg
+    workspace: R_upper_leg_bench
+    movers:
+    - hip_R
+    present:
+    - hip_R
+    - upper_leg_R
+    - servo__upper_leg_right_upper_leg_right
+    - servo__upper_leg_right_leg_2
+    - bearing_right_knee
+    - lower_leg_R
+    - ankle_foot_R
+    - ankle_rear_arm_R
+    - bearing_right_ankle
+    - servo__leg_2_ankle_right
+    - sole_R
+    - bearing_right_hip_pitch
+    - hip_pitch_sleeve_R
+    sense: withdrawal_from_assembled
+    outward_world:
+    - -0.0
+    - 1.0
+    - -0.0
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: 2026-09-13 审计第二批 D15：F06 起子探针（tools/gate/out/probe/F06_hippitch_flange.log + L4 tool_access 复算）证明髋俯仰法兰 12 颗头朝 −y（左）/+y（右），在 L02 已上躯干的工位被髋横滚舵机挡在 7.15 mm 处（12/12 不可见，323 mm³）；在腿台面上（无躯干）0 mm³、12/12
+      可见。故 L02 先在腿台面贴上俯仰法兰拧 F06，再连腿一起套上横滚法兰拧 F04（F04 带腿复算：3e-6 mm³、12/12 可见）。原动作 *_upper_sub_onto_hip 作废。方向沿俯仰舵机轴取反
+  - id: R_roll_bearing_sleeve_into_L01
+    subassembly_of: trunk
+    workspace: R_hip_on_trunk
+    movers:
+    - bearing_right_hip_roll
+    - hip_roll_sleeve_R
+    present:
+    - trunk
+    - servo__trunk_base_yaw2roll
+    - servo__trunk_base_bearing_roll
+    - bearing_left_hip_yaw
+    - bearing_right_hip_yaw
+    - yaw2roll
+    - yaw2roll_R
+    - servo__yaw2roll_hip_l
+    - servo__bearing_roll_hip_l_2
+    - bearing_right_hip_roll
+    - hip_roll_sleeve_R
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 1.0
+    - 0.0
+    - 0.0
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: 2026-09-17 hr12 收尾：hr07/hr08 整体座顺序（记录.md 12/14；restored_bearing_audit 路径 bearing_sleeve_into_seat_over_horn）——轴承+轴套沿法兰推入座，不是与舵机一起装
+  - id: R_hip_onto_roll_flange
+    subassembly_of: trunk
+    workspace: R_hip_on_trunk
+    movers:
+    - hip_R
+    - upper_leg_R
+    - servo__upper_leg_right_upper_leg_right
+    - servo__upper_leg_right_leg_2
+    - bearing_right_knee
+    - lower_leg_R
+    - ankle_foot_R
+    - ankle_rear_arm_R
+    - bearing_right_ankle
+    - servo__leg_2_ankle_right
+    - sole_R
+    - bearing_right_hip_pitch
+    - hip_pitch_sleeve_R
+    present:
+    - trunk
+    - servo__trunk_base_yaw2roll
+    - servo__trunk_base_bearing_roll
+    - bearing_left_hip_yaw
+    - bearing_right_hip_yaw
+    - yaw2roll
+    - yaw2roll_R
+    - servo__yaw2roll_hip_l
+    - servo__bearing_roll_hip_l_2
+    - hip
+    - upper_leg
+    - servo__upper_leg_left_upper_leg_left
+    - servo__upper_leg_left_leg
+    - bearing_left_knee
+    - lower_leg
+    - ankle_foot
+    - ankle_rear_arm
+    - bearing_left_ankle
+    - servo__leg_ankle_left
+    - sole
+    - hip_R
+    - upper_leg_R
+    - servo__upper_leg_right_upper_leg_right
+    - servo__upper_leg_right_leg_2
+    - bearing_right_knee
+    - lower_leg_R
+    - ankle_foot_R
+    - ankle_rear_arm_R
+    - bearing_right_ankle
+    - servo__leg_2_ankle_right
+    - sole_R
+    - bearing_right_hip_pitch
+    - bearing_right_hip_roll
+    - hip_roll_sleeve_R
+    - hip_pitch_sleeve_R
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 1.0
+    - 0.0
+    - 0.0
+    len_mm: 100.0
+    len_mm_note: 2026-09-13 D15：movers 变成 L02+整条腿后，60 mm 内 lower_leg 与 trunk/yaw2roll/横滚 6704 的 ⊥ 投影仍重叠（末端脱离证不出）；100 mm 全程 0 mm³ 且证得脱离（09-17 起横滚 6704 已不在 placed/ 里，投影集合少一件）
+    step_mm: 0.25
+    provenance: tools/gate/data/assembly.yaml 09-12 第二批：工位按 09-12 ⑤ 修正的物理顺序声明（腿从躯干往下逐级装），方向来自 duckstructure.lib.sfw 舵机帧 + mechanical_audit.servo_paths 的自由抽出方向；零位实体读回
+    note: 09-12 I5 legs.py:54 俯仰侧 4 根 Ø5.2 填柱由 y 32.3..40.3 退到板内面 y 34.0..40.3（世界 y 中心 36.3→37.15、t 8.0→6.3，L02-F05）后，hip_R 沿横滚轴 +x 抽离 L01（镜像件同源） 时不再撞 L01 6704 座凸台外缘 r 15.5（调查预计峰值 4.55 → 0，抽出全程留 1.0）；预计峰值
+      0，待 L4 正式扫掠回填 peak，本条不填数｜2026-09-13 D15：movers 改为 L02 + 整条腿（F06 已在腿台面拧好），本动作扫掠的是带腿的刚性组，peak 待本轮全量回填（09-17 起 L01 6704 座取消，此撞点不复存在）
+  current_design_ref: docs/design_2026-09-17_bearing_rebuild/记录.md（10–14 条，hr07/hr08 整体座；头部 Codex 补丁 + 修正）
+- step: 9
+  id: step09
+  seq: 7
+  subassembly_of: trunk
+  action: 髋偏航舵机侧滑入 T01 载体（左 +y 开口、右 −y），拧后排 2×M2×6（F01，从顶板上方 +z）。（原文『腿先装成子总成再上躯干』作废：F02 六颗必须从 L01 的空杯腔拧，腿只能从躯干往下逐级装）
+  parts:
+  - servo_hip_yaw×2
+  - T01
+  direction: ±y 侧滑（抽出方向：左 +y、右 −y）
+  tool: —
+  path:
+    kind: linear
+    axis: ±y
+    len_mm: 60.0
+    step_mm: 0.25
+    peak_mm3: null
+  fasteners:
+  - F01_hipyaw_back
+  already_installed:
+  - L05
+  - servo_ankle
+  - L04
+  - '6700'
+  - L07
+  - L06
+  - servo_hip_pitch
+  - servo_knee
+  - L03
+  verified_by: 本批 L4 motions（见下）
+  verified: true
+  provenance:
+  - 打印清单与参数.md 装配顺序 3
+  - inventory_v2.json:assembly_order[8]
+  unknown_class: not_modeled
+  unknown_reason: 只是文档里的顺序建议，没有几何路径
+  required_motion_groups:
+    L_yaw_servo_slide:
+      workspace: trunk_bare
+      movers:
+      - servo__trunk_base_yaw2roll
+      present:
+      - trunk
+      - servo__trunk_base_yaw2roll
+      - servo__trunk_base_bearing_roll
+    R_yaw_servo_slide:
+      workspace: trunk_bare
+      movers:
+      - servo__trunk_base_bearing_roll
+      present:
+      - trunk
+      - servo__trunk_base_yaw2roll
+      - servo__trunk_base_bearing_roll
+  motions:
+  - id: L_yaw_servo_slide
+    workspace: trunk_bare
+    movers:
+    - servo__trunk_base_yaw2roll
+    present:
+    - trunk
+    - servo__trunk_base_yaw2roll
+    - servo__trunk_base_bearing_roll
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0.0
+    - 1.0
+    - 0.0
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: tools/gate/data/assembly.yaml 09-12 第二批：工位按 09-12 ⑤ 修正的物理顺序声明（腿从躯干往下逐级装），方向来自 duckstructure.lib.sfw 舵机帧 + mechanical_audit.servo_paths 的自由抽出方向；零位实体读回
+  - id: R_yaw_servo_slide
+    workspace: trunk_bare
+    movers:
+    - servo__trunk_base_bearing_roll
+    present:
+    - trunk
+    - servo__trunk_base_yaw2roll
+    - servo__trunk_base_bearing_roll
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0.0
+    - -1.0
+    - 0.0
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: tools/gate/data/assembly.yaml 09-12 第二批：工位按 09-12 ⑤ 修正的物理顺序声明（腿从躯干往下逐级装），方向来自 duckstructure.lib.sfw 舵机帧 + mechanical_audit.servo_paths 的自由抽出方向；零位实体读回
+- step: 10
+  id: step10
+  imu_cable_note_2026-09-30: "⚠ 本步 IMU 的 QT 转杜邦线（components.yaml:cable_qt_dupont_m）不是标准 Qwiic 配色：黄 GND / 蓝 VIN / 红 SDA / 黑 SCL（黑为排除法） —— 中途和 40 cm 母母对插、到 Radxa 端插针都按实测线序，不看颜色（09-30 台架按标准色接过一次：IMU 没地、I²C3 被拽住）；换买的「QT 转杜邦母头」线到货同样先量"
+  seq: 8
+  subassembly_of: trunk
+  action: （hr29 前置：先把 IMU Adafruit 4438 用 2×M2×4（hr30，原 M2×5 尖会顶进电池仓通孔口）拧在 T01 前壁前面 (±10.16, 111.65)，QT 线贴墙上拐、穿 T01-F30 缝到顶板口袋/侧腔 —— L01 装上后起子进不去）6702ZZ 从腹面（−z）往上推入 T01 座孔 Ø21.15 到挡肩 Ø18.5（滑配 +0.15，只压外圈）；L01（横滚舵机未装）从下送上：毂
+    Ø14.85 进内圈、毂顶面贴法兰面，从杯腔内向上拧 6×M2×6（F02）。左侧先于右侧。
+  parts:
+  - 6702×2
+  - L01×2
+  - T01
+  direction: +z 装入（抽出 −z）
+  direction_note: 舵机 ±y 侧滑（本步 L4 扫的那条）；6702 与 L01 随后沿 +z（法兰方向）装入，那两条由 mechanical_audit.hip_yaw_bearing.*.insert_* 验（0 / 0）
+  tool: PH0
+  path:
+    kind: linear
+    axis: -z
+    len_mm: 60.0
+    step_mm: 0.25
+    peak_mm3: null
+  path_note: mechanical_audit.hip_yaw_bearing.*：舵机真实外形沿 ±y 45 mm 残余 0；6702 与 L01 沿法兰方向直线装入 0（对 T01/两颗躯干舵机/对侧 L01·L02/壳/脖子/电池/仓门）；座孔 3 站位 24 方位 Ø21.13..21.15。轴承轴向浮动 0.05（挡肩）~0.5（Ø26 盘面；复审后 seat_ring_clearance
+    切到 17.35），与膝/髋横滚同口径。T01 倒放打印后先用 0.4 塞尺/目视核缺口顶面（座环壁在缺口扇区是朝下桥面），再滑舵机。L01 拆下后 6702 可从腹面直接取出。
+  fasteners:
+  - F02_hipyaw_flange
+  already_installed:
+  - L05
+  - servo_ankle
+  - L04
+  - '6700'
+  - L07
+  - L06
+  - servo_hip_pitch
+  - servo_knee
+  - L03
+  - servo_hip_yaw×2
+  - T01
+  verified_by: 本批 L4 motions + mechanical_audit.hip_yaw_bearing.*.insert_*（0 / 0）
+  verified: true
+  note_2026-09-15: 与第 6 步（seq 9）F03 的冲突复算：本步 F02 六颗 12 坐面（世界 z 114.5，头朝 −z）在横滚舵机已入 L01 时被舵机顶面挡在 2.5 mm（头顶余 0.9 mm，任何批头都进不去），所以『先拧 F03 再上 T01』的换序不成立（数字与三种办法见 docs/reports/F03可达性_2026-09-15.md）；本步 seq/action
+    未改。
+  provenance:
+  - duck.py:632
+  - duck.py:653
+  - duck.py:659
+  - mechanical_audit.json:assembly_and_fits.servo_paths
+  - inventory_v2.json:assembly_order[9]
+  required_motion_groups:
+    L_6702_into_T01:
+      workspace: trunk_with_yaw_servos
+      movers:
+      - bearing_left_hip_yaw
+      present:
+      - trunk
+      - servo__trunk_base_yaw2roll
+      - servo__trunk_base_bearing_roll
+      - bearing_left_hip_yaw
+    L_L01_up_to_flange:
+      workspace: trunk_with_yaw_servos
+      movers:
+      - yaw2roll
+      present:
+      - trunk
+      - servo__trunk_base_yaw2roll
+      - servo__trunk_base_bearing_roll
+      - bearing_left_hip_yaw
+      - bearing_right_hip_yaw
+      - yaw2roll
+    R_6702_into_T01:
+      workspace: trunk_with_yaw_servos
+      movers:
+      - bearing_right_hip_yaw
+      present:
+      - trunk
+      - servo__trunk_base_yaw2roll
+      - servo__trunk_base_bearing_roll
+      - bearing_left_hip_yaw
+      - bearing_right_hip_yaw
+      - yaw2roll
+    R_L01_up_to_flange:
+      workspace: trunk_with_yaw_servos
+      movers:
+      - yaw2roll_R
+      present:
+      - trunk
+      - servo__trunk_base_yaw2roll
+      - servo__trunk_base_bearing_roll
+      - bearing_left_hip_yaw
+      - bearing_right_hip_yaw
+      - yaw2roll
+      - yaw2roll_R
+  motions:
+  - id: L_6702_into_T01
+    workspace: trunk_with_yaw_servos
+    movers:
+    - bearing_left_hip_yaw
+    present:
+    - trunk
+    - servo__trunk_base_yaw2roll
+    - servo__trunk_base_bearing_roll
+    - bearing_left_hip_yaw
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0.0
+    - 0.0
+    - -1.0
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: tools/gate/data/assembly.yaml 09-12 第二批：工位按 09-12 ⑤ 修正的物理顺序声明（腿从躯干往下逐级装），方向来自 duckstructure.lib.sfw 舵机帧 + mechanical_audit.servo_paths 的自由抽出方向；零位实体读回
+  - id: L_L01_up_to_flange
+    workspace: trunk_with_yaw_servos
+    movers:
+    - yaw2roll
+    present:
+    - trunk
+    - servo__trunk_base_yaw2roll
+    - servo__trunk_base_bearing_roll
+    - bearing_left_hip_yaw
+    - bearing_right_hip_yaw
+    - yaw2roll
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0.0
+    - 0.0
+    - -1.0
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: tools/gate/data/assembly.yaml 09-12 第二批：工位按 09-12 ⑤ 修正的物理顺序声明（腿从躯干往下逐级装），方向来自 duckstructure.lib.sfw 舵机帧 + mechanical_audit.servo_paths 的自由抽出方向；零位实体读回
+  - id: R_6702_into_T01
+    workspace: trunk_with_yaw_servos
+    movers:
+    - bearing_right_hip_yaw
+    present:
+    - trunk
+    - servo__trunk_base_yaw2roll
+    - servo__trunk_base_bearing_roll
+    - bearing_left_hip_yaw
+    - bearing_right_hip_yaw
+    - yaw2roll
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0.0
+    - 0.0
+    - -1.0
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: tools/gate/data/assembly.yaml 09-12 第二批：工位按 09-12 ⑤ 修正的物理顺序声明（腿从躯干往下逐级装），方向来自 duckstructure.lib.sfw 舵机帧 + mechanical_audit.servo_paths 的自由抽出方向；零位实体读回
+  - id: R_L01_up_to_flange
+    workspace: trunk_with_yaw_servos
+    movers:
+    - yaw2roll_R
+    present:
+    - trunk
+    - servo__trunk_base_yaw2roll
+    - servo__trunk_base_bearing_roll
+    - bearing_left_hip_yaw
+    - bearing_right_hip_yaw
+    - yaw2roll
+    - yaw2roll_R
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0.0
+    - 0.0
+    - -1.0
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: tools/gate/data/assembly.yaml 09-12 第二批：工位按 09-12 ⑤ 修正的物理顺序声明（腿从躯干往下逐级装），方向来自 duckstructure.lib.sfw 舵机帧 + mechanical_audit.servo_paths 的自由抽出方向；零位实体读回
+- step: 11
+  id: step11
+  hr11_order_note: hr11 新顺序（记录.md 15；verified 仍 false）：本步改为 N03 台架子总成——11a A 6704 从 +x 套 N05；N05+轴承进 N03 A 环；11b 横滚舵机从 −x 推入 N03（此时 H01 不在场）；11c Ø4.4 长杆从 +x 经 B 隧道 → **空**偏航舵机腔 → A 盘拧 F17；11d 22×16×4 套
+    N04、带键 N04 从空腔沿 +x 推到底、N07 从 +x 套上拧 F29；11e（步 12）偏航舵机沿 −y 横着滑进 N03（CF3 先插好；N03 −y 侧 246 以下无裙墙，滑动 40 mm 对 N03/N06/偏航轴承/N08/N02 交集 0）；11f H01 整个从上（−z）套到 N03 子总成上（A 浮动座、B 上半座落到轴承外圈；H01 已去掉笼底板 lower，+z
+    反向路径对全部件 0）；11g 装 H02（−x→+x）。维修横滚舵机 = 先抬 H01。
+  note_2026-09-24_hr41_F30: 复审 #1 M3：F30 2×M2×6 必须在 11a/11b 台面拧（N03 + 偏航轴承 + N08 单独在台上，m3_f30.json 0）；整机状态下零位起子撞 N02 22.5 mm³，要先把头偏航转到 ±30°（0）
+  seq: 15
+  subassembly_of: head
+  action: N03 台架子总成（H01 不在场）：11a 偏航 6704 从下方装进 N03 座（座壁/上肩），N08 压盖从下方盖上、F30 2×M2×6；11b N02 轴颈从下方穿入内圈；11c N06 压盘抬 4–5.5 mm 经 −y 腔口进空偏航舵机腔、落到 N02 轴颈上夹紧内圈（**腔口差 0.5 mm，hr13 修**）；11d B 端 22×16×4 从 +x 进 N03
+    台肩；11e A 6704 与 N05 转接盘从 −x 进 A 环；11f 横滚舵机从 −x 推入 N03、F17 起子穿空偏航腔拧 6×M2×8；11g 带键 N04 从空腔沿 +x 推到底、N07 从 +x 套上拧 F29。偏航舵机、H01、H02 在步 12/13。
+  action_was_until_2026-09-17_hr12: 11a 头横滚 A 6704 从 +x 套上 N05 轴套；N03+N05+轴承从下方(+z)装入 H01 上半座…（旧顺序：N03 先进 H01；见 hr11_order_note）
+  parts:
+  - N03
+  - bearing_head_yaw
+  - N08
+  - N02
+  - N06
+  - 22×16×4
+  - bearing_head_roll_A
+  - N05
+  - servo_head_roll
+  - N04
+  - N07
+  direction: +z（偏航轴承/N08/N02 都从下方装进 N03，抽出 −z；A/B 端件沿 ±x；分动作方向见 motions）
+  tool: Ø4.2×45 长杆 + Ø6 顶杆（拆 N04 用）
+  path:
+    kind: linear
+    axis: -z
+    len_mm: 60.0
+    step_mm: 0.25
+    peak_mm3: 0.0
+    provenance_2026-09-17: 主路径 = N02 轴颈 −z 抽出（motions.c）；其余见 motions
+  path_note: mechanical_audit.assembly_paths_mm3 七条（H03_shell / yaw_servo / N04_pin / bearing_B / H02 / roll_servo / N03_empty）= 拆卸逆序，每条只对当时还在的件量。N04 轴向：+x 凸缘坐沉窝（mechanical_audit.N04_plus_x_stop 三条）；−x
+    止挡是之后装进来的头偏航舵机本体（名义隙 0.3，按舵机 4 颗 M2 孔位公差实际 0..0.6；mechanical_audit.N04_axial_stop：退 0.25 不碰 / 退 1.0 碰）。轴承轴向：内圈 −x 面到 N03 台肩 0.12、外圈 +x 面贴 H03/H01 唇；H03 对外圈没有 −x 侧壁。**头挂着时不得单独拆头偏航舵机**（它是 N04 的止挡）。
+  fasteners:
+  - F30_N08_headyaw_cap
+  - F17_headroll_flange
+  - F29_N07_headroll_B_cap
+  already_installed:
+  - L05
+  - servo_ankle
+  - L04
+  - '6700'
+  - L07
+  - L06
+  - servo_hip_pitch
+  - servo_knee
+  - L03
+  - servo_hip_yaw×2
+  - T01
+  - 6702×2
+  - L01×2
+  - servo_hip_roll
+  - L01
+  - 6704×1
+  - L02
+  - servo_head_pitch
+  - N01
+  - servo_neck_pitch
+  - 电池
+  - B01
+  - T02
+  - T03
+  verified_by: 待 hr09 后完整装配路径仿真；局部：restored_bearing_audit（髋两站装配路径）/ head_specs 审计（头三站 stage 采样）
+  verified: false
+  provenance:
+  - duck.py:863
+  - duck.py:885
+  - duck.py:834
+  - mechanical_audit.json:assembly_paths_mm3
+  - mechanical_audit.json:N03_tools_mm3
+  - inventory_v2.json:assembly_order[10]
+  required_motion_groups:
+    a_yaw_bearing_into_N03_seat:
+      workspace: head_bench
+      movers:
+      - bearing_head_yaw
+      present:
+      - yrm
+      - bearing_head_yaw
+    b_N08_cap_from_below:
+      workspace: head_bench
+      movers:
+      - head_yaw_cap
+      present:
+      - yrm
+      - bearing_head_yaw
+      - head_yaw_cap
+    c_N02_journal_up_through_inner_ring:
+      workspace: head_bench
+      movers:
+      - neck_pitch
+      present:
+      - yrm
+      - bearing_head_yaw
+      - head_yaw_cap
+      - neck_pitch
+    d_N06_into_cavity_onto_journal:
+      workspace: head_bench
+      movers:
+      - head_yaw_adapter
+      present:
+      - yrm
+      - bearing_head_yaw
+      - head_yaw_cap
+      - neck_pitch
+      - head_yaw_adapter
+    e_bearing_B_into_N03_shoulder:
+      workspace: head_bench
+      movers:
+      - bearing_head_roll_B
+      present:
+      - yrm
+      - bearing_head_yaw
+      - head_yaw_cap
+      - neck_pitch
+      - head_yaw_adapter
+      - bearing_head_roll_B
+    f_bearing_A_into_N03_A_ring:
+      workspace: head_bench
+      movers:
+      - bearing_head_roll_A
+      present:
+      - yrm
+      - bearing_head_yaw
+      - head_yaw_cap
+      - neck_pitch
+      - head_yaw_adapter
+      - bearing_head_roll_B
+      - bearing_head_roll_A
+    g_N05_adapter_into_A_ring:
+      workspace: head_bench
+      movers:
+      - head_roll_adapter
+      present:
+      - yrm
+      - bearing_head_yaw
+      - head_yaw_cap
+      - neck_pitch
+      - head_yaw_adapter
+      - bearing_head_roll_B
+      - bearing_head_roll_A
+      - head_roll_adapter
+    h_roll_servo_into_N03:
+      workspace: head_bench
+      movers:
+      - servo__jaw_soft_jaw_soft
+      present:
+      - yrm
+      - bearing_head_yaw
+      - head_yaw_cap
+      - neck_pitch
+      - head_yaw_adapter
+      - bearing_head_roll_B
+      - bearing_head_roll_A
+      - head_roll_adapter
+      - servo__jaw_soft_jaw_soft
+    i_N04_pin_from_cavity:
+      workspace: head_bench
+      movers:
+      - head_journal
+      present:
+      - yrm
+      - bearing_head_yaw
+      - head_yaw_cap
+      - neck_pitch
+      - head_yaw_adapter
+      - bearing_head_roll_B
+      - bearing_head_roll_A
+      - head_roll_adapter
+      - servo__jaw_soft_jaw_soft
+      - head_journal
+    j_N07_cap_on_N04:
+      workspace: head_bench
+      movers:
+      - head_bearing_cap
+      present:
+      - yrm
+      - bearing_head_yaw
+      - head_yaw_cap
+      - neck_pitch
+      - head_yaw_adapter
+      - bearing_head_roll_B
+      - bearing_head_roll_A
+      - head_roll_adapter
+      - servo__jaw_soft_jaw_soft
+      - head_journal
+      - head_bearing_cap
+  motions:
+  - id: a_yaw_bearing_into_N03_seat
+    workspace: head_bench
+    movers:
+    - bearing_head_yaw
+    present:
+    - yrm
+    - bearing_head_yaw
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0.0
+    - 0.0
+    - -1.0
+    len_mm: 12.0
+    step_mm: 0.25
+    provenance: 2026-09-17 hr12 收尾：按 hr11 新顺序（记录.md 15/17）重写；方向/长度来自 tools/cad/mechanical_audit.py paths（12 条，hr12 全 0）+ scratch 全序累计在场扫掠（记录.md 17）
+  - id: b_N08_cap_from_below
+    workspace: head_bench
+    movers:
+    - head_yaw_cap
+    present:
+    - yrm
+    - bearing_head_yaw
+    - head_yaw_cap
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0.0
+    - 0.0
+    - -1.0
+    len_mm: 12.0
+    step_mm: 0.25
+    provenance: 2026-09-17 hr12 收尾：按 hr11 新顺序（记录.md 15/17）重写；方向/长度来自 tools/cad/mechanical_audit.py paths（12 条，hr12 全 0）+ scratch 全序累计在场扫掠（记录.md 17）
+  - id: c_N02_journal_up_through_inner_ring
+    workspace: head_bench
+    movers:
+    - neck_pitch
+    present:
+    - yrm
+    - bearing_head_yaw
+    - head_yaw_cap
+    - neck_pitch
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0.0
+    - 0.0
+    - -1.0
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: 2026-09-17 hr12 收尾：按 hr11 新顺序（记录.md 15/17）重写；方向/长度来自 tools/cad/mechanical_audit.py paths（12 条，hr12 全 0）+ scratch 全序累计在场扫掠（记录.md 17）
+  - id: d_N06_into_cavity_onto_journal
+    workspace: head_bench
+    movers:
+    - head_yaw_adapter
+    present:
+    - yrm
+    - bearing_head_yaw
+    - head_yaw_cap
+    - neck_pitch
+    - head_yaw_adapter
+    sense: withdrawal_from_assembled
+    segments:
+    - outward_world:
+      - 0.0
+      - 0.0
+      - 1.0
+      len_mm: 5.0
+    - outward_world:
+      - 0.0
+      - -1.0
+      - 0.0
+      len_mm: 40.0
+    step_mm: 0.25
+    provenance: 2026-09-17 hr12 收尾：按 hr11 新顺序（记录.md 15/17）重写；方向/长度来自 tools/cad/mechanical_audit.py paths（12 条，hr12 全 0）+ scratch 全序累计在场扫掠（记录.md 17）
+    known_fail_2026-09-17: N06 Ø21.6 抬 4–5.5 mm 后沿 −y 出腔口与 N03 交叠 ≈4.8–5.1 mm³（并集 8–9 mm³，x 15.2..36.8 / y −11.4..−3 / z 228..232）：neck.py n06_travel 只切了腔内 x≤36.35、z 226.5..232.5 的直上行程，没切进出腔口的路径。hr13 修：N06
+      抬升+−y 出腔的扫掠（Minkowski 0.3）从 N03 减掉。本条在修好前应红。
+  - id: e_bearing_B_into_N03_shoulder
+    workspace: head_bench
+    movers:
+    - bearing_head_roll_B
+    present:
+    - yrm
+    - bearing_head_yaw
+    - head_yaw_cap
+    - neck_pitch
+    - head_yaw_adapter
+    - bearing_head_roll_B
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 1.0
+    - 0.0
+    - 0.0
+    len_mm: 10.0
+    step_mm: 0.25
+    provenance: 2026-09-17 hr12 收尾：按 hr11 新顺序（记录.md 15/17）重写；方向/长度来自 tools/cad/mechanical_audit.py paths（12 条，hr12 全 0）+ scratch 全序累计在场扫掠（记录.md 17）
+  - id: f_bearing_A_into_N03_A_ring
+    workspace: head_bench
+    movers:
+    - bearing_head_roll_A
+    present:
+    - yrm
+    - bearing_head_yaw
+    - head_yaw_cap
+    - neck_pitch
+    - head_yaw_adapter
+    - bearing_head_roll_B
+    - bearing_head_roll_A
+    sense: withdrawal_from_assembled
+    outward_world:
+    - -1.0
+    - 0.0
+    - 0.0
+    len_mm: 12.0
+    step_mm: 0.25
+    provenance: 2026-09-17 hr12 收尾：按 hr11 新顺序（记录.md 15/17）重写；方向/长度来自 tools/cad/mechanical_audit.py paths（12 条，hr12 全 0）+ scratch 全序累计在场扫掠（记录.md 17）
+  - id: g_N05_adapter_into_A_ring
+    workspace: head_bench
+    movers:
+    - head_roll_adapter
+    present:
+    - yrm
+    - bearing_head_yaw
+    - head_yaw_cap
+    - neck_pitch
+    - head_yaw_adapter
+    - bearing_head_roll_B
+    - bearing_head_roll_A
+    - head_roll_adapter
+    sense: withdrawal_from_assembled
+    outward_world:
+    - -1.0
+    - 0.0
+    - 0.0
+    len_mm: 12.0
+    step_mm: 0.25
+    provenance: 2026-09-17 hr12 收尾：按 hr11 新顺序（记录.md 15/17）重写；方向/长度来自 tools/cad/mechanical_audit.py paths（12 条，hr12 全 0）+ scratch 全序累计在场扫掠（记录.md 17）
+  - id: h_roll_servo_into_N03
+    workspace: head_bench
+    movers:
+    - servo__jaw_soft_jaw_soft
+    present:
+    - yrm
+    - bearing_head_yaw
+    - head_yaw_cap
+    - neck_pitch
+    - head_yaw_adapter
+    - bearing_head_roll_B
+    - bearing_head_roll_A
+    - head_roll_adapter
+    - servo__jaw_soft_jaw_soft
+    sense: withdrawal_from_assembled
+    outward_world:
+    - -1.0
+    - 0.0
+    - 0.0
+    len_mm: 45.0
+    step_mm: 0.25
+    provenance: 2026-09-17 hr12 收尾：按 hr11 新顺序（记录.md 15/17）重写；方向/长度来自 tools/cad/mechanical_audit.py paths（12 条，hr12 全 0）+ scratch 全序累计在场扫掠（记录.md 17）
+    note: F17 6×M2×8 的起子从 +x 经 N03 B 端 Ø16.2 通道穿过**空的**偏航舵机腔（偏航舵机此时未装）
+  - id: i_N04_pin_from_cavity
+    workspace: head_bench
+    movers:
+    - head_journal
+    present:
+    - yrm
+    - bearing_head_yaw
+    - head_yaw_cap
+    - neck_pitch
+    - head_yaw_adapter
+    - bearing_head_roll_B
+    - bearing_head_roll_A
+    - head_roll_adapter
+    - servo__jaw_soft_jaw_soft
+    - head_journal
+    sense: withdrawal_from_assembled
+    segments:
+    - outward_world:
+      - -1.0
+      - 0.0
+      - 0.0
+      len_mm: 12.0
+    - outward_world:
+      - 0.0
+      - -1.0
+      - 0.0
+      len_mm: 40.0
+    step_mm: 0.25
+    provenance: 2026-09-17 hr12 收尾：按 hr11 新顺序（记录.md 15/17）重写；方向/长度来自 tools/cad/mechanical_audit.py paths（12 条，hr12 全 0）+ scratch 全序累计在场扫掠（记录.md 17）
+    note: N04 只能直线退回偏航舵机腔 12 mm（−x），再从 −y 腔口出来（腔口即步 12 偏航舵机的入口）
+  - id: j_N07_cap_on_N04
+    workspace: head_bench
+    movers:
+    - head_bearing_cap
+    present:
+    - yrm
+    - bearing_head_yaw
+    - head_yaw_cap
+    - neck_pitch
+    - head_yaw_adapter
+    - bearing_head_roll_B
+    - bearing_head_roll_A
+    - head_roll_adapter
+    - servo__jaw_soft_jaw_soft
+    - head_journal
+    - head_bearing_cap
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0.0
+    - 0.0
+    - -1.0
+    len_mm: 40.0
+    step_mm: 0.25
+    provenance: 2026-09-17 hr12 收尾：按 hr11 新顺序（记录.md 15/17）重写；方向/长度来自 tools/cad/mechanical_audit.py paths（12 条，hr12 全 0）+ scratch 全序累计在场扫掠（记录.md 17）
+  order_note_2026-09-12: 11c（F17 长杆起子经 B 端 Ø16.2）在 11b 之后、11d 之前拧，工位 tool_states.headroll_flange；11d 时把子装配翻过来脚朝上靠重力保持轴承
+  action_was_until_2026-09-17: 11a N03 空件从下方(-z→+z)装入 H01 两个上半座；11b 横滚舵机从 -x 推入 H01 笼，法兰穿 N03 A 环；11c Ø4.2×45 PH0 长杆从 +x 经 H01 前板孔 → N03 B 端 **Ø16.2** 通道 → 偏航舵机腔 → A 盘，拧 6×M2×6；11d **把 H01 子装配翻过来（脚朝上）**，22×16×4
+    从开口放进 H01 B 上半座 x 40.2..44.2（重力保持）；11e **N04 销**从空的头偏航舵机腔放入（**凸缘半圈朝 H01 桥即 +z；放反了推不到底**），沿 +x 推到底 7.9 mm：导向段进 Ø16.2 孔、轴承段进内圈、凸缘坐沉窝；11f 翻回来，装 H02（2×M2×8 + 2×M2×10）。（09-12 ④）
+  current_design_ref: docs/design_2026-09-17_bearing_rebuild/记录.md（10–14 条，hr07/hr08 整体座；头部 Codex 补丁 + 修正）
+- step: 12
+  id: step12
+  hr11_order_note: hr11 新顺序（记录.md 15）：偏航舵机不再从下方 +z 装（偏航座环 Ø25 过不了 20×34 的舵机），改为在 **H01 装上之前**沿 −y 横着滑进 N03（见步 11e）；F16 从下方经 N02 拧的约束不变。本步 motions.yaw_servo_into_N03 的 outward_world 应改为 (0,−1,0)、len 40、present
+    去掉 head_bracket/head_clamp——待 hr11 全链跑完后按 mechanical_audit.assembly_paths_mm3（12 条新路径）回填。
+  seq: 16
+  subassembly_of: head
+  action: 偏航舵机沿 −y 横着滑进 N03（此时 H01/H02 未装；N02/N06 已在；09-20 起两个 PH 插头装好后从 N03 背板通窗（顶面）插，不必先插）；F15 4×M2×6 背孔拧 N03；随后 F16 6×M2×8 从 N02 立筒 Ø15.05 内腔下方拧进偏航舵机法兰（N02→内圈→N06→法兰）——**F16 必须在 N02 装到颈俯仰舵机之前**。
+  action_was_until_2026-09-17_hr12: 偏航 6704 + N08 预装进 N03…N02 轴颈从下方穿入内圈，N06 从空偏航舵机腔放到 N02 轴颈上（已移到步 11）
+  parts:
+  - servo_head_yaw
+  direction: 偏航舵机沿 −y 横着滑进 N03（抽出 +y→−y，H01 未装）；6704(yaw)/N08/N02/N06 仍从下方 +z（抽出 −z）
+  direction_was_until_2026-09-17: 从下方 +z 装入（抽出 −z）
+  tool: PH0
+  path:
+    kind: linear
+    axis: -y
+    len_mm: 40.0
+    step_mm: 0.25
+    peak_mm3: 0.0
+    provenance_2026-09-17: cad/duck_s288/mechanical_audit.json:assembly_paths_mm3.yaw_servo_side（hr12 build，0.0；在场 yrm/N06/偏航轴承/N08/N02/N01/N05/A/B 轴承）
+  fasteners:
+  - F15_headyaw_back
+  - F16_headyaw_flange
+  already_installed:
+  - L05
+  - servo_ankle
+  - L04
+  - '6700'
+  - L07
+  - L06
+  - servo_hip_pitch
+  - servo_knee
+  - L03
+  - servo_hip_yaw×2
+  - T01
+  - 6702×2
+  - L01×2
+  - servo_hip_roll
+  - L01
+  - 6704×1
+  - L02
+  - N03
+  - bearing_head_yaw
+  - N08
+  - N02
+  - N06
+  - 22×16×4
+  - bearing_head_roll_A
+  - N05
+  - servo_head_roll
+  - N04
+  - N07
+  - servo_head_pitch
+  - N01
+  - servo_neck_pitch
+  - 电池
+  - B01
+  - T02
+  - T03
+  verified_by: 待 hr09 后完整装配路径仿真；局部：restored_bearing_audit（髋两站装配路径）/ head_specs 审计（头三站 stage 采样）
+  verified: false
+  provenance:
+  - duck.py:841
+  - mechanical_audit.json:assembly_and_fits.servo_paths
+  - inventory_v2.json:assembly_order[11]
+  required_motion_groups:
+    yaw_servo_into_N03:
+      workspace: head_bench
+      movers:
+      - servo__yaw_roll_motion_yaw_roll_motion
+      present:
+      - yrm
+      - bearing_head_yaw
+      - head_yaw_cap
+      - neck_pitch
+      - head_yaw_adapter
+      - bearing_head_roll_B
+      - bearing_head_roll_A
+      - head_roll_adapter
+      - servo__jaw_soft_jaw_soft
+      - head_journal
+      - head_bearing_cap
+      - servo__yaw_roll_motion_yaw_roll_motion
+  motions:
+  - id: yaw_servo_into_N03
+    workspace: head_bench
+    movers:
+    - servo__yaw_roll_motion_yaw_roll_motion
+    present:
+    - yrm
+    - bearing_head_yaw
+    - head_yaw_cap
+    - neck_pitch
+    - head_yaw_adapter
+    - bearing_head_roll_B
+    - bearing_head_roll_A
+    - head_roll_adapter
+    - servo__jaw_soft_jaw_soft
+    - head_journal
+    - head_bearing_cap
+    - servo__yaw_roll_motion_yaw_roll_motion
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0.0
+    - -1.0
+    - 0.0
+    len_mm: 40.0
+    step_mm: 0.25
+    provenance: 2026-09-17 hr12 收尾：按 hr11 新顺序（记录.md 15/17）重写；方向/长度来自 tools/cad/mechanical_audit.py paths（12 条，hr12 全 0）+ scratch 全序累计在场扫掠（记录.md 17）
+    peak_mm3_2026-09-17_hr12: 0.0
+    note_2026-09-17: mechanical_audit.py paths yaw_servo_side（hosts 9 件）0.0；累计在场 11 件扫掠 0.0（记录.md 17）
+  action_was_until_2026-09-17: 头偏航舵机从下方沿 +z 装入 N03（避免旧 -y 路线碰 H01），拧 4×M2×6
+  current_design_ref: docs/design_2026-09-17_bearing_rebuild/记录.md（10–14 条，hr07/hr08 整体座；头部 Codex 补丁 + 修正）
+- step: 13
+  id: step13
+  hr11_order_note: hr11 新顺序（记录.md 15）：偏航轴承+N08 预装进 N03、N06 与 N02 轴颈从下方装、F16 从下方拧——这些都在偏航舵机横进 N03（步 11e）**之后**、且必须在 N02 装到颈俯仰舵机之前（不变）。
+  seq: 17
+  subassembly_of: head
+  action: H01 整个从上（−z）套到 N03 子总成上（A 浮动座、B 上半座落到轴承外圈；笼底板已去掉，横滚舵机本体靠 H02 背夹 + F19 固定），拧 H01 脚螺丝；H02 从 −x 推上，F18 2×M2×8 进横滚舵机背孔、F19 2×M2×10 接 H01。维修横滚舵机 = 先抬 H01。
+  action_was_until_2026-09-17_hr12: F16 6×M2×8 从 N02 立筒 Ø15.05 内腔下方拧（已移到步 12）；偏航舵机从下方沿 +z 装入 N03（已改 −y，步 12）
+  parts:
+  - H01
+  - H02
+  direction: +z（H01 从上套下，抽出 +z）；H02 −x
+  tool: PH0 长杆经 Ø15
+  path:
+    kind: linear
+    axis: +z
+    len_mm: 45.0
+    step_mm: 0.25
+    peak_mm3: 0.0
+    provenance_2026-09-17: mechanical_audit.assembly_paths_mm3.H01_bracket（hr12，3.6e-15）
+  fasteners:
+  - F19_H02_to_H01
+  - F18_headroll_back_H02
+  already_installed:
+  - L05
+  - servo_ankle
+  - L04
+  - '6700'
+  - L07
+  - L06
+  - servo_hip_pitch
+  - servo_knee
+  - L03
+  - servo_hip_yaw×2
+  - T01
+  - 6702×2
+  - L01×2
+  - servo_hip_roll
+  - L01
+  - 6704×1
+  - L02
+  - N03
+  - bearing_head_yaw
+  - N08
+  - N02
+  - N06
+  - 22×16×4
+  - bearing_head_roll_A
+  - N05
+  - servo_head_roll
+  - N04
+  - N07
+  - servo_head_yaw
+  - servo_head_pitch
+  - N01
+  - servo_neck_pitch
+  - 电池
+  - B01
+  - T02
+  - T03
+  verified_by: 待 hr09 后完整装配路径仿真；局部：restored_bearing_audit（髋两站装配路径）/ head_specs 审计（头三站 stage 采样）
+  verified: false
+  provenance:
+  - duck.py:794
+  - duck.py:797
+  - inventory_v2.json:assembly_order[12]
+  unknown_class: not_audited
+  unknown_reason: N02 从下方装入没有路径检查；Ø15 内腔起子包络也没查
+  required_motion_groups:
+    H01_down_onto_N03:
+      workspace: head_bench
+      movers:
+      - head_bracket
+      movers_note_2026-09-23_hr38: 嘴子总成（jaw / servo__jaw_soft_jaw / bearing_jaw）**不跟 H01 一起下来** —— 按 hr38_嘴关节设计.md §5：H01 就位后，嘴舵机+J01+6700 从下方 (+z) 推进 H01 口袋（口袋底开、拱底开），再由 H03 合上时夹住。见台面工位 jaw_subassembly_into_H01（步 18）
+      present:
+      - yrm
+      - bearing_head_yaw
+      - head_yaw_cap
+      - neck_pitch
+      - head_yaw_adapter
+      - bearing_head_roll_B
+      - bearing_head_roll_A
+      - head_roll_adapter
+      - servo__jaw_soft_jaw_soft
+      - head_journal
+      - head_bearing_cap
+      - servo__yaw_roll_motion_yaw_roll_motion
+      - head_bracket
+    H02_clamp:
+      workspace: head_bench
+      movers:
+      - head_clamp
+      present:
+      - yrm
+      - bearing_head_yaw
+      - head_yaw_cap
+      - neck_pitch
+      - head_yaw_adapter
+      - bearing_head_roll_B
+      - bearing_head_roll_A
+      - head_roll_adapter
+      - servo__jaw_soft_jaw_soft
+      - head_journal
+      - head_bearing_cap
+      - servo__yaw_roll_motion_yaw_roll_motion
+      - head_bracket
+      - head_clamp
+  motions:
+  - id: H01_down_onto_N03
+    workspace: head_bench
+    movers:
+    - head_bracket
+    present:
+    - yrm
+    - bearing_head_yaw
+    - head_yaw_cap
+    - neck_pitch
+    - head_yaw_adapter
+    - bearing_head_roll_B
+    - bearing_head_roll_A
+    - head_roll_adapter
+    - servo__jaw_soft_jaw_soft
+    - head_journal
+    - head_bearing_cap
+    - servo__yaw_roll_motion_yaw_roll_motion
+    - head_bracket
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0.0
+    - 0.0
+    - 1.0
+    len_mm: 45.0
+    step_mm: 0.25
+    provenance: 2026-09-17 hr12 收尾：按 hr11 新顺序（记录.md 15/17）重写；方向/长度来自 tools/cad/mechanical_audit.py paths（12 条，hr12 全 0）+ scratch 全序累计在场扫掠（记录.md 17）
+  - id: H02_clamp
+    workspace: head_bench
+    movers:
+    - head_clamp
+    present:
+    - yrm
+    - bearing_head_yaw
+    - head_yaw_cap
+    - neck_pitch
+    - head_yaw_adapter
+    - bearing_head_roll_B
+    - bearing_head_roll_A
+    - head_roll_adapter
+    - servo__jaw_soft_jaw_soft
+    - head_journal
+    - head_bearing_cap
+    - servo__yaw_roll_motion_yaw_roll_motion
+    - head_bracket
+    - head_clamp
+    sense: withdrawal_from_assembled
+    outward_world:
+    - -1.0
+    - 0.0
+    - 0.0
+    len_mm: 45.0
+    step_mm: 0.25
+    provenance: 2026-09-17 hr12 收尾：按 hr11 新顺序（记录.md 15/17）重写；方向/长度来自 tools/cad/mechanical_audit.py paths（12 条，hr12 全 0）+ scratch 全序累计在场扫掠（记录.md 17）
+  action_was_until_2026-09-17: N02 从下方装入，从立筒 Ø15 内腔拧偏航法兰 6×M2×6
+  current_design_ref: docs/design_2026-09-17_bearing_rebuild/记录.md（10–14 条，hr07/hr08 整体座；头部 Codex 补丁 + 修正）
+- step: 14
+  id: step14
+  seq: 11
+  subassembly_of: neck
+  action: 头俯仰舵机装入 N01（+z 开口），拧下排 2×M2×6（F13）。hr34：N02 脸颊接法兰（F14）改到步 20 —— 头子总成在壳装完之后才挂上（F20 壳螺丝起子 +z 不再被头壳挡）
+  parts:
+  - servo_head_pitch
+  - N01
+  direction: +z
+  tool: PH0
+  path:
+    kind: linear
+    axis: +z
+    len_mm: 60.0
+    step_mm: 0.25
+    peak_mm3: 0.0
+  fasteners:
+  - F13_headpitch_back
+  already_installed:
+  - L05
+  - servo_ankle
+  - L04
+  - '6700'
+  - L07
+  - L06
+  - servo_hip_pitch
+  - servo_knee
+  - L03
+  - servo_hip_yaw×2
+  - T01
+  - 6702×2
+  - L01×2
+  - servo_hip_roll
+  - L01
+  - 6704×1
+  - L02
+  verified_by: servo_paths neck_pitch +z 0
+  verified: true
+  provenance:
+  - duck.py:757
+  - duck.py:797
+  - mechanical_audit.json:assembly_and_fits.servo_paths
+  - inventory_v2.json:assembly_order[13]
+  required_motion_groups:
+    headpitch_servo_into_N01:
+      workspace: neck_bench
+      movers:
+      - servo__neck_neck_pitch
+      present:
+      - neck
+      - servo__neck_neck_pitch
+  motions:
+  - id: headpitch_servo_into_N01
+    workspace: neck_bench
+    movers:
+    - servo__neck_neck_pitch
+    present:
+    - neck
+    - servo__neck_neck_pitch
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0.0
+    - 0.0
+    - 1.0
+    len_mm: 60.0
+    step_mm: 0.25
+    provenance: tools/gate/data/assembly.yaml 09-12 第二批：工位按 09-12 ⑤ 修正的物理顺序声明（腿从躯干往下逐级装），方向来自 duckstructure.lib.sfw 舵机帧 + mechanical_audit.servo_paths 的自由抽出方向；零位实体读回
+  order_note_2026-09-12: N02 是叉形件：两颊夹着舵机从 +z 套下去（−y 颊的惰轮毂与惰轮面隙 0.3、与厚段隙 0.3）；F13 在套 N02 之前从 −y 拧，F14/F14b 之后拧
+  order_note_2026-09-22_hr34: seq 15 → 11：颈台架先于颈上躯干（步 15，seq 12）；头台架（步 11/12/13/18）改到壳之后（seq 15–18）
+- step: 15
+  id: step15
+  seq: 12
+  subassembly_of: neck
+  action: 颈俯仰舵机沿 +y 装入 N01，拧 4 颗背孔（上 M2×8 / 下应 M2×6）；法兰接 T01 轭 6×M2×5。hr34：此时头子总成未挂，N01 只带头俯仰/颈俯仰两颗舵机上轭
+  parts:
+  - servo_neck_pitch
+  - N01
+  - T01
+  direction: +y
+  tool: PH0
+  path:
+    kind: linear
+    axis: +y
+    len_mm: 60.0
+    step_mm: 0.25
+    peak_mm3: 0.0
+  fasteners:
+  - F11_neckpitch_back_upper
+  - F11b_neckpitch_back_lower
+  - F12_neckpitch_flange
+  already_installed:
+  - L05
+  - servo_ankle
+  - L04
+  - '6700'
+  - L07
+  - L06
+  - servo_hip_pitch
+  - servo_knee
+  - L03
+  - servo_hip_yaw×2
+  - T01
+  - 6702×2
+  - L01×2
+  - servo_hip_roll
+  - L01
+  - 6704×1
+  - L02
+  - servo_head_pitch
+  - N01
+  verified_by: servo_paths neck +y 0
+  verified: true
+  provenance:
+  - duck.py:746
+  - duck.py:757
+  - duck.py:639
+  - mechanical_audit.json:assembly_and_fits.servo_paths
+  - inventory_v2.json:assembly_order[14]
+  required_motion_groups:
+    neck_servo_into_N01:
+      workspace: neck_bench
+      movers:
+      - servo__neck_neck
+      present:
+      - neck
+      - servo__neck_neck
+      - servo__neck_neck_pitch
+    neck_sub_onto_trunk_yoke:
+      workspace: body_after_legs
+      movers:
+      - neck
+      - servo__neck_neck
+      - servo__neck_neck_pitch
+      present:
+      - trunk
+      - servo__trunk_base_yaw2roll
+      - servo__trunk_base_bearing_roll
+      - bearing_left_hip_yaw
+      - bearing_right_hip_yaw
+      - yaw2roll
+      - servo__yaw2roll_hip_l
+      - hip
+      - upper_leg
+      - servo__upper_leg_left_upper_leg_left
+      - servo__upper_leg_left_leg
+      - bearing_left_knee
+      - lower_leg
+      - ankle_foot
+      - ankle_rear_arm
+      - bearing_left_ankle
+      - servo__leg_ankle_left
+      - sole
+      - yaw2roll_R
+      - servo__bearing_roll_hip_l_2
+      - hip_R
+      - upper_leg_R
+      - servo__upper_leg_right_upper_leg_right
+      - servo__upper_leg_right_leg_2
+      - bearing_right_knee
+      - lower_leg_R
+      - ankle_foot_R
+      - ankle_rear_arm_R
+      - bearing_right_ankle
+      - servo__leg_2_ankle_right
+      - sole_R
+      - neck
+      - servo__neck_neck
+      - servo__neck_neck_pitch
+  motions:
+  - id: neck_servo_into_N01
+    workspace: neck_bench
+    movers:
+    - servo__neck_neck
+    present:
+    - neck
+    - servo__neck_neck
+    - servo__neck_neck_pitch
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0.0
+    - 1.0
+    - 0.0
+    len_mm: 40.0
+    step_mm: 0.25
+    provenance: tools/gate/data/assembly.yaml 09-12 第二批：工位按 09-12 ⑤ 修正的物理顺序声明（腿从躯干往下逐级装），方向来自 duckstructure.lib.sfw 舵机帧 + mechanical_audit.servo_paths 的自由抽出方向；零位实体读回
+  - id: neck_sub_onto_trunk_yoke
+    subassembly_of: robot
+    workspace: body_after_legs
+    movers:
+    - neck
+    - servo__neck_neck
+    - servo__neck_neck_pitch
+    present:
+    - trunk
+    - servo__trunk_base_yaw2roll
+    - servo__trunk_base_bearing_roll
+    - bearing_left_hip_yaw
+    - bearing_right_hip_yaw
+    - yaw2roll
+    - servo__yaw2roll_hip_l
+    - hip
+    - upper_leg
+    - servo__upper_leg_left_upper_leg_left
+    - servo__upper_leg_left_leg
+    - bearing_left_knee
+    - lower_leg
+    - ankle_foot
+    - ankle_rear_arm
+    - bearing_left_ankle
+    - servo__leg_ankle_left
+    - sole
+    - yaw2roll_R
+    - servo__bearing_roll_hip_l_2
+    - hip_R
+    - upper_leg_R
+    - servo__upper_leg_right_upper_leg_right
+    - servo__upper_leg_right_leg_2
+    - bearing_right_knee
+    - lower_leg_R
+    - ankle_foot_R
+    - ankle_rear_arm_R
+    - bearing_right_ankle
+    - servo__leg_2_ankle_right
+    - sole_R
+    - neck
+    - servo__neck_neck
+    - servo__neck_neck_pitch
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0.0
+    - -1.0
+    - 0.0
+    len_mm: 60.0
+    step_mm: 0.5
+    provenance: tools/gate/data/assembly.yaml 09-12 第二批：工位按 09-12 ⑤ 修正的物理顺序声明（腿从躯干往下逐级装），方向来自 duckstructure.lib.sfw 舵机帧 + mechanical_audit.servo_paths 的自由抽出方向；零位实体读回
+    movers_note_2026-09-17_hr12: 头部新件（A/偏航轴承、N05/N06/N07/N08）随头一起动，不是静止障碍
+    movers_note_2026-09-22_hr34: hr34：头子总成不再随颈上躯干，改在壳之后挂（步 20）
+    user_decision_2026_09_28_hr50_step15: 'hr50 chain 本动作 FAIL 5.713391339020872 mm³ @ 路径 4.0（mover neck × trunk）：N01 背板 −x 边外的沉窝圆耳（neck.py n01_cbore_ears，hr50 新加，x 14.8..16.05 × z 142.2..148.5）在沿 ±y 直线滑行 t=1..6.5 mm 时与 T01 缺口 −y 端残角（x 12..15.5 × y −22.04..−17 × z 141.8..147.8）重叠 0.7 深 × 4 高；零位相距 0.7，不影响任何关节运动。**用户 2026-09-28 16:0x 定：不削，记录**（原话“能调整角度，能装上就不削”）。装法：子总成绕颈俯仰轴上的轭毂心 (26, 14.5, 152.4) 向 +x 扭 1.6°（圆耳端偏约 0.8 mm）滑入，剩 0.8 mm 摆正压到位——已算 1.6° 时三个 mover 全程交集 0.000 mm³、最近 0.108 mm，毂只在最后 5 mm 进轭孔、毂端偏 ≤0.1。本条不是弹性接触声明（两边都是实心块，不走 pla_snap），判据照红，装配说明写操作；演示页 docs/viewers/hr50_step15_装脖子动态演示.html'
+  order_note_2026-09-12: 颈俯仰舵机法兰朝 +y 贴 T01 轭盘（F12 从 +y 拧）；N01 子总成从 −y 侧沿 +y 推上轭（抽出 −y）。本步在两腿装完之后、电池与壳之前
+- step: 16
+  id: step16
+  seq: 13
+  subassembly_of: robot
+  action: 电池从后方沿+x推入仓；B01沿+x推入，底脚进隧道、卡珠定位。F21默认不装；末步21插XT30并盖B03后门才锁住。
+  parts:
+  - 电池
+  - B01
+  - T01
+  direction: +x
+  tool: 手
+  path:
+    kind: linear
+    axis: -x（电池从后方推入，抽出 −x）
+    len_mm: 40.0
+    step_mm: 0.5
+    peak_mm3: null
+  fasteners:
+  - F28_snap_B01
+  already_installed:
+  - L05
+  - servo_ankle
+  - L04
+  - '6700'
+  - L07
+  - L06
+  - servo_hip_pitch
+  - servo_knee
+  - L03
+  - servo_hip_yaw×2
+  - T01
+  - 6702×2
+  - L01×2
+  - servo_hip_roll
+  - L01
+  - 6704×1
+  - L02
+  - servo_head_pitch
+  - N01
+  - servo_neck_pitch
+  verified_by: hr39f换门/底脚隧道后需重查−x路径
+  verified: false
+  provenance:
+  - duck.py:592-597
+  - duck.py:604-613
+  - mechanical_audit.json:B01_receiver_center_segments_mm
+  - inventory_v2.json:assembly_order[15]
+  unknown_class: not_audited
+  unknown_reason: 刚体门/电池路径由新网格核；卡扣保持力需BN19，F21默认不装，不以旧M2或绑带作为锁门依据
+  required_motion_groups:
+    battery_into_bay:
+      workspace: body_after_neck
+      movers:
+      - zz_battery
+      present:
+      - trunk
+      - servo__trunk_base_yaw2roll
+      - servo__trunk_base_bearing_roll
+      - bearing_left_hip_yaw
+      - bearing_right_hip_yaw
+      - yaw2roll
+      - servo__yaw2roll_hip_l
+      - hip
+      - upper_leg
+      - servo__upper_leg_left_upper_leg_left
+      - servo__upper_leg_left_leg
+      - bearing_left_knee
+      - lower_leg
+      - ankle_foot
+      - ankle_rear_arm
+      - bearing_left_ankle
+      - servo__leg_ankle_left
+      - sole
+      - yaw2roll_R
+      - servo__bearing_roll_hip_l_2
+      - hip_R
+      - upper_leg_R
+      - servo__upper_leg_right_upper_leg_right
+      - servo__upper_leg_right_leg_2
+      - bearing_right_knee
+      - lower_leg_R
+      - ankle_foot_R
+      - ankle_rear_arm_R
+      - bearing_right_ankle
+      - servo__leg_2_ankle_right
+      - sole_R
+      - neck
+      - servo__neck_neck
+      - servo__neck_neck_pitch
+      - zz_battery
+    battery_door:
+      workspace: body_after_neck
+      movers:
+      - battery_door
+      present:
+      - trunk
+      - servo__trunk_base_yaw2roll
+      - servo__trunk_base_bearing_roll
+      - bearing_left_hip_yaw
+      - bearing_right_hip_yaw
+      - yaw2roll
+      - servo__yaw2roll_hip_l
+      - hip
+      - upper_leg
+      - servo__upper_leg_left_upper_leg_left
+      - servo__upper_leg_left_leg
+      - bearing_left_knee
+      - lower_leg
+      - ankle_foot
+      - ankle_rear_arm
+      - bearing_left_ankle
+      - servo__leg_ankle_left
+      - sole
+      - yaw2roll_R
+      - servo__bearing_roll_hip_l_2
+      - hip_R
+      - upper_leg_R
+      - servo__upper_leg_right_upper_leg_right
+      - servo__upper_leg_right_leg_2
+      - bearing_right_knee
+      - lower_leg_R
+      - ankle_foot_R
+      - ankle_rear_arm_R
+      - bearing_right_ankle
+      - servo__leg_2_ankle_right
+      - sole_R
+      - neck
+      - servo__neck_neck
+      - servo__neck_neck_pitch
+      - zz_battery
+      - battery_door
+  motions:
+  - id: battery_into_bay
+    workspace: body_after_neck
+    movers:
+    - zz_battery
+    present:
+    - trunk
+    - servo__trunk_base_yaw2roll
+    - servo__trunk_base_bearing_roll
+    - bearing_left_hip_yaw
+    - bearing_right_hip_yaw
+    - yaw2roll
+    - servo__yaw2roll_hip_l
+    - hip
+    - upper_leg
+    - servo__upper_leg_left_upper_leg_left
+    - servo__upper_leg_left_leg
+    - bearing_left_knee
+    - lower_leg
+    - ankle_foot
+    - ankle_rear_arm
+    - bearing_left_ankle
+    - servo__leg_ankle_left
+    - sole
+    - yaw2roll_R
+    - servo__bearing_roll_hip_l_2
+    - hip_R
+    - upper_leg_R
+    - servo__upper_leg_right_upper_leg_right
+    - servo__upper_leg_right_leg_2
+    - bearing_right_knee
+    - lower_leg_R
+    - ankle_foot_R
+    - ankle_rear_arm_R
+    - bearing_right_ankle
+    - servo__leg_2_ankle_right
+    - sole_R
+    - neck
+    - servo__neck_neck
+    - servo__neck_neck_pitch
+    - zz_battery
+    sense: withdrawal_from_assembled
+    outward_world:
+    - -1.0
+    - 0.0
+    - 0.0
+    len_mm: 40.0
+    step_mm: 0.5
+    provenance: tools/gate/data/assembly.yaml 09-12 第二批：工位按 09-12 ⑤ 修正的物理顺序声明（腿从躯干往下逐级装），方向来自 duckstructure.lib.sfw
+      舵机帧 + mechanical_audit.servo_paths 的自由抽出方向；零位实体读回
+  - id: battery_door
+    workspace: body_after_neck
+    movers:
+    - battery_door
+    present:
+    - trunk
+    - servo__trunk_base_yaw2roll
+    - servo__trunk_base_bearing_roll
+    - bearing_left_hip_yaw
+    - bearing_right_hip_yaw
+    - yaw2roll
+    - servo__yaw2roll_hip_l
+    - hip
+    - upper_leg
+    - servo__upper_leg_left_upper_leg_left
+    - servo__upper_leg_left_leg
+    - bearing_left_knee
+    - lower_leg
+    - ankle_foot
+    - ankle_rear_arm
+    - bearing_left_ankle
+    - servo__leg_ankle_left
+    - sole
+    - yaw2roll_R
+    - servo__bearing_roll_hip_l_2
+    - hip_R
+    - upper_leg_R
+    - servo__upper_leg_right_upper_leg_right
+    - servo__upper_leg_right_leg_2
+    - bearing_right_knee
+    - lower_leg_R
+    - ankle_foot_R
+    - ankle_rear_arm_R
+    - bearing_right_ankle
+    - servo__leg_2_ankle_right
+    - sole_R
+    - neck
+    - servo__neck_neck
+    - servo__neck_neck_pitch
+    - zz_battery
+    - battery_door
+    sense: withdrawal_from_assembled
+    outward_world:
+    - -1.0
+    - 0.0
+    - 0.0
+    len_mm: 30.0
+    step_mm: 0.5
+    provenance: tools/gate/data/assembly.yaml 09-12 第二批：工位按 09-12 ⑤ 修正的物理顺序声明（腿从躯干往下逐级装），方向来自 duckstructure.lib.sfw
+      舵机帧 + mechanical_audit.servo_paths 的自由抽出方向；零位实体读回
+- step: 17
+  id: step17
+  seq: 14
+  subassembly_of: robot
+  action: 躯干壳 T02/T03 沿 ±y **直线**推上（T03 的 Ø14 惰轮毂穿 N01 的 Ø15 孔落到颈俯仰惰轮端面）；先手紧 T03 惰轮 6 颗 M2×8（首装只上 0/120/240 三颗），再紧 4×M2×8 壳柱
+  parts:
+  - T02
+  - T03
+  - T01
+  direction: ±y 合拢（T03 向 +y、T02 向 −y，最后 3.3 mm 必须纯轴向：毂在 N01 孔里）
+  tool: PH0
+  path:
+    kind: linear
+    axis: ±y
+    len_mm: 40.0
+    step_mm: 0.5
+    peak_mm3: 0.0
+  path_note: 2026-09-12 起有检查：mechanical_audit.shell_slide_mm3（T03 向 −y / T02 向 +y 各退 0..40 mm，对 T01/N01/两颗脖子舵机/N02/对侧壳 交集 0）。 为此 T01 在侧壁区让出了壳的整条直线扫掠（lib.shell_cutter，SHELL_SLIDE=9.0）—— 复核发现原来壳向外挪 0.6..6.5
+    mm 会顶到 T01 甲板边/顶板角（最大 14 mm³ @3.5，8 mm 后为 0；以前靠斜着套）。 推 T03 之前：在一个惰轮孔里先旋进一颗 M2 让尖端露出毂端面 ~1 mm 当相位销（推上后惰轮被毂盖死、看不见也拨不动；6 孔 60° 对称，最坏转 30°）。 验收：上电前手转颈俯仰全行程无额外阻力（法兰端由 T01 轭定位、惰轮端由 T03 毂定位，是过约束；靠 Ø2.6 过孔的浮动
+    + 先紧惰轮后紧壳柱的顺序吸收）。
+  fasteners:
+  - F12b_neckpitch_idler
+  - F20_shell_to_T01
+  already_installed:
+  - L05
+  - servo_ankle
+  - L04
+  - '6700'
+  - L07
+  - L06
+  - servo_hip_pitch
+  - servo_knee
+  - L03
+  - servo_hip_yaw×2
+  - T01
+  - 6702×2
+  - L01×2
+  - servo_hip_roll
+  - L01
+  - 6704×1
+  - L02
+  - servo_head_pitch
+  - N01
+  - servo_neck_pitch
+  - 电池
+  - B01
+  verified_by: mechanical_audit.json:shell_slide_mm3（±y 直线路径）+ assembly_and_fits.neck_shell_gaps（摆动间隙）+ T03_idler_hub_mm3 / T03_skin_holes / N01_into_idler_zone_mm3
+  verified: true
+  provenance:
+  - duckstructure/trunk.py:build_trunk_shell
+  - duckstructure/lib.py:shell_cutter SHELL_SLIDE
+  - tools/cad/mechanical_audit.py
+  - mechanical_audit.json:assembly_and_fits.neck_shell_gaps
+  - docs/reports/颈俯仰惰轮实现规格_2026-09-12.md §0
+  required_motion_groups:
+    shell_L:
+      workspace: body_all
+      movers:
+      - shell_L
+      present:
+      - trunk
+      - servo__trunk_base_yaw2roll
+      - servo__trunk_base_bearing_roll
+      - bearing_left_hip_yaw
+      - bearing_right_hip_yaw
+      - yaw2roll
+      - servo__yaw2roll_hip_l
+      - hip
+      - upper_leg
+      - servo__upper_leg_left_upper_leg_left
+      - servo__upper_leg_left_leg
+      - bearing_left_knee
+      - lower_leg
+      - ankle_foot
+      - ankle_rear_arm
+      - bearing_left_ankle
+      - servo__leg_ankle_left
+      - sole
+      - yaw2roll_R
+      - servo__bearing_roll_hip_l_2
+      - hip_R
+      - upper_leg_R
+      - servo__upper_leg_right_upper_leg_right
+      - servo__upper_leg_right_leg_2
+      - bearing_right_knee
+      - lower_leg_R
+      - ankle_foot_R
+      - ankle_rear_arm_R
+      - bearing_right_ankle
+      - servo__leg_2_ankle_right
+      - sole_R
+      - neck
+      - servo__neck_neck
+      - servo__neck_neck_pitch
+      - zz_battery
+      - battery_door
+      - shell_L
+      - shell_R
+    shell_R:
+      workspace: body_all
+      movers:
+      - shell_R
+      present:
+      - trunk
+      - servo__trunk_base_yaw2roll
+      - servo__trunk_base_bearing_roll
+      - bearing_left_hip_yaw
+      - bearing_right_hip_yaw
+      - yaw2roll
+      - servo__yaw2roll_hip_l
+      - hip
+      - upper_leg
+      - servo__upper_leg_left_upper_leg_left
+      - servo__upper_leg_left_leg
+      - bearing_left_knee
+      - lower_leg
+      - ankle_foot
+      - ankle_rear_arm
+      - bearing_left_ankle
+      - servo__leg_ankle_left
+      - sole
+      - yaw2roll_R
+      - servo__bearing_roll_hip_l_2
+      - hip_R
+      - upper_leg_R
+      - servo__upper_leg_right_upper_leg_right
+      - servo__upper_leg_right_leg_2
+      - bearing_right_knee
+      - lower_leg_R
+      - ankle_foot_R
+      - ankle_rear_arm_R
+      - bearing_right_ankle
+      - servo__leg_2_ankle_right
+      - sole_R
+      - neck
+      - servo__neck_neck
+      - servo__neck_neck_pitch
+      - zz_battery
+      - battery_door
+      - shell_L
+      - shell_R
+  motions:
+  - id: shell_L
+    workspace: body_all
+    movers:
+    - shell_L
+    present:
+    - trunk
+    - servo__trunk_base_yaw2roll
+    - servo__trunk_base_bearing_roll
+    - bearing_left_hip_yaw
+    - bearing_right_hip_yaw
+    - yaw2roll
+    - servo__yaw2roll_hip_l
+    - hip
+    - upper_leg
+    - servo__upper_leg_left_upper_leg_left
+    - servo__upper_leg_left_leg
+    - bearing_left_knee
+    - lower_leg
+    - ankle_foot
+    - ankle_rear_arm
+    - bearing_left_ankle
+    - servo__leg_ankle_left
+    - sole
+    - yaw2roll_R
+    - servo__bearing_roll_hip_l_2
+    - hip_R
+    - upper_leg_R
+    - servo__upper_leg_right_upper_leg_right
+    - servo__upper_leg_right_leg_2
+    - bearing_right_knee
+    - lower_leg_R
+    - ankle_foot_R
+    - ankle_rear_arm_R
+    - bearing_right_ankle
+    - servo__leg_2_ankle_right
+    - sole_R
+    - neck
+    - servo__neck_neck
+    - servo__neck_neck_pitch
+    - zz_battery
+    - battery_door
+    - shell_L
+    - shell_R
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0.0
+    - 1.0
+    - 0.0
+    len_mm: 40.0
+    step_mm: 0.5
+    provenance: tools/gate/data/assembly.yaml 09-12 第二批：工位按 09-12 ⑤ 修正的物理顺序声明（腿从躯干往下逐级装），方向来自 duckstructure.lib.sfw 舵机帧 + mechanical_audit.servo_paths 的自由抽出方向；零位实体读回
+  - id: shell_R
+    workspace: body_all
+    movers:
+    - shell_R
+    present:
+    - trunk
+    - servo__trunk_base_yaw2roll
+    - servo__trunk_base_bearing_roll
+    - bearing_left_hip_yaw
+    - bearing_right_hip_yaw
+    - yaw2roll
+    - servo__yaw2roll_hip_l
+    - hip
+    - upper_leg
+    - servo__upper_leg_left_upper_leg_left
+    - servo__upper_leg_left_leg
+    - bearing_left_knee
+    - lower_leg
+    - ankle_foot
+    - ankle_rear_arm
+    - bearing_left_ankle
+    - servo__leg_ankle_left
+    - sole
+    - yaw2roll_R
+    - servo__bearing_roll_hip_l_2
+    - hip_R
+    - upper_leg_R
+    - servo__upper_leg_right_upper_leg_right
+    - servo__upper_leg_right_leg_2
+    - bearing_right_knee
+    - lower_leg_R
+    - ankle_foot_R
+    - ankle_rear_arm_R
+    - bearing_right_ankle
+    - servo__leg_2_ankle_right
+    - sole_R
+    - neck
+    - servo__neck_neck
+    - servo__neck_neck_pitch
+    - zz_battery
+    - battery_door
+    - shell_L
+    - shell_R
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0.0
+    - -1.0
+    - 0.0
+    len_mm: 40.0
+    step_mm: 0.5
+    provenance: tools/gate/data/assembly.yaml 09-12 第二批：工位按 09-12 ⑤ 修正的物理顺序声明（腿从躯干往下逐级装），方向来自 duckstructure.lib.sfw 舵机帧 + mechanical_audit.servo_paths 的自由抽出方向；零位实体读回
+  order_note_2026-09-12: 两壳各自直线装入/抽出，另一壳在场；T03 的 Ø14 惰轮毂穿 N01 的 Ø15 孔（同轴，间隙 0.5）
+  order_note_2026-09-22_hr34: hr34：壳在头子总成之前装（seq 14 < 19），F20 4 颗壳柱螺丝的 +z 起子路径不再穿过头壳（hr31 L4 tool_path_to_outside 180.55 / screw_head_visible 0/4 的根因）
+- step: 18
+  id: step18
+  seq: 18
+  subassembly_of: head
+  action: 'hr43d 装序 P″（头部台面，头闭合）：18a 台面：转接板背面贴 1 mm 泡棉胶进 H08 胶坑 → 穿两条扎带（≤3 宽，y −9.0 / −16.5，−x 穿耳孔、+x 卡边槽、托面下过竖板槽）捆紧（扎带头放在托板 +y 侧上方 / 竖板一侧，不放前下角 —— hr43e 协调员 20:10 ③） → H08 + 转接板从 +x 沿 −x 推到 H01 旧 Radxa 立柱端面，F35 3×M2×8 从 +x 拧（上两颗 (y ±29, z 262.5) 各垫 1 片 GB848 M2 小平垫 —— hr44b 头部复审 M1：H08 两耳削到 264.0 后孔上方只剩 0.3；H03/H04/H05 都不在）→ 18b 嘴舵机 + J02 从 +y 外侧沿 −y 推进 H01 托架 → 18c′ H03 台面工位（tool h07_bench）：麦克风台下沉位贴泡棉条（中间 Ø4.4 孔）→ 放麦克风；UBEC 两托条贴泡棉 → 放 UBEC、≤0.9 细扎带捆；台面先把功放扣到 H09 立柱拧 F36 2×M2×6（+x，H09 还没上壳，批杆通路全空）→ 再把 H09（带功放）放上 H03-F24 两凸台拧 F38 2×M2×6（+z）（hr44 第二轮头部复审：原顺序先 F38 后 F36，F36 批杆走到 51 mm 撞下壳 H03；复审核过新顺序两步 0 碰）→ 端子接喇叭线（喇叭自带线 ≈100 assumed，喇叭先悬着）→ 18c H03 组（+ H09 / 功放 / 麦克风 / UBEC / 6700ZZ）从下 +z 合上，F22 4×M2×8 从上拧 → 18c-插线：转接板 PH（S1）/ XT30 ×2 / Type-C 弯头从上方插，12 V、UBEC 进出、总线、IMU → 18d′ 顶壳子总成台面（h05_bench_radxa）：H05 翻过来 → 喇叭肩贴 1 mm 泡棉环、斜插卡进卡座、外缘 2–3 点胶 → 14 个杜邦壳直插 Radxa 排针（功放 5 根出壳即朝 −x 弯、其余朝 +x）→ 14 壳顶整排贴一条 Kapton / 泡棉胶带 → Radxa 扣四吊柱拧 F37 → 插 CSI → 18d H05 子总成悬在头上方 ≈40：各线前端接功放 / 麦克风 / UBEC / IMU、USB 插 Radxa → 翻正盖下 → 18d″ F33 → 18e J03 → 18f J01 + F34 → 18g 圆眼（躯干另：B03 盖内面贴 1–2 块泡棉压 XT30 对插头，只登记）'
+  action_note_2026-09-30_hr52c: '上面 action 里「14 个杜邦壳直插 Radxa 排针 / 14 壳顶整排贴胶带」hr52 起是 16 个 / 16 壳（+ 1 号 ToF VIN、+ 6 号 ToF GND；插的顺序见 plugging_steps_hr52）；3 / 5 号改一分二（复审 r1 m5）'
+  action_was_until_2026_09_26_hr44b: 'hr43d 装序 P″（头部台面，头闭合）：18a 台面：转接板背面贴 1 mm 泡棉胶进 H08 胶坑 → 穿两条扎带（≤3 宽，y −9.0 / −16.5，−x 穿耳孔、+x 卡边槽、托面下过竖板槽）捆紧（扎带头放在托板 +y 侧上方 / 竖板一侧，不放前下角 —— hr43e 协调员 20:10 ③） → H08 + 转接板从 +x 沿 −x 推到 H01 旧 Radxa 立柱端面，F35 3×M2×8 从 +x 拧（H03/H04/H05 都不在）→ 18b 嘴舵机 + J02 从 +y 外侧沿 −y 推进 H01 托架 → 18c′ H03 台面工位（tool h07_bench）：麦克风台下沉位贴泡棉条（中间 Ø4.4 孔）→ 放麦克风；UBEC 两托条贴泡棉 → 放 UBEC、≤0.9 细扎带捆；H09 放上 H03-F24 两凸台拧 F38 2×M2×6（+z）→ 功放扣 H09 立柱拧 F36 2×M2×6（+x；hr43e-2 起，原 M2×5）→ 端子接喇叭线（喇叭自带线 ≈100 assumed，喇叭先悬着）→ 18c H03 组（+ H09 / 功放 / 麦克风 / UBEC / 6700ZZ）从下 +z 合上，F22 4×M2×8 从上拧 → 18c-插线：转接板 PH（S1）/ XT30 ×2 / Type-C 弯头从上方插，12 V、UBEC 进出、总线、IMU → 18d′ 顶壳子总成台面（h05_bench_radxa）：H05 翻过来 → 喇叭肩贴 1 mm 泡棉环、斜插卡进卡座、外缘 2–3 点胶 → 14 个杜邦壳直插 Radxa 排针（功放 5 根出壳即朝 −x 弯、其余朝 +x）→ 14 壳顶整排贴一条 Kapton / 泡棉胶带 → Radxa 扣四吊柱拧 F37 → 插 CSI → 18d H05 子总成悬在头上方 ≈40：各线前端接功放 / 麦克风 / UBEC / IMU、USB 插 Radxa → 翻正盖下 → 18d″ F33 → 18e J03 → 18f J01 + F34 → 18g 圆眼（躯干另：B03 盖内面贴 1–2 块泡棉压 XT30 对插头，只登记）'
+  action_was_until_2026_09_25_hr43e: 'hr43d 装序 P″（头部台面，头闭合）：18a 台面：转接板背面贴 1 mm 泡棉胶进 H08 胶坑 → 穿两条扎带（≤3 宽，y −9.0 / −16.5，−x 穿耳孔、+x 卡边槽、托面下过竖板槽）捆紧 → H08 + 转接板从 +x 沿 −x 推到 H01 旧 Radxa 立柱端面，F35 3×M2×8 从 +x 拧（H03/H04/H05 都不在）→ 18b 嘴舵机 + J02 从 +y 外侧沿 −y 推进 H01 托架 → 18c′ H03 台面工位（tool h07_bench）：麦克风台下沉位贴泡棉条（中间 Ø4.4 孔）→ 放麦克风；UBEC 两托条贴泡棉 → 放 UBEC、≤0.9 细扎带捆；H09 放上 H03-F24 两凸台拧 F38 2×M2×6（+z）→ 功放扣 H09 立柱拧 F36 2×M2×5（+x）→ 端子接喇叭线（喇叭自带线 ≈100 assumed，喇叭先悬着）→ 18c H03 组（+ H09 / 功放 / 麦克风 / UBEC / 6700ZZ）从下 +z 合上，F22 4×M2×8 从上拧 → 18c-插线：转接板 PH（S1）/ XT30 ×2 / Type-C 弯头从上方插，12 V、UBEC 进出、总线、IMU → 18d′ 顶壳子总成台面（h05_bench_radxa）：H05 翻过来 → 喇叭肩贴 1 mm 泡棉环、斜插卡进卡座、外缘 2–3 点胶 → 14 个杜邦壳直插 Radxa 排针（功放 5 根出壳即朝 −x 弯、其余朝 +x）→ 14 壳顶整排贴一条 Kapton / 泡棉胶带 → Radxa 扣四吊柱拧 F37 → 插 CSI → 18d H05 子总成悬在头上方 ≈40：各线前端接功放 / 麦克风 / UBEC / IMU、USB 插 Radxa → 翻正盖下 → 18d″ F33 → 18e J03 → 18f J01 + F34 → 18g 圆眼（躯干另：B03 盖内面贴 1–2 块泡棉压 XT30 对插头，只登记）'
+  action_was_until_2026_09_25_hr43d: 'hr43 装序 P′（头部台面，头闭合）：18a 台面先把功放拧上 H07（F36 2×M2×5）、插好功放 5 个杜邦壳 → H07+功放从 +x 沿 −x 推到 H01 旧 Radxa 立柱端面，F35 3×M2×8 从 +x 拧（H03/H04/H05 都不在） → 18b 嘴舵机 + J02（j02_bench 已拧 F28）从 +y 外侧沿 −y 推进 H01 托架 → 18c H03 + 转接板/麦克风/UBEC/6700ZZ 从下 +z 合上，F22 4×M2×8 从上拧 → 18c-插线：USB（15 cm 弯头，转接板端）、麦克风 6 腿、UBEC 进出、总线、IMU、12V → 18d′ 顶壳子总成台面（h05_bench_radxa）：H05 翻过来放台面 → 40P 直角转接套上 Radxa 排针 → Radxa 板顶面扣到四根吊柱上，F37 4×M2×8 + 小平垫从板底拧 → 插 CSI（摄像头端已在 h04_bench 插好、H04 已插进 H05 凹槽） → 18d H05 子总成悬在头上方 ≈40 mm：17 根杜邦腿的 Radxa 端（功放 5 / 麦克风 6 / UBEC 2 / IMU 4）插上直角转接横针、USB 插 Radxa USB-C2 → 翻正盖下（−z） → 18d″ F33 2×M2×8 从 H03 底下拧（J01 未装） → 18e J03 从 −y 插进 6700 内圈 → 18f J01 从下 +z 装上、F34 6×M2×5 沉头 + 螺母 → 18g 圆眼三件胶粘（+x）'
+  action_was_until_2026_09_25_hr43: 'hr41 装序 P（头部台面，头闭合）：18a Radxa 沿 −x 套 H01 立柱（F25）→ 18b 嘴舵机 + J02（j02_bench 已拧 F28）从 +y 外侧沿 −y 推进 H01 托架 → 18c H03 + 转接板/麦克风/UBEC/6700ZZ 从下 +z 合上，F22 4×M2×8 从上拧 → 18c-插线（M6）：USB（15 cm）、麦克风、UBEC 进出、总线、IMU、12V 在 H03 合上后从上方插好 → 18d H05 + 喇叭/功放 + H04（h04_bench 已装摄像头 + H06 压框 F27）从上 −z 盖下；下盖前插 CSI 的 Radxa 端与功放/喇叭线 → 18d′ F33 2×M2×8 从 H03 底下拧（J01 未装，工位 h05_keep_screws）→ 18e J03 从 −y 插进 6700 内圈 → 18f J01 从下 +z 装上、F34 6×M2×5 沉头 + 螺母 → 18g 圆眼三件胶粘（+x）'
+  action_was_until_2026_09_24_hr41: '头部：H03 适配底壳 + 原 top_head_shell 合上；H01 4 脚 M2×8；**hr37 前置（本步台面）**：18a Radxa 沿 −x 套上 H01 四立柱（F25 4×M2）→ 18b 顶壳 −z 盖上 → 18c H04 脸板（台面先装摄像头 F27 4×M2×4）从下方 +z 插进顶壳凹槽 → 18d 麦克风放进 H03 麦克风台（唇下） → 18e H03 +z 合上（前唇槽锁住 H04 底边）'
+  action_note_2026-09-30_hr52d: '下一条 hr52 措辞已过时（复审 r3 m1）：芯片面针脚不剪 —— 焊锡包落 H04-F10 槽、针尖进 H04-F13 通透长条；4 个杜邦壳最好在 ToF 装上 H04 之前插（见本步 plugging_steps_hr52 首条）'
+  action_note_2026-09-29_hr52: 'h04_bench 台面（18 前置，hr52 左脸 ToF「v6-VL53L5CX 雷达」）：H04 平放 → 摄像头 PCB 正面朝前按进 H04-F05 → 盖 H06 拧 F27 2×M2×8 → ToF 板正面朝前套 H04-F11 两根定位销（芯片进 H04-F09 槽，焊点落 H04-F10）→ 放 H10（两脚压两耳、两端盘搭 H04-F12 柱顶）→ 拧 F39 2×M2×6（PH0 从 −x 沿 +x）→ 插 4 个杜邦壳（SDA / SCL / GND / VIN）→ H04 插进 H05 凹槽，随 H05 组在 18d 从上 −z 盖下（tof_clamp / zz_tof 进 d 组 movers、之后在场全集）'
+  plugging_steps_hr52:
+  - at: 18 前置 h04_bench 台面（H04 + 摄像头 + H06 + ToF + H10）—— 4 个杜邦壳最好在 ToF 装上 H04 之前插（正面有针名丝印）；也可 F39 拧完后从背面插（hr52d 复审 r2 m5）
+    at_was_until_2026_09_30_hr52d: 18 前置 h04_bench 台面（H04 + 摄像头 + H06 + ToF + H10，F39 拧完之后）
+    face_exposure_note_2026-09-30_hr52d: 'H04 排针长条是通的（针脚不剪）：装好后从脸面能看到 VIN / GND 针尖（板 1.6 在脸面下 0.1；板更薄会冒出）→ 用一小条 Kapton / 白胶带或 UV 胶封住长条（复审 r2 m2）；胶带宽 ≤5–6 mm、只盖长条，别盖芯片窗（离长条只有 2.5）和脸板边，UV 胶别流进芯片窗（复审 r3 m2）'
+    plugs: [ToF 4 个杜邦母壳（SDA / SCL / GND / VIN）套 ToF 背面直排针右边 4 根（正面看左 → 右 LPn INT SDA SCL GND VIN；INT / LPn 空）]
+    plugs_note_2026-09-30_hr52c: '复审 r1 m1：背面没有针名丝印、从背面看左右是反的 —— **从 VIN 那一端数 4 根**（VIN、GND、SCL、SDA），离 VIN 最远的两根（INT、LPn）空着；最好装板前先插（正面有丝印，对着认）；线色定死：VIN 红、GND 黑'
+    note: 壳尾朝 −x（头里），套到底顶住排针塑座（zz_tof 含 4 壳）；4 根 ToF 线（10 cm 母对母）先垂着，Radxa 端见下两条（hr52 线束轮）；插线动作不可扫（plugging_steps_hr43* 先例）
+    note_was_until_2026_09_30_hr52: 壳尾朝 −x（头里），套到底顶住排针塑座（zz_tof 含 4 壳）；Radxa 端插哪几根针、线怎么走由线束另轮登记（harness 主会话），本条只登台面这一端；插线动作不可扫（plugging_steps_hr43* 先例）
+  - at: 18d′ 台面（顶壳 H05 翻过来、H04 已插凹槽、Radxa 在手上）—— 排针 14 壳 → 16 壳（hr52 线束轮）
+    plugs:
+    - "16 个杜邦壳直插 Radxa 排针：1 / 2 / 3 / 4 / 5 / 6 / 9 / 12 / 14 / 17 / 20 / 25 / 34 / 35 / 38 / 40；3 / 5 / 12 / 17 / 35 为一分二单壳两线（hr52：+ 1 号 ToF VIN 3.3 V、+ 6 号 ToF GND、3 / 5 号改一分二）"
+    - "先插 1、4、6（底层，出壳即弯压平：1 号朝 +x 偏 +y 37° 再回正朝 +x；4 / 6 号朝 +x）"
+    - "再插 2 号（竖直多走 1.4 再朝 −x 偏 −y 10° 弯，从 1 号出线上方过）"
+    - "3 号一分二：两腿并排朝 +x（IMU 腿在 −y、ToF 腿在 +y），竖直多走 1.5 跨 4 号"
+    - "5 号一分二：两腿并排朝 +x 偏 −y 45° 压平，不跨 6 号（抬起来会切 CSI 排线边）"
+    - "其余各针照 plugging_steps_hr43c / hr43d 的 18d′"
+    - "插 1 / 6 号时接上 ToF VIN / GND 线的母头；3 / 5 号一分二的 ToF 腿公头接 ToF SDA / SCL 线的母头"
+    - "壳顶整排 Kapton / 泡棉胶带条随 16 壳加长"
+    note: "线的走法见 wiring_head._apply_hr52（duckstructure/data/wiring_head_hr52.json）；1 号出线离 H05 +y 前吊柱削平面 0.096（削平面钉在 hr52 之前的排针包围盒 head_top.H05_HDR_FLAT_BOUNDS，H05 不变）、SCL 离 6 号腿 0.105，都是软线不相交；插线动作不可扫。记录 hr52_work/harness/线束报告.md"
+  - at: 18d 盖下之前（H05 子总成悬在上方）
+    plugs:
+    - "IMU 的 SDA / SCL 两根母头改接 3 / 5 号一分二的 IMU 腿公头（原来直插 3 / 5 针）"
+    note: 其余同 plugging_steps_hr43c 的 18d
+  harness_steps_2026-09-30_hr52:
+  - at: "18d′ / 18d 盖 H05 之前 —— 头内扎束（接 harness_steps_2026-09-25_hr44reg 同一条）"
+    bundles: {"tof": "tof_SDA_pin3_splitleg / tof_SCL_pin5_splitleg / tof_GND_pin6 / tof_VIN_pin1（→ 左脸 ToF 背面 4 个杜邦壳；harness.yaml:HB12_tof_i2c）"}
+    ties:
+    - {"id": "tie__tof_1", "bundle": "tof", "c": [43.53, 24.73, 276.49], "bundle_d": 3.38, "nearest": "H05 2.0"}
+    - {"id": "tie__tof_2", "bundle": "tof", "c": [54.01, 28.06, 276.33], "bundle_d": 3.38, "nearest": "麦 / IMU / 功放线 0.85"}
+    moved:
+    - {"id": "tie__mic_1", "c": [62.62, 24.9, 274.4], "c_was_until_2026_09_30_hr52": [70.04, 26.47, 274.47], "why": "麦束起头（x > 66）平移 (0, −2.0, −0.2)、6 根尾线重走：原起头车道在 ToF SDA / SCL 杜邦壳底下；原第 1 道扎带环套住 ToF SDA 进壳段"}
+    purchase_note: "ToF SDA / SCL 实物 = 一分二的 ToF 腿（腿长未知）+ 10 cm 母对母，路径只 ≈71 → 余长盘在头里（盘线与中途对插接头没建模）；一分二挑最短腿的（harness.yaml:HB12_tof_i2c）"
+    refs: ["duckstructure/data/wiring_head_hr52.json（bundles.tof.ties / tie_override.mic）", "hr52_work/harness/线束报告.md"]
+  plugging_steps_hr43:
+  - at: 18a 台面（H07 单件）
+    plugs: [功放 5 个杜邦壳（LRC/BCLK/DIN/GND/VIN）从下往上套直排针]
+    note: 功放装上 H01 后针在板底朝下、只从下面够得着 —— 所以台面先插
+  - at: 18c 之后（H03 在、H05 不在）
+    plugs: [USB 15 cm 弯头（转接板 Type-C 端）, 麦克风 6 腿（从上套麦克风针）, UBEC 进 / 出, 总线, IMU, xt30_12v]
+  - at: 18d′ 台面（顶壳翻过来）
+    plugs: [40P 直角转接套 Radxa 排针, CSI Radxa 端（板底 +y 端座，板扣柱上拧好后插）]
+  - at: 18d 盖下之前（H05 子总成悬在上方 ≈40 mm）
+    plugs: [17 根杜邦腿 Radxa 端插直角转接横针（盒 B，x 26..40 朝 +x）, USB Radxa 端（USB-C2 在板 −x 长边，弯头线朝 −y 出）]
+    note: 线的走法见 wiring_head._HR43_ROUTES（hr43_work/routes43*.json）；插线动作本身不可扫，只把插好后的线当 d–g 步宿主核
+  plugging_steps_hr41_M6:
+  - at: 18c 之后（H03 在、H05 不在，从上方敞口插）
+    plugs: [usb_link（Radxa OTG ↔ 转接板，15 cm 线，协调员 09-24 17:15 定）, mic 3 线, ubec_in / ubec_out, 总线, IMU, xt30_12v]
+    note: 盘线进 stow_ubec_top / stow_ubec_in / bus_plus_y / mic_front（wiring_head.STOWS）；刚体线模型的「插入动作」本身不可扫，只把插好后的线当 d–g 步宿主核（seq_p_wires.json 0）
+  - at: 18d 盖下之前（H05 组悬在上方）
+    plugs: [CSI Radxa 端（摄像头端已在 h04_bench 插好）, 喇叭 / 功放线]
+    note: CSI 原位走线只是占位，hr42 按后脑位置重走（harness HB06 status）；喇叭/功放线与盘线区 stow_rear 随 H05 组走
+  - at: 拆
+    note: 拆 H05 必须先拆 J01（F34）才够得着 F33；CSI/喇叭线在 H05 抬起约 30 mm 时先拔
+  parts_was_until_2026_09_25_hr43: [H01, zz_sbc, servo_jaw, J02, H03, zz_adapter, zz_mic, zz_ubec, 6700ZZ, H05, zz_speaker, zz_amp, H04, zz_camera, H06, J03, J01, E01, E02, E03]
+  parts_was_until_2026_09_25_hr43c: [H07, zz_amp, H01, servo_jaw, J02, H03, zz_adapter, zz_mic, zz_ubec, 6700ZZ, H05, zz_sbc, zz_adapter40, zz_speaker, H04, zz_camera, H06, J03, J01, E01, E02, E03]
+  parts_was_until_2026_09_25_hr43d: [H07, zz_amp, H01, servo_jaw, J02, H03, zz_adapter, zz_mic, zz_ubec, 6700ZZ, H05, zz_sbc, zz_gpio_dupont, zz_speaker, H04, zz_camera, H06, J03, J01, E01, E02, E03]
+  parts_was_until_2026_09_29_hr52: [H08, zz_adapter, H01, servo_jaw, J02, H03, H09, zz_amp, zz_mic, zz_ubec, 6700ZZ, H05, zz_sbc, zz_gpio_dupont, zz_speaker, H04, zz_camera, H06, J03, J01, E01, E02, E03]
+  parts: [H08, zz_adapter, H01, servo_jaw, J02, H03, H09, zz_amp, zz_mic, zz_ubec, 6700ZZ, H05, zz_sbc, zz_gpio_dupont, zz_speaker, H04, zz_camera, H06, H10, zz_tof, J03, J01, E01, E02, E03]  # hr52：+ H10 / zz_tof（放在 H06 后面：h04_bench 上 F27 之后装）
+  plugging_steps_hr43c:
+  - at: 18c 之前 台面（H03 单件）
+    plugs: [转接板竖粘：撕 1 mm 泡棉双面胶保护膜 → 板背面贴到 H03-F22 平床（胶在 F23 浅坑里）→ 合壳后 H05-F06 顶压筋压住板顶边（保险）]
+    note: hr43c 协调员 14:55 ①（用户看实物：40×30 板四边全是接口、不卡边）；15:20 起转接板安放位置用户要重定 —— 本步按已做几何登记，位置改了要重写
+  - at: 18d′ 台面（顶壳 H05 翻过来、Radxa 在手上）
+    plugs: [14 个杜邦壳直插 Radxa 排针（R2 针位：2/3/4/5/9/12/14/17/20/25/34/35/38/40；12/35/17 为一分二单壳两线）, 线出壳顶即沿 +x 弯（杜邦 Rc 2.0；UBEC +5V Rc 2.0、GND Rc 4.0）压平朝前, 板扣到 H05 四根吊柱上从板底拧 F37 4×M2×8 + 小平垫, CSI Radxa 端（板底 +y 端座）]
+    note: 40P 直角转接（zz_adapter40）作废；线的走法见 wiring_head._HR43C_ROUTES（hr43_work/hr43c/routes43c_fb.json）；3 号线从 4 号线上面跨（竖直多走 1.5 再弯）
+  - at: 18d 盖下之前（H05 子总成悬在上方）
+    plugs: ['17 根线的前端各自接到功放 / 麦克风 / UBEC / IMU（Radxa 端已在 18d′ 插好）', 'USB Radxa 端（USB-C2 在板 −x 长边，弯头随板挪 (−0.5, +1.0, −0.5)）']  # hr43e：原第 2 项未加引号，半角逗号把它拆成 3 项（含 float 1.0），加引号，文字未改
+    note: 插线动作本身不可扫，只把插好后的线当 d–g 步宿主核
+  plugging_steps_hr43d:
+  - at: 18a 台面（H08 单件）
+    plugs: [转接板：撕泡棉胶膜贴进 H08 胶坑（36×26）, 两条扎带沿 x 绕板 + 托面（−x 耳孔 / +x 边槽 / 竖板槽）捆紧]
+    note: hr43d B′（agent_brief_hr43d 第 1 条）：螺丝（F35）+ 平面粘 + 扎带捆；插头都在 18c-插线 从上插（口朝 ±y 侧出）
+    tie_head_2026-09-25_hr43e: '协调员 20:10 ③：扎带头放在托板 +y 侧上方 / 竖板一侧，不放前下角（x ≥ 76、托面底 262.8 以下 —— 区间内前折到底髋顶到 262.3，见 features.yaml:H08-F04 / H08-F07）；不建模'
+  - at: 18c′ H03 台面工位（tool h07_bench）
+    plugs: [麦克风台泡棉条（Ø4.4 孔对芯片）, UBEC 托条泡棉 + ≤0.9 细扎带, H09 → H03（F38）, 功放 → H09（F36）, 喇叭线进功放端子（端子接线口朝 +y）]
+    note: 功放 5 根杜邦壳在台面先插好（壳尾朝 −x），Radxa 端 18d′ 插
+  - at: 18d′ 台面（顶壳 H05 翻过来）
+    plugs: [喇叭肩泡棉环 + 卡进卡座 + 外缘 2–3 点胶, 14 个杜邦壳直插排针（功放 5 根出壳朝 −x）, 14 壳顶整排贴 Kapton / 泡棉胶带（assumed）]
+    note: 线走法 wiring_head._HR43D_ROUTES（hr43_work/hr43d/routes43d_fb.json）
+  zz_gpio_dupont_note_2026-09-25_hr43c: 'zz_adapter40（40P 直角转接 + 平插杜邦壳盒）→ zz_gpio_dupont（14 个直插杜邦壳十字包络 + 17 段出壳即弯的弯线管，electronics.gpio_dupont_boxes）；本文件所有在场 / 动件列表同步改名'
+  harness_steps_2026-09-25_hr44reg:
+  - at: "18c 插线时（H03 在、H05 不在）—— 总线根（S1）"
+    do: ["S1 公壳插转接板 PH 座（A 边 +y，转接板平放 H08）", "S1 母① ← 腿 bus_s1_leg1 → 转接块 conn__s1_junction1 → PH2.0 3P 双头同向 10 cm（bus_jaw_ph）→ 14 嘴舵机下口", "14 嘴上口 → 嘴原配 200（bus_jaw_roll）→ 8 头横滚下口；8 → 7 → 6 按 harness.yaml:HB01_servo_bus.chains_2026-09-25_hr44 F_head", "S1 母② ← 腿 bus_s1_leg2_ext → 出头口 R（右前耳）出头，头外接 PH 250 延长线公壳（过颈 HB09_R 下到躯干顶口袋 S2）"]
+    refs: ["harness.yaml:HB01_servo_bus.splitters_2026-09-25_hr44（S1）", "harness.yaml:HB01_servo_bus.chains_2026-09-25_hr44（F_head）", "components.yaml:splitter_ph20_1to2", "hr43_work/hr44/wires_v1/wire__bus_s1_leg1 / wire__bus_jaw_ph / wire__bus_jaw_roll / wire__bus_s1_leg2_ext"]
+    fixings: []
+  - at: "18d′ / 18d 盖 H05 之前 —— 头内扎束 + 胶带贴壳（22:55 口径：头内不加扎带座 / 线夹几何）"
+    bundles: {"imu": "imu_pin3 / 5 / 14 / 17（→ 出头口 R 接过颈束 HB09_R）", "mic": "mic_pin38 / 17 / 20 / 9 / 12 / 35（→ 脸后麦克风排针）", "amp": "amp_LRC / BCLK / DIN / GND / VIN（→ 后脑 +y 功放直排针）", "ubec": "ubec_out_5v / gnd（UBEC 顶 → Radxa pin 4 / 34）"}
+    ties:
+    - {"id": "tie__imu_1", "bundle": "imu", "c": [35.7, 19.5, 228.0], "bundle_d": 3.38, "nearest": "H03 5.26 / N03 7.4", "nearest_shell": "H03 5.26"}
+    - {"id": "tie__imu_2", "bundle": "imu", "c": [18.7, 33.6, 236.3], "bundle_d": 3.38, "nearest": "H01 2.37 / H03 3.06", "nearest_shell": "H03 3.06"}
+    - {"id": "tie__imu_3", "bundle": "imu", "c": [14.5, 25.5, 256.2], "bundle_d": 3.38, "nearest": "Radxa（zz_sbc） 2.97 / H05 4.39", "nearest_shell": "H05 4.39"}
+    - {"id": "tie__mic_1", "bundle": "mic", "c": [70.0, 26.5, 274.5], "bundle_d": 4.2, "nearest": "转接板（zz_adapter） 6.54 / H05 8.08", "nearest_shell": "H05 8.08"}  # hr52：挪到 (62.62, 24.9, 274.4)，见本步 harness_steps_2026-09-30_hr52.moved
+    - {"id": "tie__mic_2", "bundle": "mic", "c": [50.3, 21.9, 271.8], "bundle_d": 4.2, "nearest": "转接板（zz_adapter） 2.46 / H05 5.15", "nearest_shell": "H05 5.15"}
+    - {"id": "tie__mic_3", "bundle": "mic", "c": [35.9, 9.4, 266.9], "bundle_d": 4.2, "nearest": "N03 10.19 / H05 10.55", "nearest_shell": "H05 10.55"}
+    - {"id": "tie__ubec_1", "bundle": "ubec", "c": [72.7, -26.4, 275.9], "bundle_d": 3.2, "nearest": "转接板（zz_adapter） 6.87 / H05 6.98", "nearest_shell": "H05 6.98"}
+    - {"id": "tie__ubec_2", "bundle": "ubec", "c": [39.7, -11.1, 278.0], "bundle_d": 3.2, "nearest": "H05 5.57 / 喇叭（zz_speaker） 6.96", "nearest_shell": "H05 5.57"}
+    - {"id": "tie__amp_1", "bundle": "amp", "c": [-15.5, 6.6, 264.5], "bundle_d": 3.78, "nearest": "Radxa（zz_sbc） 4.18 / H05 9.74", "nearest_shell": "H05 9.74"}
+    - {"id": "tie__amp_2", "bundle": "amp", "c": [-24.0, 13.2, 257.5], "bundle_d": 3.78, "nearest": "Radxa（zz_sbc） 4.97 / H05 8.11", "nearest_shell": "H05 8.11"}
+    tie_spec: "components.yaml:consumables.zip_tie_2p5；wires_v1 的 tie__ 环按 2.5 宽 × 1.0 厚、内径 = 束径建（duckstructure/wiring_head.HR44_TIE，assumed）"
+    tape: "每束扎好后用胶带 / 泡棉胶把束贴到壳内面（H03 / H05）；贴哪一面未定 —— 10 道扎带位离最近件 2.37–10.19 mm、离最近壳面见 ties[].nearest_shell（hr44reg/p01v2 由 placed 推算，derived），硬贴会把束拉离模型路径 → 贴点由线束 agent / 主设计定后回填"
+    refs: ["hr43_work/hr44/wires_v1/tie__*.stl（中心 = duckstructure/data/wiring_head_hr44.json bundles.<束>.ties[k].c）", "hr43_work/hr44reg/p01_splitter_bearing_v2.json"]
+    fixings: []
+  direction: 见各 motion
+  tool: PH0
+  path: {kind: linear, axis: 见各 motion, len_mm: 60.0, step_mm: 0.5, peak_mm3: 0.0}
+  fasteners_was_until_2026_09_25_hr43d: [F36_amp_to_H07, F35_H07_to_H01, F28_jaw_to_servo, F22_H01_to_H03, F37_sbc_to_H05, F27_camera_to_H04, F33_H05_keep, F34_jaw_hub_to_adapters]
+  fasteners_was_until_2026_09_29_hr52: [F35_H07_to_H01, F28_jaw_to_servo, F38_H09_to_H03, F36_amp_to_H07, F22_H01_to_H03, F37_sbc_to_H05, F27_camera_to_H04, F33_H05_keep, F34_jaw_hub_to_adapters]
+  fasteners: [F35_H07_to_H01, F28_jaw_to_servo, F38_H09_to_H03, F36_amp_to_H07, F22_H01_to_H03, F37_sbc_to_H05, F27_camera_to_H04, F39_tof_to_H04, F33_H05_keep, F34_jaw_hub_to_adapters]  # hr52：+ F39（h04_bench，F27 之后）
+  fasteners_was_until_2026_09_25_hr43: [F25_sbc_to_H01, F28_jaw_to_servo, F22_H01_to_H03, F27_camera_to_H04, F33_H05_keep, F34_jaw_hub_to_adapters]
+  already_installed: [L05, servo_ankle, L04, '6700', L07, L06, servo_hip_pitch, servo_knee, L03, servo_hip_yaw×2, T01, 6702×2, L01×2, servo_hip_roll, L01, 6704×1, L02, N03, servo_head_roll, H01, 22×16×4, N04, H02, servo_head_yaw, N02, servo_head_pitch, N01, servo_neck_pitch, 电池, B01, T02, T03]
+  verified_by: hr41 自核（非 Gate）：seq_p_nowires.json / seq_p_wires.json a–g 全 0、张嘴 −5..+30° 全 0；反例 旧 H05 撞 J02 1.819、旧 J01 上装撞 H03 783 mm³
+  verified: false
+  verified_note_hr43d: 自核（非 Gate）：hr43d/d08_f22_f35.json F22 4/4、F35 3/3、F38 2/2（F36 台面 +x 56 内无件）；asmcheck --from-placed 与 hr43c 逐行同；Gate L4 未跑 → false
+  verified_note_hr43: 自核（非 Gate）：hr43_work/seq43.json（a 步 H07+功放 +x 30、d 步 H05 子总成 +z 60，带/不带线）；Gate L4 未跑 → false
+  verified_note_hr41: 自核全 0，但 Gate L4 未跑（协调员禁令）→ 保持 false，等全量链
+  provenance: ['docs/design_2026-09-17_bearing_rebuild/hr41_头部阶段二.md §1.6', 'docs/design_2026-09-17_bearing_rebuild/hr41_work/scripts/seq_p.py', 'inventory_v2.json:assembly_order[17]']
+  required_motion_groups:
+    a_H07_amp_onto_posts:
+      note_2026-09-25_hr43d: id 沿用；hr43d 起 = H08 转接板托板 + 转接板（台面已贴胶、捆扎带）从 +x 推到 H01 柱端，F35
+      workspace: head_bench_closed
+      movers: [adapter_tray, zz_adapter]
+      present: [head_bracket, yrm, servo__jaw_soft_jaw_soft, bearing_head_roll_B, head_journal, head_clamp, servo__yaw_roll_motion_yaw_roll_motion, neck_pitch, head_bearing_cap, head_roll_adapter, head_yaw_adapter, head_yaw_cap, bearing_head_yaw, bearing_head_roll_A, adapter_tray, zz_adapter]
+    b_jaw_servo_J02_into_H01:
+      workspace: head_bench_closed
+      movers: [servo__jaw_soft_jaw, jaw_adapter]
+      present: [head_bracket, yrm, servo__jaw_soft_jaw_soft, bearing_head_roll_B, head_journal, head_clamp, servo__yaw_roll_motion_yaw_roll_motion, neck_pitch, head_bearing_cap, head_roll_adapter, head_yaw_adapter, head_yaw_cap, bearing_head_yaw, bearing_head_roll_A, adapter_tray, zz_adapter, servo__jaw_soft_jaw, jaw_adapter]
+    c_H03_group_up:
+      workspace: head_bench_closed
+      movers: [head_bottom_shell, amp_bracket, zz_amp, zz_mic, zz_ubec, bearing_jaw]
+      present: [head_bracket, yrm, servo__jaw_soft_jaw_soft, bearing_head_roll_B, head_journal, head_clamp, servo__yaw_roll_motion_yaw_roll_motion, neck_pitch, head_bearing_cap, head_roll_adapter, head_yaw_adapter, head_yaw_cap, bearing_head_yaw, bearing_head_roll_A, adapter_tray, zz_adapter, servo__jaw_soft_jaw, jaw_adapter, head_bottom_shell, amp_bracket, zz_amp, zz_mic, zz_ubec, bearing_jaw]
+    d_H05_H04_group_down:
+      workspace: head_bench_closed
+      movers: [head_top_shell, zz_sbc, zz_gpio_dupont, zz_speaker, face_plate, zz_camera, camera_clamp, tof_clamp, zz_tof]  # hr52：+ tof_clamp / zz_tof（ToF 压条 + 模块在 h04_bench 已装上 H04，随 H04 / H05 组走）
+      present: [head_bracket, yrm, servo__jaw_soft_jaw_soft, bearing_head_roll_B, head_journal, head_clamp, servo__yaw_roll_motion_yaw_roll_motion, neck_pitch, head_bearing_cap, head_roll_adapter, head_yaw_adapter, head_yaw_cap, bearing_head_yaw, bearing_head_roll_A, adapter_tray, zz_adapter, servo__jaw_soft_jaw, jaw_adapter, head_bottom_shell, amp_bracket, zz_amp, zz_mic, zz_ubec, bearing_jaw, head_top_shell, zz_sbc, zz_gpio_dupont, zz_speaker, face_plate, zz_camera, camera_clamp, tof_clamp, zz_tof]  # hr52：+ tof_clamp / zz_tof（ToF 压条 + 模块在 h04_bench 已装上 H04，随 H04 / H05 组走）
+    e_J03_in:
+      workspace: head_bench_closed
+      movers: [jaw_journal]
+      present: [head_bracket, yrm, servo__jaw_soft_jaw_soft, bearing_head_roll_B, head_journal, head_clamp, servo__yaw_roll_motion_yaw_roll_motion, neck_pitch, head_bearing_cap, head_roll_adapter, head_yaw_adapter, head_yaw_cap, bearing_head_yaw, bearing_head_roll_A, adapter_tray, zz_adapter, servo__jaw_soft_jaw, jaw_adapter, head_bottom_shell, amp_bracket, zz_amp, zz_mic, zz_ubec, bearing_jaw, head_top_shell, zz_sbc, zz_gpio_dupont, zz_speaker, face_plate, zz_camera, camera_clamp, tof_clamp, zz_tof, jaw_journal]  # hr52：+ tof_clamp / zz_tof（ToF 压条 + 模块在 h04_bench 已装上 H04，随 H04 / H05 组走）
+    f_J01_up:
+      workspace: head_bench_closed
+      movers: [jaw]
+      present: [head_bracket, yrm, servo__jaw_soft_jaw_soft, bearing_head_roll_B, head_journal, head_clamp, servo__yaw_roll_motion_yaw_roll_motion, neck_pitch, head_bearing_cap, head_roll_adapter, head_yaw_adapter, head_yaw_cap, bearing_head_yaw, bearing_head_roll_A, adapter_tray, zz_adapter, servo__jaw_soft_jaw, jaw_adapter, head_bottom_shell, amp_bracket, zz_amp, zz_mic, zz_ubec, bearing_jaw, head_top_shell, zz_sbc, zz_gpio_dupont, zz_speaker, face_plate, zz_camera, camera_clamp, tof_clamp, zz_tof, jaw_journal, jaw]  # hr52：+ tof_clamp / zz_tof（ToF 压条 + 模块在 h04_bench 已装上 H04，随 H04 / H05 组走）
+    g_eyes:
+      workspace: head_bench_closed
+      movers: [eye_white, eye_pupil, eye_highlight]
+      present: [head_bracket, yrm, servo__jaw_soft_jaw_soft, bearing_head_roll_B, head_journal, head_clamp, servo__yaw_roll_motion_yaw_roll_motion, neck_pitch, head_bearing_cap, head_roll_adapter, head_yaw_adapter, head_yaw_cap, bearing_head_yaw, bearing_head_roll_A, adapter_tray, zz_adapter, servo__jaw_soft_jaw, jaw_adapter, head_bottom_shell, amp_bracket, zz_amp, zz_mic, zz_ubec, bearing_jaw, head_top_shell, zz_sbc, zz_gpio_dupont, zz_speaker, face_plate, zz_camera, camera_clamp, tof_clamp, zz_tof, jaw_journal, jaw, eye_white, eye_pupil, eye_highlight]  # hr52：+ tof_clamp / zz_tof（ToF 压条 + 模块在 h04_bench 已装上 H04，随 H04 / H05 组走）
+  motions:
+  - id: a_H07_amp_onto_posts
+    workspace: head_bench_closed
+    movers: [adapter_tray, zz_adapter]
+    present: [head_bracket, yrm, servo__jaw_soft_jaw_soft, bearing_head_roll_B, head_journal, head_clamp, servo__yaw_roll_motion_yaw_roll_motion, neck_pitch, head_bearing_cap, head_roll_adapter, head_yaw_adapter, head_yaw_cap, bearing_head_yaw, bearing_head_roll_A, adapter_tray, zz_adapter]
+    sense: withdrawal_from_assembled
+    outward_world: [1.0, 0.0, 0.0]
+    len_mm: 30.0
+    step_mm: 0.5
+    provenance: hr43（hr43_改件报告.md）：H07 功放托板（台面已拧 F36、插好功放 5 个杜邦壳）从 +x 沿 −x 推到 H01 旧 Radxa 立柱端面，F35 3×M2×8 从 +x 拧；hr43_work/scripts/seq43.py 上装扫 0
+    provenance_was_until_2026_09_25_hr43: hr41 装序 P（hr41_头部阶段二.md §1.6；hr41_work/scripts/seq_p.py）：Radxa 沿 −x 套上 H01 四立柱（F25 4×M2）。hr42 搬后脑后本条作废，由 hr42 重写
+    note: 托板+功放沿 +x 退出（装 = 反向）；功放杜邦壳尾线弯到 z 241.7，托板腿到 z 237，退出路径上无件（H03/H04/H05 不在）
+    verified_by_hr41: hr41_work/seq_p_nowires.json / seq_p_wires.json 本组 0（阈值 0.05 mm³，步长 0.5），非 Gate L4 正式结果
+  - id: b_jaw_servo_J02_into_H01
+    workspace: head_bench_closed
+    movers: [servo__jaw_soft_jaw, jaw_adapter]
+    present: [head_bracket, yrm, servo__jaw_soft_jaw_soft, bearing_head_roll_B, head_journal, head_clamp, servo__yaw_roll_motion_yaw_roll_motion, neck_pitch, head_bearing_cap, head_roll_adapter, head_yaw_adapter, head_yaw_cap, bearing_head_yaw, bearing_head_roll_A, adapter_tray, zz_adapter, servo__jaw_soft_jaw, jaw_adapter]
+    sense: withdrawal_from_assembled
+    outward_world: [0.0, 1.0, 0.0]
+    len_mm: 40.0
+    step_mm: 0.5
+    provenance: hr41 装序 P（hr41_头部阶段二.md §1.6；hr41_work/scripts/seq_p.py）：嘴舵机 + J02（台面工位 j02_bench 已拧 F28 3×M2×5，装一次不拆）从 +y 外侧沿 −y 推进 H01 托架
+    note: J01 不在（最后装），所以舵机 + J02 可以横着进；H03/H05 都不在
+    verified_by_hr41: hr41_work/seq_p_nowires.json / seq_p_wires.json 本组 0（阈值 0.05 mm³，步长 0.5），非 Gate L4 正式结果
+  - id: c_H03_group_up
+    workspace: head_bench_closed
+    movers: [head_bottom_shell, amp_bracket, zz_amp, zz_mic, zz_ubec, bearing_jaw]
+    present: [head_bracket, yrm, servo__jaw_soft_jaw_soft, bearing_head_roll_B, head_journal, head_clamp, servo__yaw_roll_motion_yaw_roll_motion, neck_pitch, head_bearing_cap, head_roll_adapter, head_yaw_adapter, head_yaw_cap, bearing_head_yaw, bearing_head_roll_A, adapter_tray, zz_adapter, servo__jaw_soft_jaw, jaw_adapter, head_bottom_shell, amp_bracket, zz_amp, zz_mic, zz_ubec, bearing_jaw]
+    sense: withdrawal_from_assembled
+    outward_world: [0.0, 0.0, -1.0]
+    len_mm: 50.0
+    step_mm: 0.5
+    provenance: hr41 装序 P（hr41_头部阶段二.md §1.6；hr41_work/scripts/seq_p.py）：H03 下头壳 + 转接板（竖在 H03-F14 槽）+ 麦克风 + UBEC + 6700ZZ（在 H03 托台下半环）从下方 +z 合上；H01 4 脚从上经 Ø4.6 通道拧 F22 4×M2×8 自攻（工位 head_shells_on）
+    note: hr41：嘴舵机 + J02 已在；H05/H04/J01 都不在
+    verified_by_hr41: hr41_work/seq_p_nowires.json / seq_p_wires.json 本组 0（阈值 0.05 mm³，步长 0.5），非 Gate L4 正式结果
+  - id: d_H05_H04_group_down
+    workspace: head_bench_closed
+    movers: [head_top_shell, zz_sbc, zz_gpio_dupont, zz_speaker, face_plate, zz_camera, camera_clamp, tof_clamp, zz_tof]  # hr52：+ tof_clamp / zz_tof（ToF 压条 + 模块在 h04_bench 已装上 H04，随 H04 / H05 组走）
+    present: [head_bracket, yrm, servo__jaw_soft_jaw_soft, bearing_head_roll_B, head_journal, head_clamp, servo__yaw_roll_motion_yaw_roll_motion, neck_pitch, head_bearing_cap, head_roll_adapter, head_yaw_adapter, head_yaw_cap, bearing_head_yaw, bearing_head_roll_A, adapter_tray, zz_adapter, servo__jaw_soft_jaw, jaw_adapter, head_bottom_shell, amp_bracket, zz_amp, zz_mic, zz_ubec, bearing_jaw, head_top_shell, zz_sbc, zz_gpio_dupont, zz_speaker, face_plate, zz_camera, camera_clamp, tof_clamp, zz_tof]  # hr52：+ tof_clamp / zz_tof（ToF 压条 + 模块在 h04_bench 已装上 H04，随 H04 / H05 组走）
+    sense: withdrawal_from_assembled
+    outward_world: [0.0, 0.0, 1.0]
+    len_mm: 60.0
+    step_mm: 0.5
+    provenance: hr41 装序 P（hr41_头部阶段二.md §1.6；hr41_work/scripts/seq_p.py）：H05 上头壳 + 喇叭 + 功放 + H04 脸板（台面工位 h04_bench 已装摄像头 + H06 压框 F27 2×M2×8）从上方 −z 盖下；H05 两侧 21 槽跨过 J02 盘；H04 底边进 H03 前唇槽
+    note: hr41：H04 改为先插进 H05 凹槽、与 H05 一起盖下（hr39c 是 H04 单独从下插）
+    note_2026-09-29_hr52: hr52：+ tof_clamp / zz_tof 进 movers 与 present —— ToF 板 + H10 压条在 h04_bench 已拧在 H04 上（F39），与摄像头 / H06 一样随 H04 插进 H05 凹槽、一起从上 −z 盖下；zz_tof 含背面 4 个杜邦壳（尾到 x 73.87）
+    verified_by_hr41: hr41_work/seq_p_nowires.json / seq_p_wires.json 本组 0（阈值 0.05 mm³，步长 0.5），非 Gate L4 正式结果
+  - id: e_J03_in
+    workspace: head_bench_closed
+    movers: [jaw_journal]
+    present: [head_bracket, yrm, servo__jaw_soft_jaw_soft, bearing_head_roll_B, head_journal, head_clamp, servo__yaw_roll_motion_yaw_roll_motion, neck_pitch, head_bearing_cap, head_roll_adapter, head_yaw_adapter, head_yaw_cap, bearing_head_yaw, bearing_head_roll_A, adapter_tray, zz_adapter, servo__jaw_soft_jaw, jaw_adapter, head_bottom_shell, amp_bracket, zz_amp, zz_mic, zz_ubec, bearing_jaw, head_top_shell, zz_sbc, zz_gpio_dupont, zz_speaker, face_plate, zz_camera, camera_clamp, tof_clamp, zz_tof, jaw_journal]  # hr52：+ tof_clamp / zz_tof（ToF 压条 + 模块在 h04_bench 已装上 H04，随 H04 / H05 组走）
+    sense: withdrawal_from_assembled
+    outward_world: [0.0, -1.0, 0.0]
+    len_mm: 20.0
+    step_mm: 0.5
+    provenance: hr41 装序 P（hr41_头部阶段二.md §1.6；hr41_work/scripts/seq_p.py）：J03 轴颈盘（螺母已压好）从 −y 外侧沿 +y 插进 6700ZZ 内圈；按住（会滑出）
+    note: 壳已合好；J01 不在
+    verified_by_hr41: hr41_work/seq_p_nowires.json / seq_p_wires.json 本组 0（阈值 0.05 mm³，步长 0.5），非 Gate L4 正式结果
+  - id: f_J01_up
+    workspace: head_bench_closed
+    movers: [jaw]
+    present: [head_bracket, yrm, servo__jaw_soft_jaw_soft, bearing_head_roll_B, head_journal, head_clamp, servo__yaw_roll_motion_yaw_roll_motion, neck_pitch, head_bearing_cap, head_roll_adapter, head_yaw_adapter, head_yaw_cap, bearing_head_yaw, bearing_head_roll_A, adapter_tray, zz_adapter, servo__jaw_soft_jaw, jaw_adapter, head_bottom_shell, amp_bracket, zz_amp, zz_mic, zz_ubec, bearing_jaw, head_top_shell, zz_sbc, zz_gpio_dupont, zz_speaker, face_plate, zz_camera, camera_clamp, tof_clamp, zz_tof, jaw_journal, jaw]  # hr52：+ tof_clamp / zz_tof（ToF 压条 + 模块在 h04_bench 已装上 H04，随 H04 / H05 组走）
+    sense: withdrawal_from_assembled
+    outward_world: [0.0, 0.0, -1.0]
+    len_mm: 50.0
+    step_mm: 0.5
+    provenance: hr41 装序 P（hr41_头部阶段二.md §1.6；hr41_work/scripts/seq_p.py）：J01 活动嘴从下方沿 +z 竖直装上，两毂贴 J02/J03 盘外面；两边各 3 颗 F34 M2×5 沉头机牙拧进盘里的螺母（孔位 350/130/250° 不对称 = 零位防错）
+    note: 拆嘴只拆 F34 这 6 颗；J02 不拆
+    verified_by_hr41: hr41_work/seq_p_nowires.json / seq_p_wires.json 本组 0（阈值 0.05 mm³，步长 0.5），非 Gate L4 正式结果
+  - id: g_eyes
+    workspace: head_bench_closed
+    movers: [eye_white, eye_pupil, eye_highlight]
+    present: [head_bracket, yrm, servo__jaw_soft_jaw_soft, bearing_head_roll_B, head_journal, head_clamp, servo__yaw_roll_motion_yaw_roll_motion, neck_pitch, head_bearing_cap, head_roll_adapter, head_yaw_adapter, head_yaw_cap, bearing_head_yaw, bearing_head_roll_A, adapter_tray, zz_adapter, servo__jaw_soft_jaw, jaw_adapter, head_bottom_shell, amp_bracket, zz_amp, zz_mic, zz_ubec, bearing_jaw, head_top_shell, zz_sbc, zz_gpio_dupont, zz_speaker, face_plate, zz_camera, camera_clamp, tof_clamp, zz_tof, jaw_journal, jaw, eye_white, eye_pupil, eye_highlight]  # hr52：+ tof_clamp / zz_tof（ToF 压条 + 模块在 h04_bench 已装上 H04，随 H04 / H05 组走）
+    sense: withdrawal_from_assembled
+    outward_world: [1.0, 0.0, 0.0]
+    len_mm: 20.0
+    step_mm: 0.5
+    provenance: hr41 装序 P（hr41_头部阶段二.md §1.6；hr41_work/scripts/seq_p.py）：圆眼三件从脸前胶粘：E01 白外圈（hr41 去销，按 E02 圆筒定心）→ E02 Ø24 圆筒套镜头 → E03 高光按进浅坑
+    note: +x 20 mm 足够 E02 圆筒整个退出镜头
+    verified_by_hr41: hr41_work/seq_p_nowires.json / seq_p_wires.json 本组 0（阈值 0.05 mm³，步长 0.5），非 Gate L4 正式结果
+  provenance_note_2026-09-24_hr41_m8: 复审 #1 m8 —— 旧 H03_bottom_shell 条的 provenance 写「H03 先于上头壳装……present 不含 head_top_shell」，与 hr39c 起的实际顺序相反；hr41 本步整块重写，c 步 present 按装序 P 真实在场件（H05 确实还不在），该句随旧块作废
+  not_modeled: []
+  order_note_2026-09-12: 工序上本步在第 13 步之后、第 14 步之前（头+N02 先合壳、再整体挂上头俯仰舵机）。jaw / orig_face_part 两个原版件已分别由 J01 jaw / H04 face_plate 取代并建模（hr38 / hr37），不再有「未建模的原版件」。上头壳与 H03 的原版合缝相交见 top_head_shell 的 note
+  not_modeled_was_until_2026-09-23_hr38: '[orig_jaw]（hr38：J01 取代后有装配步 jaw_subassembly_into_H01）'
+  not_modeled_note_2026-09-22_hr37: orig_face_part 已由 H04 face_plate 取代（hr37，face_plate_into_groove）；jaw 已由 J01 jaw 取代（hr38，jaw_subassembly_into_H01，6×M2×6 上法兰 + 6700ZZ 惰轮侧）—— placed/ 里不再有任何 orig_*
+  order_note_2026-09-22_hr37: 18a Radxa → 18b 顶壳 → 18c H04(+摄像头) → 18d 麦克风 → 18e H03；L4 组顺序：sbc_onto_posts, top_head_shell, face_plate_into_groove, H03_bottom_shell
+  action_2026-09-23_hr39c: hr39c 顺序：18a Radxa 沿 −x 套 H01 立柱（F25）→ 18b 顶壳 −z 盖上（带喇叭/功放）→ 18c H04 脸板（台面先装摄像头 F27）从下方 +z 插进顶壳凹槽 → 18d **嘴子总成（嘴舵机 + J01 + 6700ZZ，F28 已拧）从下方 +z 经 H05 插入槽推进 H01**（hr38 排在脸板前 → 脸板插不进，改到这里）→ 18e H03 +z 合上（带转接板/麦克风/UBEC；前唇槽锁 H04 底边、托台与下半环夹住嘴子总成）→ 18f 圆眼三件从脸前胶粘（+x）
+- step: 19
+  id: step19
+  seq: 20
+  subassembly_of: robot
+  action: hr37：主板/摄像头/麦克风改到第 18 步台面装（头闭合前）；本步剩 BEC（−y 侧腔，Matek Micro BEC 候选 15×4.5×18 包络）、线束；IMU 2×M2×4 **不在本步**——hr29：IMU 必须在第 10 步装 L01 之前拧到 T01 前壁（起子从 +x 进，L01 装上后进不去），IMU 线也在那时从下往上穿
+    T01-F30 缝到侧腔；主控端 4 个杜邦母经 H01-F17 缺口套 3/4/5/6 脚
+  action_note_2026-09-23_hr39f: 删掉「总开关（T02 collar，从壳顶 −z 压入）」：hr39f 2026-09-23 取消开关，改拔电池 XT30 断电（zz_switch / T02 开关孔和 collar 同轮删）
+  note_2026-09-22_audit: 'action 里的「BEC（−y 侧腔，Matek Micro BEC 候选 15×4.5×18 包络）」已与 components.yaml 冲突：buck_12v_5v 2026-09-22 已**定型为科亿航模 UBEC-3A**（不是 Matek 候选），且 hr38 计划把 UBEC 挪到 H01 前立板背面（头里，x 39..46 × y −16..11 × z 251..264）。现役 duckstructure/electronics.py:UBEC_BOX 还是 −y 侧腔的 15×4.5×18 腔包络 → **代码/assembly 与 components 三方未对齐**，等 hr38 改件 + UBEC-3A 到货量三围后一起改，本轮不猜。另：09-20/09-21 的 WAGO 221-412 已于 2026-09-22 全部作废（electronics.py:wago_boxes() → None），本步线束不再含 WAGO。'
+  parts:
+  - zz_imu
+  parts_note_2026-09-23_hr39c: zz_ubec 挪到步 18（随 H03 合上；hr38 起 UBEC 在头里 H03-F13）
+  parts_note_2026-09-23_hr39f: 删 zz_switch（hr39f 取消开关，placed/ 不再导出）
+  harness_steps_2026-09-25_hr44reg:
+  - at: "19a 一分二就位（躯干）：本体平贴 + 扎带（用户规矩：螺丝 > 平粘 + 扎带 > 夹）"
+    do: ["S2：躯干顶口袋 (-13, 0, 153)，平贴 T01 + 扎带穿 T01-FX_S2_T01 两孔", "S3：+y 侧腔 (-33, 18, 113)，14×8 面泡棉胶平贴 T01 内墙 + 扎带绕两侧线束（不锚件）", "S4：+y 侧腔 (-33, 18, 141)，同上", "S5：−y 侧腔 (-33, -18, 141)，同上（S4 镜像）"]
+    do_was_until_2026_09_26_hr44b: ["S2：躯干顶口袋 (-13, 0, 153)，平贴 T01（最近 T01 2.7 / T02 4.27）+ 扎带（扎带位 T01-FX_S2_T01 两孔）", "S3：+y 侧腔下部 (-40, 22, 112)，平贴 T01（最近 T01 3.0 / B01 5.1）+ 扎带", "S4：+y 侧腔 (-30, 22, 132)，平贴 T01（最近 T01 0.06 / T02 2.74）+ 扎带", "S5：−y 侧腔 (-30, -23, 132)，平贴 T01（最近 T01 0.5 / T03 2.24）+ 扎带"]
+    order_note: "工位（合壳 T02 / T03 之前还是之后）未核：S4 / S5 离侧壳 T02 / T03 内面约 2–3 mm → 很可能要在合壳前放好、线先留长；由主设计 / 线束 agent 定。S2 / S3 离最近面 2.7 / 3.0（build #4 后挪到体素全空位）→ 平贴时本体要落到面上。坐标 = wires_v2 wires_meta body.splitter__*.center（世界系零位），最近件 / 距离 mm 为 hr44reg/p01v2 由 placed 推算"
+    refs: ["harness.yaml:HB01_servo_bus.splitters_2026-09-25_hr44（S2–S5）", "components.yaml:splitter_ph20_1to2", "components.yaml:consumables.zip_tie_2p5"]
+    fixings: ["T01-FX_S2_T01"]
+    fixings_note: "hr44 第二轮（复审 #3 M1）：侧腔桥 T01-FX_S34_T01 / T01-FX_S5_T01 删（桥根落实 36% / 14%、按旧一分二位做的、倒放支撑 +860 mm³）；S3 / S4 / S5 改泡棉胶平贴 T01 内墙 + 扎带绕线束：内墙 1.9 厚、背后净空 0.6 < 1.5 → 不开 A 两孔（协调员 02:22 口径）；只有 S2 扎 T01-FX_S2_T01 两孔。注意：此法违背用户『螺丝 > 平粘 + 扎带 > 夹』里『扎带要锚件』的本意，复审 M1 (b) 已提示需用户点头"
+    fixings_note_was_until_2026_09_26_hr44b: "扎带位几何已登 T01-FX_S2_T01 / T01-FX_S34_T01 / T01-FX_S5_T01（按 build #4 前的一分二位置做）；待线束 agent 核后回填 fixings"
+  - at: "19b 接链（顺序：转接板 → 延长线 → S2 → …）"
+    order: ["转接板 PH 座 ← S1 公壳（头里，步 18 已插）", "S1 母② 腿 → 出头口 R → PH 250 延长线（过颈 HB09_R）→ 延长线母端 ← S2 公壳（躯干顶口袋）", "S2 母① → 颈俯仰 5 原配 200（链 E，单挂；wires_v1 未建模）", "S2 母② 腿（bus_S2_S34）→ S3 公壳", "S3 母① 腿（bus_S3_S4）→ S4 公壳；S3 母② 腿（bus_S34_S5，wires_v2 实走 260.1 > 腿 100 → 不够，见 harness.yaml 买线表 to_buy）→ S5 公壳", "S4 母① → 0 左髋偏航（bus_S4_hipyaw_L，链 A）；S4 母② → 1 → 2 → 3 → 4（bus_S4_hiproll_L / bus_L_1to2 / bus_L_2to3 / bus_L_3to4，链 B）", "S5 母① → 9 右髋偏航（bus_S5_hipyaw_R，链 C）；S5 母② → 10 → 11 → 12 → 13（bus_S5_hiproll_R / bus_R_1to2 / bus_R_2to3 / bus_R_3to4，链 D）"]
+    refs: ["harness.yaml:HB01_servo_bus.chains_2026-09-25_hr44", "harness.yaml:HB01_servo_bus.trunk_2026-09-25_hr44"]
+  - at: "19c 腿部扎线（协调员 00:14：腿上固定点几何 0 → 扎带绕整根连杆 + 束，每段 1 道；不登 feature）"
+    how: "每道 = components.yaml:consumables.zip_tie_2p5 绕连杆一圈 + 束一圈（100 长够绕 ≤30 周长的截面，粗段要 150 长，assumed）；避开踝后臂 / 脚扫掠面"
+    ties:
+    - {"id": "legtie_L_thigh", "side": "L", "seg": "大腿", "part": "L03", "body": "upper_leg_left", "route": "bus_L_3to4", "point_world_zero_mm": [-39.53, 72.0, 89.8], "sweep_clear_mm": 8.0, "n_poses": 73}
+    - {"id": "legtie_L_shin", "side": "L", "seg": "小腿", "part": "L04", "body": "leg", "route": "bus_L_3to4", "point_world_zero_mm": [-43.62, 73.91, 68.71], "sweep_clear_mm": 4.0, "n_poses": 73}
+    - {"id": "legtie_L_hip_link", "side": "L", "seg": "髋件", "part": "L02", "body": "hip_l", "route": "bus_L_1to2", "point_world_zero_mm": [-15.7, 21.09, 86.97], "sweep_clear_mm": 5.0, "n_poses": 497}
+    - {"id": "legtie_R_thigh", "side": "R", "seg": "大腿", "part": "L03", "body": "upper_leg_right", "route": "bus_R_3to4", "point_world_zero_mm": [-39.53, -72.0, 89.8], "sweep_clear_mm": 8.0, "n_poses": 73}
+    - {"id": "legtie_R_shin", "side": "R", "seg": "小腿", "part": "L04", "body": "leg_2", "route": "bus_R_3to4", "point_world_zero_mm": [-42.23, -74.5, 70.1], "sweep_clear_mm": 4.0, "n_poses": 73}
+    - {"id": "legtie_R_hip_link", "side": "R", "seg": "髋件", "part": "L02", "body": "hip_l_2", "route": "bus_R_1to2", "point_world_zero_mm": [-15.7, -19.54, 86.2], "sweep_clear_mm": 5.0, "n_poses": 497}
+    ties_src: "hr43_work/hr44/p47_leg_ties.json（间隙 = 该点 r 小球在所跨关节全区间（l6 同采样）里不碰别的 body 件的最大 r）/ hr43_work/hr44_线束报告.md §4 表 / duckstructure/data/wire_fixings_v1.json.dropped（腿桥去掉的原因）"
+  - at: "颈 / 躯干固定点扎线"
+    note: "颈中段不加固定（用户 2026-09-26 06:30：原版也是裸线）；颈根 T02 / T03 各一个开口挂钩，按线见下一条 19d（hr45）；躯干只剩 T01-FX_S2_T01 两孔扎带（19a）；12 V 的 XT30 对插见步 21"
+    note_was_until_2026_09_26_hr45: "不写：颈 8 桥（H03 / N02 / N01 / T02 / T03 的 FX_HB09*）随过颈交 hr44neck，位置会变；躯干 3 个（FX_S2_T01 / FX_S34_T01 / FX_S5_T01）由线束 agent 核对后回填；12 V 的 XT30 对插见步 21"
+  - at: "19d 过颈线束先按进 N01 颈柱双指卡槽、再按进 T02 / T03 颈根开口挂钩（hr45 / hr45n01，2026-09-26；用户 06:30 / 06:40 定：线按进去卡住，不用扎带；左侧 N01 钩用户 08:1x 定做、可选用）"
+    at_was_until_2026_09_26_hr45n01: "19d 过颈线束按进 T02 / T03 颈根开口挂钩（hr45，2026-09-26；用户 06:30 定：线按进去卡住，不用扎带）"
+    when: "壳 T02 / T03 已装（步 14）、头子总成已装（步 18）、过颈两束已从头出口沿颈柱放下来之后；颈俯仰摆零位再按"
+    do: ["先按 N01（hr45n01）：HB09_R 按进 +y 前唇上的右钩 N01-FX_HB09R_HOOK_N01（槽心世界 26.5, 15.13, 180.9；开口朝 +y、4.06 < 束 5.26），从外往颈柱方向压到槽底，槽内沿 z 177.3..184.5 直走、不拧麻花", "左侧（可选，用户 08:1x：左勾先做，用不上再说）：HB09_L 按进 −y 背板外面的左钩 N01-FX_HB09L_HOOK_N01（槽心 26.5, −19.28, 181.9；开口朝 −y、4.76 < 束 5.96）；不用时线照原样从钩外侧经过（服务环会搭在钩上，用户已接受）", "HB09_R（+y，IMU 4 杜邦 + PH 延长线，束径 5.26）：头出口沿颈柱 +y 侧下来 → 过颈俯仰轴附近 → 翻上 T02 肩唇；在腔心（世界 16.44, 23.49, 159.56）处把束从'外偏上'方向（开口轴 ≈ 世界 (0.40, 0.82, 0.41)）按进 T02-FX_HB09R_HOOK_T02，摸到卡过开口（开口 4.06 < 束 5.26）", "HB09_L（−y，12 V 对线 + 舵机扁线，束径 5.96）：同法按进 T03-FX_HB09L_HOOK_T03（腔心 15.89, −23.50, 160.04；开口 4.76；开口轴 ≈ (0.39, −0.82, 0.42)）", "按之前把钩前后各 ±15 mm 的束理顺、不拧麻花（钩长 6，腔径 = 束径 + 0.6，不需要扎带）"]
+    remove: "拆：用指甲 / 塑料撬片从开口一侧把束往'外偏上'撬出，不要顺着线拉"
+    fixings: ["N01-FX_HB09R_HOOK_N01", "N01-FX_HB09L_HOOK_N01", "T02-FX_HB09R_HOOK_T02", "T03-FX_HB09L_HOOK_T03"]
+    fixings_was_until_2026_09_26_hr45n01: ["T02-FX_HB09R_HOOK_T02", "T03-FX_HB09L_HOOK_T03"]
+    do_note_2026-09-26_hr45n01: "do 前两条为 hr45n01 新增（N01 两钩，先按 N01 再按 T02 / T03），其余各条原样；N01 钩拆线：指甲从开口把束往外撬出"
+    refs: ["duckstructure/trunk.py:wire_hook（WIRE_HOOK / WIRE_HOOK_DIM）", "duckstructure/data/wire_fixings_v1.json（FX_HB09R_HOOK_T02 / FX_HB09L_HOOK_T03，type hook）", "duckstructure/data/wiring_body_v1.json（站点 fix_*）", "docs/design_2026-09-17_bearing_rebuild/hr43_work/hr45_挂钩报告.md"]
+  direction: —
+  tool: —
+  path:
+    kind: null
+    axis: null
+    len_mm: null
+    step_mm: null
+    peak_mm3: null
+  fasteners:
+  - F26_imu_to_T01
+  already_installed:
+  - L05
+  - servo_ankle
+  - L04
+  - '6700'
+  - L07
+  - L06
+  - servo_hip_pitch
+  - servo_knee
+  - L03
+  - servo_hip_yaw×2
+  - T01
+  - 6702×2
+  - L01×2
+  - servo_hip_roll
+  - L01
+  - 6704×1
+  - L02
+  - N03
+  - servo_head_roll
+  - H01
+  - 22×16×4
+  - N04
+  - H02
+  - servo_head_yaw
+  - N02
+  - H03
+  - H05
+  - servo_head_pitch
+  - N01
+  - servo_neck_pitch
+  - 电池
+  - B01
+  - T02
+  - T03
+  verified_by: 无（板未到，冻结）
+  verified: false
+  provenance:
+  - duck.py:872
+  - duck.py:887
+  - duck.py:658
+  - inventory_v2.json:assembly_order[18]
+  unknown_class: not_modeled
+  unknown_reason: hr37：Radxa/摄像头/麦克风已建模并挪到第 18 步；BEC 型号未定（只有腔包络）、线束无实体（hr39f 2026-09-23 取消开关，原『开关卡簧无路径』一项删）
+  not_modeled:
+  - 线束
+  not_modeled_reason: hr37：zz_ubec 是侧腔包络盒（件未定），线束无实体；实体已进 placed/ 参加 L3 静态/L6 运动/L7 质量。hr39f 2026-09-23 取消开关、zz_switch 删掉，原『zz_switch 卡簧压入无路径可扫（从壳顶 −z 直线 0 交集是 collar 的设计前提）』一句作废
+- step: 20
+  id: step20
+  seq: 19
+  subassembly_of: robot
+  action: 头子总成（N02+N03 台架+H01/H02+H03/顶壳，步 11–13/18 台面装好）从 +z 落到头俯仰舵机输出法兰，N02 脸颊接法兰 6×M2×6（F14，从 ±y 拧）。hr34 新步：原步 14b，改到壳之后
+  parts:
+  - N02
+  - N01
+  direction: -z（抽出 +z）
+  tool: PH0
+  path:
+    kind: linear
+    axis: ±z
+    len_mm: 40.0
+    step_mm: 0.5
+    peak_mm3: null
+  fasteners:
+  - F14_headpitch_flange
+  already_installed:
+  - L05
+  - servo_ankle
+  - L04
+  - '6700'
+  - L07
+  - L06
+  - servo_hip_pitch
+  - servo_knee
+  - L03
+  - servo_hip_yaw×2
+  - T01
+  - 6702×2
+  - L01×2
+  - servo_hip_roll
+  - L01
+  - 6704×1
+  - L02
+  - N03
+  - servo_head_roll
+  - H01
+  - 22×16×4
+  - N04
+  - H02
+  - servo_head_yaw
+  - N02
+  - H03
+  - H05
+  - servo_head_pitch
+  - N01
+  - servo_neck_pitch
+  - 电池
+  - B01
+  - T02
+  - T03
+  verified_by: L4 motions head_onto_headpitch_servo 整机在场扫掠（hr34）
+  verified: true
+  provenance:
+  - assembly.yaml:assembly_order[step14].motions[head_onto_headpitch_servo]（hr34 搬出）
+  - docs/design_2026-09-17_bearing_rebuild/hr31_review.md D-1
+  - hr32_review.md 第 3 节第 1 条
+  required_motion_groups:
+    head_onto_headpitch_servo:
+      workspace: body_all
+      movers:
+      - head_bracket
+      - jaw
+      - jaw_adapter
+      - jaw_journal
+      - servo__jaw_soft_jaw
+      - bearing_jaw
+      - yrm
+      - servo__jaw_soft_jaw_soft
+      - bearing_head_roll_B
+      - head_journal
+      - head_clamp
+      - servo__yaw_roll_motion_yaw_roll_motion
+      - neck_pitch
+      - head_bottom_shell
+      - zz_adapter
+      - head_top_shell
+      - zz_speaker
+      - zz_amp
+      - adapter_tray
+      - amp_bracket
+      - zz_gpio_dupont
+      - bearing_head_roll_A
+      - bearing_head_yaw
+      - head_bearing_cap
+      - head_roll_adapter
+      - head_yaw_adapter
+      - head_yaw_cap
+      - face_plate
+      - zz_ubec
+      - eye_white
+      - eye_pupil
+      - eye_highlight
+      - zz_sbc
+      - zz_mic
+      - zz_camera
+      - camera_clamp
+      - tof_clamp  # hr52：ToF 压条 H10（h04_bench 装上 H04，随头件走）
+      - zz_tof  # hr52：ToF 模块占位（同上）
+      present:
+      - trunk
+      - servo__trunk_base_yaw2roll
+      - servo__trunk_base_bearing_roll
+      - bearing_left_hip_yaw
+      - bearing_right_hip_yaw
+      - yaw2roll
+      - servo__yaw2roll_hip_l
+      - hip
+      - upper_leg
+      - servo__upper_leg_left_upper_leg_left
+      - servo__upper_leg_left_leg
+      - bearing_left_knee
+      - lower_leg
+      - ankle_foot
+      - ankle_rear_arm
+      - bearing_left_ankle
+      - servo__leg_ankle_left
+      - sole
+      - yaw2roll_R
+      - servo__bearing_roll_hip_l_2
+      - hip_R
+      - upper_leg_R
+      - servo__upper_leg_right_upper_leg_right
+      - servo__upper_leg_right_leg_2
+      - bearing_right_knee
+      - lower_leg_R
+      - ankle_foot_R
+      - ankle_rear_arm_R
+      - bearing_right_ankle
+      - servo__leg_2_ankle_right
+      - sole_R
+      - neck
+      - servo__neck_neck
+      - servo__neck_neck_pitch
+      - zz_battery
+      - battery_door
+      - shell_L
+      - shell_R
+      - head_bracket
+      - jaw
+      - jaw_adapter
+      - jaw_journal
+      - servo__jaw_soft_jaw
+      - bearing_jaw
+      - yrm
+      - servo__jaw_soft_jaw_soft
+      - bearing_head_roll_B
+      - head_journal
+      - head_clamp
+      - servo__yaw_roll_motion_yaw_roll_motion
+      - neck_pitch
+      - head_bottom_shell
+      - zz_adapter
+      - head_top_shell
+      - zz_speaker
+      - zz_amp
+      - adapter_tray
+      - amp_bracket
+      - zz_gpio_dupont
+      - bearing_head_roll_A
+      - bearing_head_yaw
+      - head_bearing_cap
+      - head_roll_adapter
+      - head_yaw_adapter
+      - head_yaw_cap
+      - face_plate
+      - zz_ubec
+      - eye_white
+      - eye_pupil
+      - eye_highlight
+      - zz_sbc
+      - zz_mic
+      - zz_camera
+      - camera_clamp
+      - tof_clamp  # hr52：ToF 压条 H10（h04_bench 装上 H04，随头件走）
+      - zz_tof  # hr52：ToF 模块占位（同上）
+  motions:
+  - id: head_onto_headpitch_servo
+    subassembly_of: robot
+    workspace: body_all
+    movers:
+    - head_bracket
+    - jaw
+    - jaw_adapter
+    - jaw_journal
+    - servo__jaw_soft_jaw
+    - bearing_jaw
+    - yrm
+    - servo__jaw_soft_jaw_soft
+    - bearing_head_roll_B
+    - head_journal
+    - head_clamp
+    - servo__yaw_roll_motion_yaw_roll_motion
+    - neck_pitch
+    - head_bottom_shell
+    - zz_adapter
+    - head_top_shell
+    - zz_speaker
+    - zz_amp
+    - adapter_tray
+    - amp_bracket
+    - zz_gpio_dupont
+    - bearing_head_roll_A
+    - bearing_head_yaw
+    - head_bearing_cap
+    - head_roll_adapter
+    - head_yaw_adapter
+    - head_yaw_cap
+    - face_plate
+    - zz_ubec
+    - eye_white
+    - eye_pupil
+    - eye_highlight
+    - zz_sbc
+    - zz_mic
+    - zz_camera
+    - camera_clamp
+    - tof_clamp  # hr52：ToF 压条 H10（h04_bench 装上 H04，随头件走）
+    - zz_tof  # hr52：ToF 模块占位（同上）
+    present:
+    - trunk
+    - servo__trunk_base_yaw2roll
+    - servo__trunk_base_bearing_roll
+    - bearing_left_hip_yaw
+    - bearing_right_hip_yaw
+    - yaw2roll
+    - servo__yaw2roll_hip_l
+    - hip
+    - upper_leg
+    - servo__upper_leg_left_upper_leg_left
+    - servo__upper_leg_left_leg
+    - bearing_left_knee
+    - lower_leg
+    - ankle_foot
+    - ankle_rear_arm
+    - bearing_left_ankle
+    - servo__leg_ankle_left
+    - sole
+    - yaw2roll_R
+    - servo__bearing_roll_hip_l_2
+    - hip_R
+    - upper_leg_R
+    - servo__upper_leg_right_upper_leg_right
+    - servo__upper_leg_right_leg_2
+    - bearing_right_knee
+    - lower_leg_R
+    - ankle_foot_R
+    - ankle_rear_arm_R
+    - bearing_right_ankle
+    - servo__leg_2_ankle_right
+    - sole_R
+    - neck
+    - servo__neck_neck
+    - servo__neck_neck_pitch
+    - zz_battery
+    - battery_door
+    - shell_L
+    - shell_R
+    - head_bracket
+    - jaw
+    - jaw_adapter
+    - jaw_journal
+    - servo__jaw_soft_jaw
+    - bearing_jaw
+    - yrm
+    - servo__jaw_soft_jaw_soft
+    - bearing_head_roll_B
+    - head_journal
+    - head_clamp
+    - servo__yaw_roll_motion_yaw_roll_motion
+    - neck_pitch
+    - head_bottom_shell
+    - zz_adapter
+    - head_top_shell
+    - zz_speaker
+    - zz_amp
+    - adapter_tray
+    - amp_bracket
+    - zz_gpio_dupont
+    - bearing_head_roll_A
+    - bearing_head_yaw
+    - head_bearing_cap
+    - head_roll_adapter
+    - head_yaw_adapter
+    - head_yaw_cap
+    - face_plate
+    - zz_ubec
+    - eye_white
+    - eye_pupil
+    - eye_highlight
+    - zz_sbc
+    - zz_mic
+    - zz_camera
+    - camera_clamp
+    - tof_clamp  # hr52：ToF 压条 H10（h04_bench 装上 H04，随头件走）
+    - zz_tof  # hr52：ToF 模块占位（同上）
+    sense: withdrawal_from_assembled
+    outward_world:
+    - 0.0
+    - 0.0
+    - 1.0
+    len_mm: 40.0
+    step_mm: 0.5
+    provenance: hr34（2026-09-22）：步 14b 的动作原样搬到壳之后，在场集合改为整机（含壳/电池/门）；方向仍 +z 抽出（头从上落到头俯仰舵机法兰）
+    movers_note_2026-09-17_hr12: 头部新件（A/偏航轴承、N05/N06/N07/N08）随头一起动，不是静止障碍
+    movers_note_2026-09-29_hr52: hr52：+ tof_clamp / zz_tof（ToF 压条 + 模块，装在 H04 上随头子总成走）；required_motion_groups 与 motions 两处 movers / present 同步加
+# 2026-09-18 hr13 重写（旧 8 条按 09-12 头部旧顺序写，且第 2 条把门和电池写成一个动作 → 电池撞门 2820 mm³ 恒红，后 6 条全被"前置未成立"挡）。
+# 条目可显式给 movers + segments（l4_assembly hr13 扩展；与 motions 同格式），障碍 = 整机 − 已判定拆走；proven 判据不变（全程 ≤0.05 且末端 AABB 脱离）。
+# 只列**整机状态下**能沿直线出机的外层件；头部各件的拆卸在台架级由步 11–13 的 motions（withdrawal_from_assembled）反向证明，
+# 整机状态下 H03/H02/N03 台架件的出机路径都被原版嘴 jaw / 脸 orig_face_part 挡（hr13 试算：H03 −z→+x 3579 mm³、H02 −x 撞 H03 78.6、偏航舵机 −y→ 1194），
+# 原版嘴/脸的拆法未建模，如实记 unknown（见 seq 6）。
+- step: 21
+  id: step21
+  seq: 21
+  subassembly_of: robot
+  action: 完成原装配后：电池/门已装、两躯干壳已合；手持电池母头与延长线公头插到底，收纳于电池顶；B03置于终位后方3.5，落下后沿+x推到位。不要压软线。
+  parts:
+  - B03
+  - zz_xt30
+  already_installed:
+  - T01
+  - T02
+  - T03
+  - B01
+  - 电池
+  - 整头/双腿子总成
+  direction: 插头提取+z；B03装入是拆出两段的反向
+  tool: 手
+  fasteners:
+  - F31_B03_front_detents
+  - F32_B03_rear_barb
+  verified: false
+  verified_by: 本轮局部A/B/E待跑；真实卡扣保持力BN19待测
+  unknown_class: not_audited
+  unknown_reason: 前舌凸点有名义0.25弹性过盈，刚体L4必保留实际接触；手指空间/软线/疲劳未测
+  required_motion_groups:
+    xt30_access:
+      workspace: body_all
+      movers:
+      - zz_xt30
+      present:
+      - ankle_foot
+      - ankle_foot_R
+      - ankle_rear_arm
+      - ankle_rear_arm_R
+      - battery_door
+      - zz_adapter
+      - zz_speaker
+      - zz_amp
+      - adapter_tray
+      - amp_bracket
+      - zz_gpio_dupont
+      - zz_sbc
+      - zz_mic
+      - zz_camera
+      - camera_clamp
+      - tof_clamp  # hr52：ToF 压条 H10（h04_bench 装上 H04，随头件走）
+      - zz_tof  # hr52：ToF 模块占位（同上）
+      - bearing_jaw
+      - servo__jaw_soft_jaw
+      - eye_white
+      - eye_pupil
+      - eye_highlight
+      - bearing_head_roll_A
+      - bearing_head_roll_B
+      - bearing_head_yaw
+      - bearing_left_ankle
+      - bearing_left_hip_pitch
+      - bearing_left_hip_roll
+      - bearing_left_hip_yaw
+      - bearing_left_knee
+      - bearing_right_ankle
+      - bearing_right_hip_pitch
+      - bearing_right_hip_roll
+      - bearing_right_hip_yaw
+      - bearing_right_knee
+      - head_bearing_cap
+      - head_bottom_shell
+      - head_bracket
+      - head_clamp
+      - head_journal
+      - head_roll_adapter
+      - head_yaw_adapter
+      - head_yaw_cap
+      - hip
+      - hip_R
+      - hip_pitch_sleeve
+      - hip_pitch_sleeve_R
+      - hip_roll_sleeve
+      - hip_roll_sleeve_R
+      - lower_leg
+      - lower_leg_R
+      - neck
+      - neck_pitch
+      - face_plate
+      - jaw
+      - jaw_adapter
+      - jaw_journal
+      - head_top_shell
+      - servo__bearing_roll_hip_l_2
+      - servo__jaw_soft_jaw_soft
+      - servo__leg_2_ankle_right
+      - servo__leg_ankle_left
+      - servo__neck_neck
+      - servo__neck_neck_pitch
+      - servo__trunk_base_bearing_roll
+      - servo__trunk_base_yaw2roll
+      - servo__upper_leg_left_leg
+      - servo__upper_leg_left_upper_leg_left
+      - servo__upper_leg_right_leg_2
+      - servo__upper_leg_right_upper_leg_right
+      - servo__yaw2roll_hip_l
+      - servo__yaw_roll_motion_yaw_roll_motion
+      - shell_L
+      - shell_R
+      - sole
+      - sole_R
+      - trunk
+      - upper_leg
+      - upper_leg_R
+      - yaw2roll
+      - yaw2roll_R
+      - yrm
+      - zz_battery
+      - zz_imu
+      - zz_ubec
+      - zz_xt30
+    battery_lid:
+      workspace: body_all
+      movers:
+      - battery_lid
+      present:
+      - ankle_foot
+      - ankle_foot_R
+      - ankle_rear_arm
+      - ankle_rear_arm_R
+      - battery_door
+      - zz_adapter
+      - zz_speaker
+      - zz_amp
+      - adapter_tray
+      - amp_bracket
+      - zz_gpio_dupont
+      - zz_sbc
+      - zz_mic
+      - zz_camera
+      - camera_clamp
+      - tof_clamp  # hr52：ToF 压条 H10（h04_bench 装上 H04，随头件走）
+      - zz_tof  # hr52：ToF 模块占位（同上）
+      - bearing_jaw
+      - servo__jaw_soft_jaw
+      - eye_white
+      - eye_pupil
+      - eye_highlight
+      - bearing_head_roll_A
+      - bearing_head_roll_B
+      - bearing_head_yaw
+      - bearing_left_ankle
+      - bearing_left_hip_pitch
+      - bearing_left_hip_roll
+      - bearing_left_hip_yaw
+      - bearing_left_knee
+      - bearing_right_ankle
+      - bearing_right_hip_pitch
+      - bearing_right_hip_roll
+      - bearing_right_hip_yaw
+      - bearing_right_knee
+      - head_bearing_cap
+      - head_bottom_shell
+      - head_bracket
+      - head_clamp
+      - head_journal
+      - head_roll_adapter
+      - head_yaw_adapter
+      - head_yaw_cap
+      - hip
+      - hip_R
+      - hip_pitch_sleeve
+      - hip_pitch_sleeve_R
+      - hip_roll_sleeve
+      - hip_roll_sleeve_R
+      - lower_leg
+      - lower_leg_R
+      - neck
+      - neck_pitch
+      - face_plate
+      - jaw
+      - jaw_adapter
+      - jaw_journal
+      - head_top_shell
+      - servo__bearing_roll_hip_l_2
+      - servo__jaw_soft_jaw_soft
+      - servo__leg_2_ankle_right
+      - servo__leg_ankle_left
+      - servo__neck_neck
+      - servo__neck_neck_pitch
+      - servo__trunk_base_bearing_roll
+      - servo__trunk_base_yaw2roll
+      - servo__upper_leg_left_leg
+      - servo__upper_leg_left_upper_leg_left
+      - servo__upper_leg_right_leg_2
+      - servo__upper_leg_right_upper_leg_right
+      - servo__yaw2roll_hip_l
+      - servo__yaw_roll_motion_yaw_roll_motion
+      - shell_L
+      - shell_R
+      - sole
+      - sole_R
+      - trunk
+      - upper_leg
+      - upper_leg_R
+      - yaw2roll
+      - yaw2roll_R
+      - yrm
+      - zz_battery
+      - zz_imu
+      - zz_ubec
+      - battery_lid
+      - zz_xt30
+  motions:
+  - id: xt30_access
+    workspace: body_all
+    movers:
+    - zz_xt30
+    present:
+    - ankle_foot
+    - ankle_foot_R
+    - ankle_rear_arm
+    - ankle_rear_arm_R
+    - battery_door
+    - zz_adapter
+    - zz_speaker
+    - zz_amp
+    - adapter_tray
+    - amp_bracket
+    - zz_gpio_dupont
+    - zz_sbc
+    - zz_mic
+    - zz_camera
+    - camera_clamp
+    - tof_clamp  # hr52：ToF 压条 H10（h04_bench 装上 H04，随头件走）
+    - zz_tof  # hr52：ToF 模块占位（同上）
+    - bearing_jaw
+    - servo__jaw_soft_jaw
+    - eye_white
+    - eye_pupil
+    - eye_highlight
+    - bearing_head_roll_A
+    - bearing_head_roll_B
+    - bearing_head_yaw
+    - bearing_left_ankle
+    - bearing_left_hip_pitch
+    - bearing_left_hip_roll
+    - bearing_left_hip_yaw
+    - bearing_left_knee
+    - bearing_right_ankle
+    - bearing_right_hip_pitch
+    - bearing_right_hip_roll
+    - bearing_right_hip_yaw
+    - bearing_right_knee
+    - head_bearing_cap
+    - head_bottom_shell
+    - head_bracket
+    - head_clamp
+    - head_journal
+    - head_roll_adapter
+    - head_yaw_adapter
+    - head_yaw_cap
+    - hip
+    - hip_R
+    - hip_pitch_sleeve
+    - hip_pitch_sleeve_R
+    - hip_roll_sleeve
+    - hip_roll_sleeve_R
+    - lower_leg
+    - lower_leg_R
+    - neck
+    - neck_pitch
+    - face_plate
+    - jaw
+    - jaw_adapter
+    - jaw_journal
+    - head_top_shell
+    - servo__bearing_roll_hip_l_2
+    - servo__jaw_soft_jaw_soft
+    - servo__leg_2_ankle_right
+    - servo__leg_ankle_left
+    - servo__neck_neck
+    - servo__neck_neck_pitch
+    - servo__trunk_base_bearing_roll
+    - servo__trunk_base_yaw2roll
+    - servo__upper_leg_left_leg
+    - servo__upper_leg_left_upper_leg_left
+    - servo__upper_leg_right_leg_2
+    - servo__upper_leg_right_upper_leg_right
+    - servo__yaw2roll_hip_l
+    - servo__yaw_roll_motion_yaw_roll_motion
+    - shell_L
+    - shell_R
+    - sole
+    - sole_R
+    - trunk
+    - upper_leg
+    - upper_leg_R
+    - yaw2roll
+    - yaw2roll_R
+    - yrm
+    - zz_battery
+    - zz_imu
+    - zz_ubec
+    - zz_xt30
+    sense: withdrawal_from_assembled
+    # hr41 落盘 2026-09-25（主设计 Lane C，协调员 07:15 #8）：照 B03 盖的写法补退出段 −x 20 —— 对插包络 +z 提 30 后（z 176.3..187.3）
+    #   仍在头壳正下方（头壳 x −42.7 起、z 218.8 起），末端证明不了脱离；再 −x 20（x −55.7..−45.5，越过头壳 −x 边）无新接触、可证脱离。
+    #   内存预演（landing_0925/scripts/t12_xt30_exit.py）：motion:xt30_access PASS 0.0、proven。
+    segments:
+    - outward_world:
+      - 0
+      - 0
+      - 1
+      len_mm: 30.0
+    - outward_world:
+      - -1
+      - 0
+      - 0
+      len_mm: 20.0
+    segments_was_until_2026_09_25: '单段 outward_world [0,0,1] len_mm 30.0'
+    step_mm: 0.5
+    provenance: hr39f 顶盖打开时对插占位提起动作；真实公母分离/软线停放未建模
+  - id: battery_lid
+    workspace: body_all
+    movers:
+    - battery_lid
+    present:
+    - ankle_foot
+    - ankle_foot_R
+    - ankle_rear_arm
+    - ankle_rear_arm_R
+    - battery_door
+    - zz_adapter
+    - zz_speaker
+    - zz_amp
+    - adapter_tray
+    - amp_bracket
+    - zz_gpio_dupont
+    - zz_sbc
+    - zz_mic
+    - zz_camera
+    - camera_clamp
+    - tof_clamp  # hr52：ToF 压条 H10（h04_bench 装上 H04，随头件走）
+    - zz_tof  # hr52：ToF 模块占位（同上）
+    - bearing_jaw
+    - servo__jaw_soft_jaw
+    - eye_white
+    - eye_pupil
+    - eye_highlight
+    - bearing_head_roll_A
+    - bearing_head_roll_B
+    - bearing_head_yaw
+    - bearing_left_ankle
+    - bearing_left_hip_pitch
+    - bearing_left_hip_roll
+    - bearing_left_hip_yaw
+    - bearing_left_knee
+    - bearing_right_ankle
+    - bearing_right_hip_pitch
+    - bearing_right_hip_roll
+    - bearing_right_hip_yaw
+    - bearing_right_knee
+    - head_bearing_cap
+    - head_bottom_shell
+    - head_bracket
+    - head_clamp
+    - head_journal
+    - head_roll_adapter
+    - head_yaw_adapter
+    - head_yaw_cap
+    - hip
+    - hip_R
+    - hip_pitch_sleeve
+    - hip_pitch_sleeve_R
+    - hip_roll_sleeve
+    - hip_roll_sleeve_R
+    - lower_leg
+    - lower_leg_R
+    - neck
+    - neck_pitch
+    - face_plate
+    - jaw
+    - jaw_adapter
+    - jaw_journal
+    - head_top_shell
+    - servo__bearing_roll_hip_l_2
+    - servo__jaw_soft_jaw_soft
+    - servo__leg_2_ankle_right
+    - servo__leg_ankle_left
+    - servo__neck_neck
+    - servo__neck_neck_pitch
+    - servo__trunk_base_bearing_roll
+    - servo__trunk_base_yaw2roll
+    - servo__upper_leg_left_leg
+    - servo__upper_leg_left_upper_leg_left
+    - servo__upper_leg_right_leg_2
+    - servo__upper_leg_right_upper_leg_right
+    - servo__yaw2roll_hip_l
+    - servo__yaw_roll_motion_yaw_roll_motion
+    - shell_L
+    - shell_R
+    - sole
+    - sole_R
+    - trunk
+    - upper_leg
+    - upper_leg_R
+    - yaw2roll
+    - yaw2roll_R
+    - yrm
+    - zz_battery
+    - zz_imu
+    - zz_ubec
+    - battery_lid
+    - zz_xt30
+    sense: withdrawal_from_assembled
+    segments:
+    - outward_world:
+      - -1
+      - 0
+      - 0
+      len_mm: 3.5
+    - outward_world:
+      - 0
+      - 0
+      - 1
+      len_mm: 30.0
+    # hr41 落盘 2026-09-25（主设计 Lane C）：末段加 −x 20（hr41_gate_work/记录.md §2/§6）—— 盖提 30 后仍在头壳正下方，末端证明不了脱离；hr41g 内存预演加此段后无新接触、终点证明脱离
+    - outward_world:
+      - -1
+      - 0
+      - 0
+      len_mm: 20.0
+    segments_was_until_2026_09_25: '[−x 3.5, +z 30]（两段）'
+    segments_note_2026_09_25_hr41_landing: 第三段 −x 20 只为让终点离开头壳下方、能证明脱离；弹性接触由 features.yaml:B03-F04.elastic_contact 声明，结果最多 WARN
+    step_mm: 0.25
+    provenance: duckstructure/tail.py:LID_SLIDE；刚体路径真实保留前舌凸点弹性过盈，不设豁免
+disassembly_order:
+- seq: 0
+  action: 先开B03：沿−x推3.5越过前舌凸点，再+z提起30。前舌需要弹性挠曲，刚体过盈按实记录，未打样不宣称通过。
+  reverse_of_step: 21
+  movers:
+  - battery_lid
+  segments:
+  - outward_world:
+    - -1
+    - 0
+    - 0
+    len_mm: 3.5
+  - outward_world:
+    - 0
+    - 0
+    - 1
+    len_mm: 30.0
+  # hr41 落盘 2026-09-25（主设计 Lane C）：末段加 −x 20，与步 21 battery_lid 动作同（hr41_gate_work/记录.md §2/§6：不加则末端未证明脱离、仍 BLOCK）
+  - outward_world:
+    - -1
+    - 0
+    - 0
+    len_mm: 20.0
+  segments_was_until_2026_09_25: '[−x 3.5, +z 30]（两段）'
+  action_note_2026_09_25_hr41_landing: 实际拆法 = −x 推 3.5 越过前舌凸点 → +z 提起 30 → 再 −x 退 20 离开头壳下方（第三段只为证明脱离）
+  step_mm: 0.25
+  proven: false
+  unknown_class: not_audited
+  unknown_reason: 前舌PETG弹性/保持力尚未打样；不能按刚体零交放行
+  provenance:
+  - duckstructure/tail.py
+  - bench.yaml:BN19
+- seq: 1
+  action: 从盖口+z提起XT30对插区，握插头壳断开，将延长线公头停放在抽电池通道外；电池自身插头/平衡头仍贴顶随电池走。
+  reverse_of_step: 21
+  movers:
+  - zz_xt30
+  segments:
+  - outward_world:
+    - 0
+    - 0
+    - 1
+    len_mm: 30.0
+  step_mm: 0.5
+  proven: false
+  unknown_class: not_modeled
+  unknown_reason: 仅组合包络提起路径可扫；公母分离/软线、公头停放夹子/手指空间未建模
+  provenance:
+  - assembly.yaml:step21
+  - components.yaml:connector_xt30
+- seq: 2
+  action: hr35：整机状态下先把头子总成（N02+N03 台架+H01/H02+H03/顶壳，步 20 的 17 件）整体 +z 提起 —— 松 F14 6×M2×6 后从头俯仰舵机法兰拔出；拆壳（第 1/2 条）之前必须做，否则
+    F20 壳柱螺丝起子被头壳挡（装序同因，hr34）
+  reverse_of_step: 20
+  movers_note_2026-09-24_hr41: 补 jaw_adapter / jaw_journal / camera_clamp（hr41 新件随头子总成走）；头内再拆：先拆 F34 取 J01 → 拔 J03 → 拆 F33 → H05 组 +z 抬起（约 30 mm 时先拔 CSI、喇叭/功放线）→ 拆 F22 → H03 组 −z 落下；J02 与嘴舵机一起从 +y 抽出（F28 不拆）
+  movers_note_2026-09-23_hr39c: 补 zz_speaker / zz_amp / servo__jaw_soft_jaw / bearing_jaw / zz_ubec（hr38 头里新件漏列
+    → 会被当静止障碍）+ 圆眼三件
+  movers:
+  - head_bracket
+  - yrm
+  - servo__jaw_soft_jaw_soft
+  - bearing_head_roll_B
+  - head_journal
+  - head_clamp
+  - servo__yaw_roll_motion_yaw_roll_motion
+  - neck_pitch
+  - head_bottom_shell
+  - zz_adapter
+  - head_top_shell
+  - bearing_head_roll_A
+  - bearing_head_yaw
+  - head_bearing_cap
+  - head_roll_adapter
+  - head_yaw_adapter
+  - head_yaw_cap
+  - jaw
+  - jaw_adapter
+  - jaw_journal
+  - face_plate
+  - zz_speaker
+  - zz_amp
+  - adapter_tray
+  - amp_bracket
+  - zz_gpio_dupont
+  - servo__jaw_soft_jaw
+  - bearing_jaw
+  - zz_ubec
+  - eye_white
+  - eye_pupil
+  - eye_highlight
+  - zz_sbc
+  - zz_mic
+  - zz_camera
+  - camera_clamp
+  - tof_clamp  # hr52：ToF 压条 H10（h04_bench 装上 H04，随头件走）
+  - zz_tof  # hr52：ToF 模块占位（同上）
+  segments:
+  - outward_world:
+    - 0.0
+    - 0.0
+    - 1.0
+    len_mm: 40.0
+  step_mm: 0.5
+  movers_note_2026-09-22_hr35: 原版嘴 jaw / 脸 orig_face_part 装在头壳上、随头一起提（装序步 20 的 present 没放它们，拆序障碍集合是整机全集，不列进 movers
+    就会被当静止障碍：L4 冒烟 403 mm³）
+  proven: true
+  provenance:
+  - assembly.yaml:assembly_order[step20].motions（hr34，L4 整机在场扫掠峰 1.7e-14）
+  - hr33_review.md m-04
+  movers_note_2026-09-22_hr37: hr37：+ face_plate（取代 orig_face_part）/ zz_sbc / zz_mic / zz_camera
+  movers_note_2026-09-29_hr52: hr52：+ tof_clamp / zz_tof（ToF 压条 + 模块装在 H04 上，随头子总成一起提；不列进 movers 会被当静止障碍）
+- seq: 3
+  action: 拆 T02 躯干左壳：先松 4×M2×8 壳柱与 T03 惰轮螺丝，T02 沿 +y 直线分开
+  reverse_of_step: 17
+  movers:
+  - shell_L
+  segments:
+  - outward_world:
+    - 0.0
+    - 1.0
+    - 0.0
+    len_mm: 40.0
+  step_mm: 0.5
+  proven: true
+  provenance:
+  - mechanical_audit.json:shell_slide_mm3
+  - docs/design_2026-09-17_bearing_rebuild/记录.md 第 19 条（hr13 整机拆卸试算）
+  action_note_2026-09-22_hr34: hr34 装序改为壳在头之前 → 拆壳前应先按第 6 条把头子总成从头俯仰舵机上取下（F14 → +z 提起），否则 F20 壳柱螺丝起子被头壳挡（装序同因）
+  action_note_2026-09-22_hr35: 先做第 0 条（提头）
+  action_note_2026_09_24_hr39f: 当前seq0/1先开盖断电，seq2提头，之后才拆躯干壳；旧日期注记中的第0条提头现为第2条。
+- seq: 4
+  action: 拆 T03 躯干右壳：T03 沿 −y 直线分开（Ø14 惰轮毂退出 N01 的 Ø16 孔）
+  reverse_of_step: 17
+  movers:
+  - shell_R
+  segments:
+  - outward_world:
+    - 0.0
+    - -1.0
+    - 0.0
+    len_mm: 40.0
+  step_mm: 0.5
+  proven: true
+  provenance:
+  - mechanical_audit.json:shell_slide_mm3
+  - docs/design_2026-09-17_bearing_rebuild/记录.md 第 19 条
+  action_note_2026-09-22_hr34: hr34 装序改为壳在头之前 → 拆壳前应先按第 6 条把头子总成从头俯仰舵机上取下（F14 → +z 提起），否则 F20 壳柱螺丝起子被头壳挡（装序同因）
+  action_note_2026-09-22_hr35: 先做第 0 条（提头）
+  action_note_2026_09_24_hr39f: 当前seq0/1先开盖断电，seq2提头，之后才拆躯干壳；旧日期注记中的第0条提头现为第2条。
+- seq: 5
+  action: 拆原版 top_head_shell：松 H01 4 脚 M2×8，+z 直提
+  reverse_of_step: 18
+  movers_note_2026-09-23_hr39c: hr38 起顶壳是 H05（placed head_top_shell），喇叭/功放卡在它上面一起走；原来的裸名 top_head_shell 解析不到（L4
+    _names/unresolved_tokens、disasm03 红）
+  movers:
+  - head_top_shell
+  - zz_speaker
+  - zz_amp
+  - adapter_tray
+  - amp_bracket
+  - zz_gpio_dupont
+  segments:
+  - outward_world:
+    - 0.0
+    - 0.0
+    - 1.0
+    len_mm: 80.0
+  step_mm: 0.5
+  proven: true
+  provenance:
+  - docs/design_2026-09-17_bearing_rebuild/记录.md 第 19 条
+- seq: 6
+  action: B03已开、XT30已断：B01沿−x抽出，底脚退出T01隧道（F21默认不装；若用户另装可选螺丝，先取下）。
+  reverse_of_step: 16
+  movers:
+  - B01
+  segments:
+  - outward_world:
+    - -1.0
+    - 0.0
+    - 0.0
+    len_mm: 40.0
+  step_mm: 0.5
+  proven: false
+  provenance:
+  - docs/design_2026-09-17_bearing_rebuild/记录.md 第 19 条
+  unknown_class: not_audited
+  unknown_reason: hr39f新门/隧道路径待当前网格复核；旧门0交集不沿用
+- seq: 7
+  action: B03/B01已拆、XT30已断：拉电池胶带拉环，电池及自身两插头沿−x从后口抽出；插头贴顶实际包络最高157.3。
+  reverse_of_step: 16
+  movers:
+  - 电池
+  segments:
+  - outward_world:
+    - -1.0
+    - 0.0
+    - 0.0
+    len_mm: 40.0
+  step_mm: 0.5
+  proven: false
+  provenance:
+  - docs/design_2026-09-17_bearing_rebuild/记录.md 第 19 条
+  unknown_class: not_audited
+  unknown_reason: 必须用z157.3实际插头包络重核，旧154上界不足；胶带/软线/实物尺寸待BN19
+- seq: 8
+  action: 头部（H03 底壳 → H02 → H01 整体提起 → 偏航舵机 −y → N03 台架各件）：整机状态下先要拆原版嘴 jaw / 脸 orig_face_part，其拆法未建模
+  reverse_of_step: null
+  proven: false
+  unknown_class: not_modeled
+  unknown_reason: hr13 试算（整机 − 已拆 5 件为障碍）：H03 −z 45→+x 120 撞 jaw 3579 mm³、H02 −x 撞 H03 78.6 mm³、偏航舵机 −y 撞 jaw 1194
+    mm³；原版嘴/脸件与头的固定方式未建模（parts.yaml 只登记为原版件），拆序无法继续。台架级拆卸 = 步 11/12/13 motions 反向，全 0（L4 step11–13）。
+  provenance:
+  - docs/design_2026-09-17_bearing_rebuild/记录.md 第 19 条
+  - assembly.yaml:assembly_order[step11..13].motions
+  action_note_2026-09-22_hr34: hr34：整机状态下头子总成可整体 +z 提起（步 20 反向，L4 扫掠为证）；本条 not_modeled 只剩台架级拆头（原版嘴/脸未建模）
+- seq: 9
+  action: 踝子总成反序拆：先 L06 鞋底 +z 取下，再 L07+6700 沿 +ex 拆下 → 6700 −ex 退出 → L05+舵机 −ex 退出 L04（步 1–5 motions 反向，台架级已证）
+  reverse_of_step: null
+  reverse_of_step_note: 故意置 null（hr13 复审）：写 4 会走文本解析分支把 L07 沿 ±ex 对整机扫、鞋底仍在场 → 417 mm³ 假红并给 L06 挂 blocks；本条只是 not_modeled
+    记录，台架级证明在步 1–5 motions
+  proven: false
+  unknown_class: not_modeled
+  unknown_reason: 整机状态下腿仍装在躯干上，L07 沿 ±ex 出机被本侧鞋底/另一条腿挡；台架级四阶段 + 鞋底 −z 已在步 1–5 motions 证明（hr13 峰值 0.000013 mm³）。旧第
+    6 条把鞋底留在场直接拆 L07 → 476 mm³ 假红。
+  provenance:
+  - mechanical_audit.json:assembly_and_fits.ankle_paths
+  - assembly.yaml:assembly_order[step05].motions
+tool_states:
+  hipyaw_back_install:
+    after_step: 9
+    side: C
+    workspace: trunk_before_legs_and_shells
+    present:
+    - trunk
+    - servo__trunk_base_bearing_roll
+    - servo__trunk_base_yaw2roll
+    provenance: 第 9 步：偏航舵机滑入后先紧后排背孔（F01，起子从顶板上方 +z），此时 6702/L01、颈头与壳尚未装
+  imu_install:
+    after_step: 9
+    side: C
+    workspace: trunk_before_legs_and_shells
+    present:
+    - trunk
+    - servo__trunk_base_bearing_roll
+    - servo__trunk_base_yaw2roll
+    provenance: hr30：IMU（Adafruit 4438）2×M2×4（F26）在第 9 步偏航舵机滑入后、第 10 步装 L01 之前拧到 T01 前壁外侧面 (±10.16, 111.65)，起子 PH0 从 +x 沿孔轴进（零位前方到髋横滚舵机背面 9.9，L01 未装时更空）；在场全集与 hipyaw_back_install 同
+  hipyaw_flange_L:
+    after_step: 10
+    side: L
+    workspace: trunk_with_yaw_servos
+    present:
+    - trunk
+    - servo__trunk_base_yaw2roll
+    - servo__trunk_base_bearing_roll
+    - bearing_left_hip_yaw
+    - bearing_right_hip_yaw
+    - yaw2roll
+    provenance: 第 10 步左：L01 送上后从空杯腔向上拧 F02（横滚舵机未装）
+  hipyaw_flange_R:
+    after_step: 10
+    side: R
+    workspace: trunk_with_yaw_servos
+    present:
+    - trunk
+    - servo__trunk_base_yaw2roll
+    - servo__trunk_base_bearing_roll
+    - bearing_left_hip_yaw
+    - bearing_right_hip_yaw
+    - yaw2roll
+    - yaw2roll_R
+    provenance: 第 10 步右：同左；左 L01 已在
+  hiproll_back_L:
+    after_step: 6
+    side: L
+    workspace: L_hip_carrier_on_trunk
+    present:
+    - trunk
+    - servo__trunk_base_yaw2roll
+    - servo__trunk_base_bearing_roll
+    - bearing_left_hip_yaw
+    - bearing_right_hip_yaw
+    - yaw2roll
+    - yaw2roll_R
+    - servo__yaw2roll_hip_l
+    - bearing_left_hip_pitch
+    - bearing_left_hip_roll
+    - hip_roll_sleeve
+    provenance: 第 6 步左：横滚舵机装入 L01 后拧上排 2×M2×6（F03，起子世界 −x）
+  hiproll_back_R:
+    after_step: 6
+    side: R
+    workspace: R_hip_carrier_on_trunk
+    present:
+    - trunk
+    - servo__trunk_base_yaw2roll
+    - servo__trunk_base_bearing_roll
+    - bearing_left_hip_yaw
+    - bearing_right_hip_yaw
+    - yaw2roll
+    - yaw2roll_R
+    - servo__yaw2roll_hip_l
+    - servo__bearing_roll_hip_l_2
+    - hip
+    - upper_leg
+    - servo__upper_leg_left_upper_leg_left
+    - servo__upper_leg_left_leg
+    - bearing_left_knee
+    - lower_leg
+    - ankle_foot
+    - ankle_rear_arm
+    - bearing_left_ankle
+    - servo__leg_ankle_left
+    - sole
+    - bearing_right_hip_pitch
+    - bearing_right_hip_roll
+    - hip_roll_sleeve_R
+    provenance: 第 6 步右：左腿已完整
+  hiproll_flange_L:
+    after_step: 8
+    after_motion: L_hip_onto_roll_flange
+    subassembly_of: trunk
+    side: L
+    workspace: L_hip_on_trunk
+    present:
+    - trunk
+    - servo__trunk_base_yaw2roll
+    - servo__trunk_base_bearing_roll
+    - bearing_left_hip_yaw
+    - bearing_right_hip_yaw
+    - yaw2roll
+    - yaw2roll_R
+    - servo__yaw2roll_hip_l
+    - servo__bearing_roll_hip_l_2
+    - hip
+    - upper_leg
+    - servo__upper_leg_left_upper_leg_left
+    - servo__upper_leg_left_leg
+    - bearing_left_knee
+    - lower_leg
+    - ankle_foot
+    - ankle_rear_arm
+    - bearing_left_ankle
+    - servo__leg_ankle_left
+    - sole
+    - bearing_left_hip_pitch
+    - bearing_left_hip_roll
+    - hip_roll_sleeve
+    - hip_pitch_sleeve
+    provenance: 第 8d 步左：L02 穿入后从盘外侧 +x 拧 F04｜2026-09-13 D15：F06 改到腿台面后，F04 是带着整条腿套上横滚法兰再拧，present 加整条腿（复算 3e-6 mm³、12/12 可见）
+  hiproll_flange_R:
+    after_step: 8
+    after_motion: R_hip_onto_roll_flange
+    subassembly_of: trunk
+    side: R
+    workspace: R_hip_on_trunk
+    present:
+    - trunk
+    - servo__trunk_base_yaw2roll
+    - servo__trunk_base_bearing_roll
+    - bearing_left_hip_yaw
+    - bearing_right_hip_yaw
+    - yaw2roll
+    - yaw2roll_R
+    - servo__yaw2roll_hip_l
+    - servo__bearing_roll_hip_l_2
+    - hip
+    - upper_leg
+    - servo__upper_leg_left_upper_leg_left
+    - servo__upper_leg_left_leg
+    - bearing_left_knee
+    - lower_leg
+    - ankle_foot
+    - ankle_rear_arm
+    - bearing_left_ankle
+    - servo__leg_ankle_left
+    - sole
+    - hip_R
+    - upper_leg_R
+    - servo__upper_leg_right_upper_leg_right
+    - servo__upper_leg_right_leg_2
+    - bearing_right_knee
+    - lower_leg_R
+    - ankle_foot_R
+    - ankle_rear_arm_R
+    - bearing_right_ankle
+    - servo__leg_2_ankle_right
+    - sole_R
+    - bearing_right_hip_pitch
+    - bearing_right_hip_roll
+    - hip_roll_sleeve_R
+    - hip_pitch_sleeve_R
+    provenance: 第 8d 步右｜2026-09-13 D15：F06 改到腿台面后，F04 是带着整条腿套上横滚法兰再拧，present 加整条腿（复算 3e-6 mm³、12/12 可见）
+  upper_leg_bench_L:
+    after_step: 7
+    side: L
+    workspace: L_upper_leg_bench
+    present:
+    - upper_leg
+    - servo__upper_leg_left_upper_leg_left
+    - servo__upper_leg_left_leg
+    provenance: 第 7 步左：L03 台面上两颗舵机装入后从 +y 外侧拧 F05/F07
+  upper_leg_bench_R:
+    after_step: 7
+    side: R
+    workspace: R_upper_leg_bench
+    present:
+    - upper_leg_R
+    - servo__upper_leg_right_upper_leg_right
+    - servo__upper_leg_right_leg_2
+    provenance: 第 7 步右
+  knee_flange_L:
+    after_step: 8
+    after_motion: L_lower_sub_onto_knee
+    subassembly_of: leg
+    side: L
+    workspace: L_upper_leg_bench
+    present:
+    - upper_leg
+    - servo__upper_leg_left_upper_leg_left
+    - servo__upper_leg_left_leg
+    - bearing_left_knee
+    - lower_leg
+    - ankle_foot
+    - ankle_rear_arm
+    - bearing_left_ankle
+    - servo__leg_ankle_left
+    - sole
+    provenance: 第 8b 步左：L04 子总成穿入膝轴承后从 L04 −y 外侧拧 F08
+  knee_flange_R:
+    after_step: 8
+    after_motion: R_lower_sub_onto_knee
+    subassembly_of: leg
+    side: R
+    workspace: R_upper_leg_bench
+    present:
+    - upper_leg_R
+    - servo__upper_leg_right_upper_leg_right
+    - servo__upper_leg_right_leg_2
+    - bearing_right_knee
+    - lower_leg_R
+    - ankle_foot_R
+    - ankle_rear_arm_R
+    - bearing_right_ankle
+    - servo__leg_2_ankle_right
+    - sole_R
+    provenance: 第 8b 步右
+  hippitch_flange_L:
+    after_step: 8
+    after_motion: L_hip_onto_pitch_flange
+    subassembly_of: leg
+    side: L
+    workspace: L_upper_leg_bench
+    present:
+    - hip
+    - upper_leg
+    - servo__upper_leg_left_upper_leg_left
+    - servo__upper_leg_left_leg
+    - bearing_left_knee
+    - lower_leg
+    - ankle_foot
+    - ankle_rear_arm
+    - bearing_left_ankle
+    - servo__leg_ankle_left
+    - sole
+    - bearing_left_hip_pitch
+    - hip_pitch_sleeve
+    provenance: 第 8b' 步左：L02 在腿台面贴上俯仰法兰后从 L02 −y 外侧拧 F06（2026-09-13 D15 改：原工位 L_hip_on_trunk 被横滚舵机挡 7.15 mm，12/12 不可见；台面上 12/12 可见）
+  hippitch_flange_R:
+    after_step: 8
+    after_motion: R_hip_onto_pitch_flange
+    subassembly_of: leg
+    side: R
+    workspace: R_upper_leg_bench
+    present:
+    - hip_R
+    - upper_leg_R
+    - servo__upper_leg_right_upper_leg_right
+    - servo__upper_leg_right_leg_2
+    - bearing_right_knee
+    - lower_leg_R
+    - ankle_foot_R
+    - ankle_rear_arm_R
+    - bearing_right_ankle
+    - servo__leg_2_ankle_right
+    - sole_R
+    - bearing_right_hip_pitch
+    - hip_pitch_sleeve_R
+    provenance: 第 8b' 步右：L02 在腿台面贴上俯仰法兰后从 L02 +y 外侧拧 F06（2026-09-13 D15 改：原工位 L_hip_on_trunk 被横滚舵机挡 7.15 mm，12/12 不可见；台面上 12/12 可见）
+  headroll_flange:
+    after_step: 11
+    after_motion: h_roll_servo_into_N03
+    subassembly_of: head
+    side: C
+    workspace: head_bench
+    present:
+    - yrm
+    - bearing_head_yaw
+    - head_yaw_cap
+    - neck_pitch
+    - head_yaw_adapter
+    - bearing_head_roll_B
+    - bearing_head_roll_A
+    - head_roll_adapter
+    - servo__jaw_soft_jaw_soft
+    present_note_2026-09-17: hr12 新序——横滚舵机在 N03 台架阶段（步 11 h）装入，H01/H02/偏航舵机不在场，起子经空偏航腔
+    provenance: 第 11c 步：Ø4.2×45 长杆从 +x 经 H01 前板孔 → N03 B 端 Ø16.2 → 偏航舵机腔（空）→ A 盘拧 F17；轴承/N04/H02/偏航舵机都未装
+  H02_on:
+    after_step: 11
+    side: C
+    workspace: head_bench
+    present:
+    - head_bracket
+    - yrm
+    - servo__jaw_soft_jaw_soft
+    - bearing_head_roll_B
+    - head_journal
+    - head_clamp
+    - head_bearing_cap
+    - head_roll_adapter
+    - head_yaw_adapter
+    - head_yaw_cap
+    - neck_pitch
+    - bearing_head_yaw
+    - bearing_head_roll_A
+    provenance: 第 11f 步之后：H02 从 −x 贴上，拧 F18（经垫柱进舵机上排背孔）与 F19（经 Ø4.6 铣面进 H01 Ø5 座）
+  headyaw_servo_in_N03:
+    after_step: 12
+    side: C
+    workspace: head_bench
+    present:
+    - head_bracket
+    - yrm
+    - servo__jaw_soft_jaw_soft
+    - bearing_head_roll_B
+    - head_journal
+    - head_clamp
+    - servo__yaw_roll_motion_yaw_roll_motion
+    - head_bearing_cap
+    - head_roll_adapter
+    - head_yaw_adapter
+    - head_yaw_cap
+    - neck_pitch
+    - bearing_head_yaw
+    - bearing_head_roll_A
+    provenance: 第 12 步之后：从 +z（头壳内）拧 F15
+  N02_on_headyaw:
+    after_step: 13
+    side: C
+    workspace: head_bench
+    present:
+    - head_bracket
+    - yrm
+    - servo__jaw_soft_jaw_soft
+    - bearing_head_roll_B
+    - head_journal
+    - head_clamp
+    - servo__yaw_roll_motion_yaw_roll_motion
+    - neck_pitch
+    - head_bearing_cap
+    - head_roll_adapter
+    - head_yaw_adapter
+    - head_yaw_cap
+    - bearing_head_yaw
+    - bearing_head_roll_A
+    provenance: 第 13 步之后：长杆经 N02 立筒 Ø15 内腔从下向上拧 F16（头壳未合）
+  head_shells_on:
+    after_step: 18
+    side: C
+    workspace: head_bench_bottom_shell_on
+    present:
+    - head_bracket
+    - yrm
+    - servo__jaw_soft_jaw_soft
+    - bearing_head_roll_B
+    - head_journal
+    - head_clamp
+    - servo__yaw_roll_motion_yaw_roll_motion
+    - neck_pitch
+    - head_bearing_cap
+    - head_roll_adapter
+    - head_yaw_adapter
+    - head_yaw_cap
+    - bearing_head_yaw
+    - bearing_head_roll_A
+    - adapter_tray
+    - zz_adapter
+    - amp_bracket
+    - zz_amp
+    - servo__jaw_soft_jaw
+    - jaw_adapter
+    - head_bottom_shell
+    - zz_mic
+    - zz_ubec
+    - bearing_jaw
+    present_was_until_2026_09_25_hr43c: '[head_bracket, yrm, servo__jaw_soft_jaw_soft, bearing_head_roll_B, head_journal, head_clamp, servo__yaw_roll_motion_yaw_roll_motion, neck_pitch, head_bearing_cap, head_roll_adapter, head_yaw_adapter, head_yaw_cap, bearing_head_yaw, bearing_head_roll_A, zz_sbc, servo__jaw_soft_jaw, jaw_adapter, head_bottom_shell, zz_adapter, zz_mic, zz_ubec, bearing_jaw]（hr41 装序 P 口径）'
+    present_note_2026-09-25_hr43d: hr43d 装序 P″ 18c：H08 + 转接板（18a 已装）替 H07 + 老功放；H09 + 功放随 H03 组来（H03 台面工位已拧 F38 / F36）；hr43d/d08_f22_f35.json F22 4/4 通（#3 只 H03 0.0014 mm³ 碎屑）、螺丝头 4/4 可见
+    present_note_2026-09-25_hr43c: 复审 #2 B1 / M4-1：按 hr43 装序 P′ 18c 真实在场件改 —— 去 zz_sbc（Radxa 在 18d′ 才随 H05 来）、加 amp_tray / zz_amp（18a 已装 H07 + 功放）。hr43c 已把 H07 托面 / 立柱 / 功放 −y 2.0 并在 H07 横梁 (49.1, 9.35) 开 Ø5.3 过孔（head.H07_HR43C），F22 4 颗起子路径应全通
+    provenance: hr41 装序 P 18c：H03 组合上后、H05 组盖下前，H01 4 脚从上 (+z) 经 Ø4.6 通道拧 F22 进 H03（hr41_work/extras41b.json F22 c 步 4/4 通）
+    was_until_2026_09_24_hr41: present = head_bracket, jaw, servo__jaw_soft_jaw, bearing_jaw, 头部轴承堆, head_bottom_shell, zz_adapter（hr39c：J01 在、Radxa 不在）；装序 P 里 J01 最后装、Radxa 在 a 步已上
+    after_motion: c_H03_group_up
+  headpitch_servo_in_N01:
+    after_step: 14
+    after_motion: headpitch_servo_into_N01
+    subassembly_of: neck
+    side: C
+    workspace: neck_bench
+    present:
+    - neck
+    - servo__neck_neck_pitch
+    provenance: 第 14a 步之后、套 N02 之前：从 −y 拧 F13 下排 2 颗
+  head_on_headpitch:
+    after_step: 20
+    side: C
+    workspace: body_all
+    present:
+    - trunk
+    - servo__trunk_base_yaw2roll
+    - servo__trunk_base_bearing_roll
+    - bearing_left_hip_yaw
+    - bearing_right_hip_yaw
+    - yaw2roll
+    - servo__yaw2roll_hip_l
+    - hip
+    - upper_leg
+    - servo__upper_leg_left_upper_leg_left
+    - servo__upper_leg_left_leg
+    - bearing_left_knee
+    - lower_leg
+    - ankle_foot
+    - ankle_rear_arm
+    - bearing_left_ankle
+    - servo__leg_ankle_left
+    - sole
+    - yaw2roll_R
+    - servo__bearing_roll_hip_l_2
+    - hip_R
+    - upper_leg_R
+    - servo__upper_leg_right_upper_leg_right
+    - servo__upper_leg_right_leg_2
+    - bearing_right_knee
+    - lower_leg_R
+    - ankle_foot_R
+    - ankle_rear_arm_R
+    - bearing_right_ankle
+    - servo__leg_2_ankle_right
+    - sole_R
+    - neck
+    - servo__neck_neck
+    - servo__neck_neck_pitch
+    - zz_battery
+    - battery_door
+    - shell_L
+    - shell_R
+    - head_bracket
+    - jaw
+    - jaw_adapter
+    - jaw_journal
+    - servo__jaw_soft_jaw
+    - bearing_jaw
+    - yrm
+    - servo__jaw_soft_jaw_soft
+    - bearing_head_roll_B
+    - head_journal
+    - head_clamp
+    - servo__yaw_roll_motion_yaw_roll_motion
+    - neck_pitch
+    - head_bottom_shell
+    - zz_adapter
+    - head_top_shell
+    - zz_speaker
+    - zz_amp
+    - adapter_tray
+    - amp_bracket
+    - zz_gpio_dupont
+    - bearing_head_roll_A
+    - bearing_head_yaw
+    - head_bearing_cap
+    - head_roll_adapter
+    - head_yaw_adapter
+    - head_yaw_cap
+    - face_plate
+    - zz_ubec
+    - eye_white
+    - eye_pupil
+    - eye_highlight
+    - zz_sbc
+    - zz_mic
+    - zz_camera
+    - camera_clamp
+    - tof_clamp  # hr52：ToF 压条 H10（h04_bench 装上 H04，随头件走）
+    - zz_tof  # hr52：ToF 模块占位（同上）
+    provenance: 第 14b 步之后：F14 从 +y 脸颊外拧、F14b 从 −y 脸颊外拧
+    present_note_2026-09-22_hr34: hr34：改到壳之后（步 20）；在场 = 壳装完的整机 55 件 —— 不含髋内轴承 bearing_*_hip_pitch / bearing_*_hip_roll、轴套 hip_pitch_sleeve(_R) / hip_roll_sleeve(_R)（沿用 shells_on 口径，离头 >100 mm）与原版嘴/脸（未建模），不是
+      65 件全集（hr33 复审 m-03）
+    present_note_2026-09-22_hr37: hr37：+ face_plate / zz_sbc / zz_mic / zz_camera（随头件），55 → 59
+    present_note_2026-09-29_hr52: hr52：+ tof_clamp / zz_tof（随头件）
+  neck_servo_in_N01:
+    after_step: 15
+    after_motion: neck_servo_into_N01
+    subassembly_of: neck_head
+    side: C
+    workspace: neck_bench
+    present:
+    - neck
+    - servo__neck_neck
+    - servo__neck_neck_pitch
+    provenance: 第 15a 步之后：从 −y 拧 F11/F11b 四颗背孔（壳未装）
+    present_note_2026-09-22_hr34: hr34：头子总成改在壳之后挂，此工位头件不在场
+  neck_on_trunk:
+    after_step: 15
+    side: C
+    workspace: body_after_neck
+    present:
+    - trunk
+    - servo__trunk_base_yaw2roll
+    - servo__trunk_base_bearing_roll
+    - bearing_left_hip_yaw
+    - bearing_right_hip_yaw
+    - yaw2roll
+    - servo__yaw2roll_hip_l
+    - hip
+    - upper_leg
+    - servo__upper_leg_left_upper_leg_left
+    - servo__upper_leg_left_leg
+    - bearing_left_knee
+    - lower_leg
+    - ankle_foot
+    - ankle_rear_arm
+    - bearing_left_ankle
+    - servo__leg_ankle_left
+    - sole
+    - yaw2roll_R
+    - servo__bearing_roll_hip_l_2
+    - hip_R
+    - upper_leg_R
+    - servo__upper_leg_right_upper_leg_right
+    - servo__upper_leg_right_leg_2
+    - bearing_right_knee
+    - lower_leg_R
+    - ankle_foot_R
+    - ankle_rear_arm_R
+    - bearing_right_ankle
+    - servo__leg_2_ankle_right
+    - sole_R
+    - neck
+    - servo__neck_neck
+    - servo__neck_neck_pitch
+    provenance: 第 15b 步之后：从 +y 拧 F12 六颗进 T01 轭盘
+    present_note_2026-09-22_hr34: hr34：头子总成改在壳之后挂，此工位头件不在场
+  battery_door_on:
+    after_step: 16
+    side: C
+    workspace: body_after_battery
+    present:
+    - trunk
+    - servo__trunk_base_yaw2roll
+    - servo__trunk_base_bearing_roll
+    - bearing_left_hip_yaw
+    - bearing_right_hip_yaw
+    - yaw2roll
+    - servo__yaw2roll_hip_l
+    - hip
+    - upper_leg
+    - servo__upper_leg_left_upper_leg_left
+    - servo__upper_leg_left_leg
+    - bearing_left_knee
+    - lower_leg
+    - ankle_foot
+    - ankle_rear_arm
+    - bearing_left_ankle
+    - servo__leg_ankle_left
+    - sole
+    - yaw2roll_R
+    - servo__bearing_roll_hip_l_2
+    - hip_R
+    - upper_leg_R
+    - servo__upper_leg_right_upper_leg_right
+    - servo__upper_leg_right_leg_2
+    - bearing_right_knee
+    - lower_leg_R
+    - ankle_foot_R
+    - ankle_rear_arm_R
+    - bearing_right_ankle
+    - servo__leg_2_ankle_right
+    - sole_R
+    - neck
+    - servo__neck_neck
+    - servo__neck_neck_pitch
+    - zz_battery
+    - battery_door
+    provenance: 第 16 步之后：从下 (+z) 拧 F21 一颗
+    present_note_2026-09-22_hr34: hr34：头子总成改在壳之后挂，此工位头件不在场
+  shells_on:
+    after_step: 17
+    side: C
+    workspace: body_all
+    present:
+    - trunk
+    - servo__trunk_base_yaw2roll
+    - servo__trunk_base_bearing_roll
+    - bearing_left_hip_yaw
+    - bearing_right_hip_yaw
+    - yaw2roll
+    - servo__yaw2roll_hip_l
+    - hip
+    - upper_leg
+    - servo__upper_leg_left_upper_leg_left
+    - servo__upper_leg_left_leg
+    - bearing_left_knee
+    - lower_leg
+    - ankle_foot
+    - ankle_rear_arm
+    - bearing_left_ankle
+    - servo__leg_ankle_left
+    - sole
+    - yaw2roll_R
+    - servo__bearing_roll_hip_l_2
+    - hip_R
+    - upper_leg_R
+    - servo__upper_leg_right_upper_leg_right
+    - servo__upper_leg_right_leg_2
+    - bearing_right_knee
+    - lower_leg_R
+    - ankle_foot_R
+    - ankle_rear_arm_R
+    - bearing_right_ankle
+    - servo__leg_2_ankle_right
+    - sole_R
+    - neck
+    - servo__neck_neck
+    - servo__neck_neck_pitch
+    - zz_battery
+    - battery_door
+    - shell_L
+    - shell_R
+    provenance: 第 17 步之后：F20 壳柱 4 颗从壳外向下、F12b 惰轮 6 颗从右壳外 −y
+    present_note_2026-09-22_hr34: hr34：头子总成改在壳之后挂，此工位头件不在场
+  h04_bench:
+    after_step: 17
+    side: C
+    workspace: h04_bench
+    present:
+    - face_plate
+    - zz_camera
+    - camera_clamp
+    - tof_clamp  # hr52：ToF 压条 H10（h04_bench 装上 H04，随头件走）
+    - zz_tof  # hr52：ToF 模块占位（同上）
+    provenance: hr41：第 18 步台面前置 —— 摄像头 PCB 正面朝前按进 H04 四角定位销（H04-F05），扣上 H06 压框，F27 2×M2×8 从耳背面（−x 侧）沿 +x 拧进 H04 凸台（H04-F07）；再把 H04 插进 H05 凹槽随 H05 组盖下（18d）
+    present_note_2026-09-29_hr52: 'hr52：+ zz_tof / tof_clamp —— 同一台面上 F27 拧完后 ToF 板正面朝前套 H04-F11 两根定位销（芯片进 H04-F09 槽）→ 放 H10 → F39 2×M2×6 从盘背面（−x 侧）沿 +x 拧进 H04-F12 → 插 4 个杜邦壳。F27 拧的时候 ToF 其实还没上台：present 多算这 2 件只会让 F27 的刀路判更严（工位共用，不另开 h04_bench_tof）'
+    was_until_2026_09_24_hr41: hr37：摄像头 F27 4×M2×4 在 H04 单独在台面上时从背面（−x 侧）拧进 H04 立柱（立柱 hr41 取消）
+  j02_bench:
+    after_step: 17
+    side: C
+    workspace: j02_bench
+    present:
+    - servo__jaw_soft_jaw
+    - jaw_adapter
+    provenance: hr41：第 18 步台面前置 —— J02 套上嘴舵机法兰（颈端面贴法兰凸台 47.75），F28 3×M2×5 盘头自攻从 J02 外面沿 −y 拧；装一次不拆
+  h07_bench:
+    after_step: 17
+    note_2026-09-25_hr43d: id 沿用（fasteners F36 / F38 引用）；hr43d 起 = H03 台面工位：H03 单件上 H09 功放支架拧 F38（起子从上 +z）→ 功放扣 H09 立柱拧 F36（起子从 +x）→ 端子接喇叭线（端子螺丝朝 +x，装进头后 +x 只 ≈20 下不了起子）
+    note_2026-09-26_hr44b: '头部复审 M2（协调员 03:22，只改文字）：装序改为 ① 台面先把功放扣到 H09 立柱拧 F36（起子从 +x，H09 单件、H03 不在）→ ② 再把 H09（带功放）放上 H03-F24 两凸台拧 F38（起子从上 +z）。本状态 present（H03 + H09 + 功放）是 ② 的在场件；F36 实际在场只有 H09 + 功放（复审核过两孔批杆 + 柄 0 碰），但 F36 / F38 共用本状态、present 未拆 —— Gate L4 对 F36 仍按 H03 在场判（复审：下孔批杆 51 mm 撞 H03），待协调员定是否拆出台面单件状态'
+    side: C
+    workspace: h07_bench
+    present:
+    - head_bottom_shell
+    - amp_bracket
+    - zz_amp
+    provenance: hr43：第 18 步台面前置 —— 功放板底贴 H07 两根 Ø4 立柱，F36 2×M2×5 从功放板顶沿 −z 拧；再从下往上插功放 5 个杜邦壳
+  h07_on_h01:
+    after_step: 18
+    note_2026-09-25_hr43d: id 沿用（fasteners F35 引用）；hr43d 起在场 = H08 转接板托板 + 转接板（台面已贴胶、捆扎带）代替 H07 + 老功放；F35 3/3 起子通（hr43d/d08_f22_f35.json）
+    side: C
+    workspace: head_bench_closed
+    present:
+    - head_bracket
+    - yrm
+    - servo__jaw_soft_jaw_soft
+    - bearing_head_roll_B
+    - head_journal
+    - head_clamp
+    - servo__yaw_roll_motion_yaw_roll_motion
+    - neck_pitch
+    - head_bearing_cap
+    - head_roll_adapter
+    - head_yaw_adapter
+    - head_yaw_cap
+    - bearing_head_yaw
+    - bearing_head_roll_A
+    - adapter_tray
+    - zz_adapter
+    provenance: hr43 装序 P′ 18a：H07+功放推到 H01 立柱端面后，F35 3×M2×8 从 +x 沿 −x 拧（H03/H04/H05/嘴舵机都不在）
+    after_motion: a_H07_amp_onto_posts
+  h05_bench_radxa:
+    after_step: 17
+    side: C
+    workspace: h05_bench
+    present:
+    - head_top_shell
+    - zz_sbc
+    - zz_gpio_dupont
+    - face_plate
+    - zz_camera
+    - camera_clamp
+    - tof_clamp  # hr52：ToF 压条 H10（h04_bench 装上 H04，随头件走）
+    - zz_tof  # hr52：ToF 模块占位（同上）
+    provenance: hr43 装序 P′ 18d′：顶壳翻过来放台面（H04 已插凹槽、摄像头已装），直角转接套上 Radxa 排针，板顶面扣到 H05 四根吊柱上，F37 4×M2×8 + 小平垫从板底拧
+  h05_keep_screws:
+    after_step: 18
+    side: C
+    workspace: head_bench_closed_jaw_off
+    present:
+    - head_bracket
+    - yrm
+    - servo__jaw_soft_jaw_soft
+    - bearing_head_roll_B
+    - head_journal
+    - head_clamp
+    - servo__yaw_roll_motion_yaw_roll_motion
+    - neck_pitch
+    - head_bearing_cap
+    - head_roll_adapter
+    - head_yaw_adapter
+    - head_yaw_cap
+    - bearing_head_yaw
+    - bearing_head_roll_A
+    - zz_sbc
+    - servo__jaw_soft_jaw
+    - jaw_adapter
+    - head_bottom_shell
+    - zz_adapter
+    - zz_mic
+    - zz_ubec
+    - bearing_jaw
+    - head_top_shell
+    - zz_speaker
+    - zz_amp
+    - adapter_tray
+    - amp_bracket
+    - zz_gpio_dupont
+    - face_plate
+    - zz_camera
+    - camera_clamp
+    - tof_clamp  # hr52：ToF 压条 H10（h04_bench 装上 H04，随头件走）
+    - zz_tof  # hr52：ToF 模块占位（同上）
+    provenance: hr41 装序 P 18d′：H05 组盖下后、J03/J01 装上前，F33 2×M2×8 从 H03 地板底下沿 +z 拧进 H05 保持凸台；J01 在场时起子被 J01 挡（extras41b.json），拆 H05 前必须先拆 J01
+    after_motion: d_H05_H04_group_down

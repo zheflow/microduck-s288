@@ -1,0 +1,657 @@
+# 本文件由 docs/gate/inventory_v2.json + inventory_original.json + comparison_original_vs_v2.md 机械转换而来。
+# 字段约定见 tools/gate/data/README.md：
+#   · 每条记录必须有 provenance（duck.py:行 / s288.py:行 / ankle_split.py:行 / mechanical_audit.json:键 /
+#     inventory_original.json:路径 / inventory_v2.json:路径 / MJCF:行 / comparison_original_vs_v2.md:编号）
+#   · 数值字段统一写成 {v: <值>, src: measured|datasheet|assumed}
+#   · 搬不过来的值写 v: null，并在同条记录里给 unknown_class + unknown_reason
+# 单位：mm / mm^3 / g / N / degC，除非字段名另有后缀。不四舍五入。
+# keepouts.yaml —— 21 个禁入体（视锥 / 声孔 / 摆动扇区 / 电池抽出 / 接口 / 刀路 / 线束空间）。
+# 第 3 层把它们当实体做交集；第 4/6 层把它们当扫掠障碍。
+# status=unchecked 的 9 条现在没有任何工具在查 —— 建 Gate 的第一批活就在这里。
+
+# ── KO01 2026-09-21：线翘 wire_out 2.0 → 4.0（用户实物：原配线硬，出插头先直立 ≈4 再弯）+ wire_clr 0.4 → A 区到 x −17.4；3 mm 背板兜不住 → pocket 型作废，
+#    踝/颈俯仰/头俯仰全改 window（踝后口、颈俯仰 −y 口 none），L07/N02 脸颊/T03 壳各减线翘区扫掠让位（记录第 31–32 条）。W（通窗）只对载体查。
+# ── KO01 2026-09-20：插座模型改为**背插**（用户实物照片：座在背面接线端两角、插头沿 x 背插、插到底与 23 面齐平、线再凸 ~2）。下面 09-11 的
+#    侧插说明与可用性表全部作废，只留作历史；新实体 A/B/W 与逐颗 mode 见 KO01 本条。
+# ── KO01（头横滚舵机 PH2.0 插座）历史说明，原在该条记录中段，09-12 重写文件时移到头部 ──
+#   2026-09-11：geom 改成厂家尺寸图反推的实测值。旧 geom『6×6×11 方块 @ y=±13, z −16.5..−5.5』**是错的**：
+#     x 中心取 0（跨 −3..+3），而真实插座壳体在 x −10.0..−3.4 —— 两者只在 x=−3 擦边；z 上沿也少算 0.8。
+#     历史 mm³（L03 65/66、N03 71/215、H01 165/205）全是拿这个偏了 ~6.6 mm 的方块算的。
+#     注意：插座**不外凸**（向机身内凹 4.8），外凸的是插上去的 PHR-3（2.0）。
+#   2026-09-11：两侧可用性逐颗量过（零位姿，离线）。判据：该侧沿 ±y 直线净空 ≥ 6.85 **且** 插合态（外露 2.0）无干涉。
+#     用 PHR-3 真实截面 7.8×4.5 与留 0.5 间隙的 8.8×5.5 各算一遍，判定完全一致。
+#     复现：./.venv/bin/python /tmp/ko01_plug.py（逐 mm 推进求净空）/ ko01_mated.py（插合态）/ ko01_depth.py（阻挡深度剖面）
+#   下一轮改 CAD 的人照着做（那轮一个字节没动 duckstructure/）。每条：改哪个文件哪一行、加什么刀、代价、复核层。
+# ── 09-12 第二批：与 keepouts 对表的 CAD 通道刀名义外加 0.05（lib.cyl 64 边内接 vs l3_static._cyl 128 边外接），见 neck.NP_KO_OVER / head.KO_OVER ──
+schema_version: 1
+counts:
+  # hr41 落盘 2026-09-25（主设计 Lane C）：KO22 unchecked → checked（10→11、9→8）；补上一直漏写的 checked_offline 1（KO17），四项合计 = 22
+  keepouts: 22
+  checked: 11
+  checked_partial: 2
+  checked_offline: 1
+  unchecked: 8
+  counts_was_until_2026_09_25: '{checked: 10, checked_partial: 2, unchecked: 9}（漏 checked_offline 1）'
+keepouts:
+- id: KO01
+  name: PH2.0 插头顶/线翘区 + 背板通窗（14 颗 × 2 侧 = 28 处；2026-09-20 背插模型，09-21 线翘 4.0+0.4）
+  owner_parts: 所有载体（+ 邻件：整机所有打印件都参检）
+  geom_verbatim: 舵机局部系（法兰朝 +x，顶端 +z，y 向外为正），每个插座位一套，按 availability_table.rows[].mode_* 取：(A) 插头顶/线翘区 4.4(x)·5.5(y)·10.2(z) 方块 @ x −17.4..−13.0，|y| 5.0..10.5，z −14.4..−4.2 —— 插到底的 PHR-3 外端与厚段背面 x=−13.0 齐平，线从插头顶直立翘起 wire_out=4.0（09-21 实物）+ wire_clr 0.4，这一区不许有任何料（含邻件相对运动扫掠）；(B) 侧出线槽 2.0(x)·3.3(y)·10.2(z)
+    方块 @ x −17.4..−13.0，|y| 10.0..13.3（pocket 型 09-21 作废：线翘 4.4 > 3 mm 背板，无载体使用）；(W) 背板通窗 5.5(x)·5.5(y)·10.2(z) 方块 @ x −18.5..−13.0，|y| 5.0..10.5（window 型：背板整个开窗，线从背板外面走，装好舵机后再插；**W 只对载体件查**——通窗是背板的义务，板外邻件只须让 A）。A 与 W 各扣掉同轴 Ø15.6 柱（dims.hub_keep_d_mm：从动件贴惰轮的毂）。mode=pocket 查 A+B，window 查 A+W，free 查 A+B（本来就该空），none 不查（该口不用）
+  geom_superseded: 09-11 → 09-20 作废的侧插模型：(a) 插座窗口 6.6(x)·9.2(z) 面片 @ y=±10.0；(b) 插头本体 4.5·7.8·2.5 @ y=±(10→12.5)；(c) 拔插走廊 5.5(x)·8.8(z)·8.0(y) @ y=±(10→18)，头偏航 5.5；(d) 出线弯曲区。更早：6×6×11 方块 @ y=±13, z −16.5..−5.5。09-20 用户实物照片：插座在背面（惰轮面）接线端两角、针朝 −x、插头沿 x 背插 —— 那套模型把手册侧视图台阶处的小方块当成了侧面开口
+  frame: servo_local
+  frame_note: world_frozen_* 表示这条禁入体的坐标本身就是冻结项（关节轴线 / 电池仓 / IMU-相机 site），允许硬编码；其余一律以本件基准或舵机局部系表述
+  dims:
+    plug_top_x_mm:
+      v: -13.0
+      src: measured
+      src_note: 2026-09-20 用户实物（舵机到手）：插到底后插头外端与厚段 23 面（局部 x=−13.0，= 惰轮端面）齐平、不外凸；凸出来的只有线（1–2 mm）。docs/design_2026-09-17_bearing_rebuild/电子件尺寸核实_2026-09-19.md §8
+    wire_out_mm:
+      v: 4.0
+      src: measured
+      src_note: 2026-09-21 用户拿原配线插上实物目测：线硬，出插头先直立约 4 mm 再弯（09-20 的 1–2 是口述估计）。最小弯曲半径仍未量（harness.yaml:HB01.min_bend_r_mm）；线截面 2026-09-22 已实测 = 扁排线 4.5×1.5（不是圆线，harness.yaml:HB01.cross_section_mm）
+    wire_clr_mm:
+      v: 0.4
+      src: assumed
+      src_note: 目测值的余量。A 区上沿 = plug_top_x − wire_out − wire_clr = −17.4 = L07 踝后臂 6700 座环端面（lib.ANK_X0）—— 0.4 而非 0.5 就是为了座环不必削（hr23 削 0.4 把 L2 L07-F01/F02 量歪）
+    conn_z_mm:
+      v:
+      - -13.9
+      - -4.7
+      src: datasheet
+      src_note: 缺口 z 区间。S288使用手册_含尺寸图_2026-09-10.pdf p2 侧视图 z −13.42..−4.95 与轴向视图 −13.76..−4.70 取外包络（两视图差 0.35）；600 dpi 独立复核给壳体 −13.3..−5.7、中心 −9.5。三针间距 40.5 px = 2.00 mm → PH 2.0。±0.3，**到手卡尺量**
+    conn_x_mm:
+      v:
+      - -13.0
+      - -3.4
+      src: datasheet
+      src_note: 缺口沿 x 的深度（像素反推 6.6，从厚段背面 −13.0 到缺口底 −3.4；09-11 读成 −10..−3.4 是把薄段背面当成了侧窗上沿）。只作记录，不进实体：缺口在舵机本体轮廓之内，servo_envelope 已经把那里挖空
+    plug_body_mm:
+      v:
+      - 4.5
+      - 7.8
+      - 6.85
+      src: datasheet
+      src_note: JST ePH.pdf Housing 表 PHR-3：A=4.0 B=7.8，图示 4.5 × 6.85；顺序 (y 厚, z 宽, x 高=拔插方向)。09-20 起插头本体整个在 x ≥ −13 的缺口里，只有顶面参与判据
+    plug_clr_mm:
+      v: 0.5
+      src: assumed
+      src_note: 插头四周间隙（A/W 的 y 外沿 10.5 与 z ±0.5 由它来）
+    plug_y_in_mm:
+      v: 5.0
+      src: derived
+      src_note: = plug_body y 厚 4.5 + plug_clr 0.5：A/W 的 |y| 内沿 = W/2 − 5.0 = 5.0。缺口在 y 上开到侧面，插头外面贴侧面（假设，缺口 y 深未量）
+    side_exit_y_mm:
+      v:
+      - 10.0
+      - 13.3
+      src: derived
+      src_note: = W/2 .. W/2 + CLR 0.3 + wall 2.5 + 0.5（lib.carrier 的侧墙外面再 0.5）；pocket 型载体侧墙在 conn_z±1 本来就不封（lib.carrier / s288.cradle）
+    window_x_mm:
+      v: -18.5
+      src: derived
+      src_note: = 3 mm 等厚背板外表面（厚段 XR−3=−16.3）再外 2.2，盖住 L03 原版蒙皮（局部 −17）与 N03 座特征（−17.1）。lib.CONN_WINDOW_X
+    hub_keep_d_mm:
+      v: 15.6
+      src: derived
+      src_note: A/W 区扣掉的同轴柱 Ø = 惰轮 Ø14 + 1.6（lib.CONN_HUB_KEEP_D）：从动件贴惰轮的毂（T03 对颈俯仰 / N02 对头俯仰，Ø15）就在 x<−13、r≤7.5，毂端面与插头顶面共面于 x=−13 不重叠，线出口在插头中面（局部 y 7.75、z −11.3..−7.3 → r≥10.6）。不扣的话方块内角 r 6.5 把毂报成挡线（hr16 预检各 1.8/2.1 mm³）
+    mating_axis:
+      v: −x（舵机局部）
+      src: measured
+      src_note: 2026-09-20 用户实物照片：两个 PH 座各嵌在背面接线端两角的缺口里（缺口向背面、向侧面都开），针尖朝 −x → 插头沿 x 从背面插/拔。手册 p2 侧视图台阶处的小方块就是这个缺口
+    derivation_method: 09-20 用户照片（docs/…/电子件尺寸核实_2026-09-19.md §8）定方向与齐平；y/z 范围沿用 09-11 像素反推（pdftoppm -r 400/600 → 像素找矩形边界 → 机身 34 标定）。**缺口 y/z 是图纸反推，不是卡尺**：实物到手量『顶端→缺口上沿 / 顶端→缺口下沿 / 侧面→缺口内沿』三个数
+  why: 串联（宇树/原版方式）要求每颗中间节点两个口都插得上、线出得来：插头顶/线弯区有料就插不到底或压线；pocket 型没有侧出线槽线出不来；window 型窗没开透插头进不去
+  availability_table:
+    criterion: 该侧按 mode 建的实体（A+B / A+W）与**全部打印件**交集 = 0（零位姿）。运动姿态：window/pocket 区随载体走，与邻件的相对运动由 L6 与 asmcheck 扫掠另查；N02 脸颊对头俯仰颗线弯区的 ±45° 扫掠让位在 neck.py build_neck_pitch（wire_clr）
+    mode_legend: pocket = 背板挖 2 深让位槽 + 侧出线槽（插头装舵机前先插）；window = 背板通窗（装好舵机后再插）；free = 那一侧没有件盖住；none = 冻结件压着，不开、该口不用。表与 duckstructure/lib.py:CONN_MODE 同源（asmcheck 直接读 CONN_MODE）
+    rows:
+    - n: 1
+      servo: trunk_base[0]
+      joint: left_hip_yaw
+      carrier: T01
+      mode_pos_y: none
+      mode_neg_y: window
+      usable: 1
+      bus_uses: -y
+      note: 外侧口（世界 |y| 22.5..28）足印正压在冻结壳柱 (1, 24) 底下 → 不开；内侧口在顶板上开通窗进配电口袋。只有 1 口 → 链尾（harness.yaml:HB01 用一分二单独挂）
+    - n: 2
+      servo: trunk_base[1]
+      joint: right_hip_yaw
+      carrier: T01
+      mode_pos_y: window
+      mode_neg_y: none
+      usable: 1
+      bus_uses: +y
+      note: 镜像同上（壳柱 (1, −24)）
+    - n: 3
+      servo: yaw2roll[0]
+      joint: left_hip_roll
+      carrier: L01L
+      mode_pos_y: free
+      mode_neg_y: free
+      usable: 2
+      bus_uses: both
+      note: L01 背板只盖上排孔区，插座区（世界 x −13..−11、z 107..117）朝后、对着电池仓前壁前面的空腔；板角伸进线弯区 0.3 / 侧出线区 2.9 mm³ 由 conn_cut(pocket) 削掉
+    - n: 4
+      servo: bearing_roll[0]
+      joint: right_hip_roll
+      carrier: L01R
+      mode_pos_y: free
+      mode_neg_y: free
+      usable: 2
+      bus_uses: both
+    - n: 5
+      servo: upper_leg_left[1]
+      joint: left_hip_pitch
+      carrier: L03L
+      mode_pos_y: window
+      mode_neg_y: window
+      usable: 2
+      bus_uses: both
+      note: 背板 + 原版水滴壳蒙皮（世界 y 70..72）开通窗，线走大腿外侧面
+    - n: 6
+      servo: upper_leg_right[1]
+      joint: right_hip_pitch
+      carrier: L03R
+      mode_pos_y: window
+      mode_neg_y: window
+      usable: 2
+      bus_uses: both
+    - n: 7
+      servo: upper_leg_left[0]
+      joint: left_knee
+      carrier: L03L
+      mode_pos_y: window
+      mode_neg_y: window
+      usable: 2
+      bus_uses: both
+      note: 旧表『−y 侧被邻机髋俯仰机身挡、开窗无解』是侧插模型的事；背插后邻机只擦到侧出线区 1.3 mm³，而 window 型不走侧面
+    - n: 8
+      servo: upper_leg_right[0]
+      joint: right_knee
+      carrier: L03R
+      mode_pos_y: window
+      mode_neg_y: window
+      usable: 2
+      bus_uses: both
+    - n: 9
+      servo: leg[0]
+      joint: left_ankle
+      carrier: L04L
+      mode_pos_y: window
+      mode_neg_y: none
+      usable: 1
+      bus_uses: +y
+      note: 09-21：3 mm 背板兜不住 4.4 线翘 → **前口**（局部 +y = 世界 +x 小腿前缘）开通窗；L07 后臂内面 −16.7 在线翘区里 → legs.build_ankle_parts 用 conn_hump_sweep 反向扫 [−92,62]（grow 0.3，放过 6700 座环 x≤−17.4 内 Ø19.8）从 L05/L07 减掉；座环端面 −17.4 与线翘区上沿共面不削。**后口不用**：L07 后臂在踝 +90° 时整个扫过（37 mm³）。链尾，1 口够
+    - n: 10
+      servo: leg_2[0]
+      joint: right_ankle
+      carrier: L04R
+      mode_pos_y: none
+      mode_neg_y: window
+      usable: 1
+      bus_uses: -y
+      note: 镜像：右踝舵机局部 −y = 世界 +x（前缘）。后口（局部 +y）L07_R 在踝 +90° 扫过 80 mm³ + L05_R 8.9
+    - n: 11
+      servo: neck[0]
+      joint: neck_pitch
+      carrier: N01
+      mode_pos_y: window
+      mode_neg_y: none
+      usable: 1
+      bus_uses: +y
+      note: 09-21：+y 口（世界 x≈33.8）开通窗；背板外 T03 内壁 −17.1（neck_swing_env 削的）离线翘区上沿 0.4 → trunk.build_shell 用 conn_hump_sweep 绕颈俯仰 [−92.5,62.5] 再削壳内壁（≤0.7 深）。**−y 口不用**（世界 x≈18.3）：T03 在颈 +35° 起 7.1 mm³、T01 在 +60° 0.9 mm³ 扫过。只有 1 口 → 分支根（harness.yaml:HB01 一分二 ×5）
+    - n: 12
+      servo: neck[1]
+      joint: head_pitch
+      carrier: N01 + N02
+      mode_pos_y: window
+      mode_neg_y: window
+      usable: 2
+      bus_uses: both
+      note: 09-21 hr24：两口开通窗（N01 背板顶 192.5 处切两个缺口）；上半截正对 N02 −y 脸颊内表面 y −14.5 → neck.py wire_clr 把线翘区绕头俯仰在 N02 系反向扫 [−92,56.2]（grow 0.3，放过毂 Ø15）从 3.0 厚的脸颊上**挖穿**：下半截随扫掠带掉，剩毂 + 朝顶盒的 ~76° 扇形板。hr23 试过脸颊外移 3.05：H03 下头壳本就贴着 −17.5 → 走路 106 姿态碰、头横滚 −25° 撞 22 mm³，作废。09-20 旧注：（0.5+0.3 深，脸颊 3.0→2.2，惰轮毂 r≤7.8 放过）
+    - n: 13
+      servo: yaw_roll_motion[0]
+      joint: head_yaw
+      carrier: N03
+      mode_pos_y: window
+      mode_neg_y: window
+      usable: 2
+      bus_uses: both
+      note: 背板（世界 z 253.9..257.6）上方头腔内空 → 两口都开通窗，线从背板上方走；旧 CF3 裙墙走廊 / −y 永久不用 作废。线区随 N03 绕横滚轴转，H01 的 yrm_hi 扫掠刀已含 conn_cut(window)
+    - n: 14
+      servo: jaw_soft[1]
+      joint: head_roll
+      carrier: H01
+      mode_pos_y: free
+      mode_neg_y: free
+      usable: 2
+      bus_uses: both
+      bus_uses_was_until_2026-09-23_hr39c: +y（hr28 起其实已是进 +y 出 −y，本格没跟）
+      note: 两个插座在舵机背面（世界 x −17.7）两角、朝 −y 那侧（世界 y −14.4..−4.2），A/B 区对 H01/H02/H03/上壳全空（H02 在 +y 那面）；旧 CF4（H03 可见孔 / H01 托板缺口）作废。链尾
+      note_2026-09-23_hr39c: hr39c 链 S1 → 14 嘴 → 8 → 7 → 6：进 +y 下口（嘴上口来的嘴原配 200 扁线 bus_jaw_roll，z 227.9）、出 −y 上口 → 7 头偏航；不再是链尾（上面 note 的『链尾』是 hr28 前的旧话）
+    - n: 15
+      servo: jaw_soft[0]
+      joint: jaw
+      carrier: H01
+      mode_pos_y: free
+      mode_neg_y: free
+      usable: 2
+      bus_uses: both
+      mode_was_until_2026-09-23_hr39c: 'mode_pos_y none / mode_neg_y free / usable 1 / bus_uses −y（hr38：下口线翘区蹭 B 轴承 / H03 / N03，只能当链尾）'
+      note: hr38 第 15 颗（嘴舵机，ID 14）。舵机法兰朝世界 +y、顶端朝 −x（jaw.servo_R）→ **局部 −y = 世界 +z（上插座）**、局部 +y = 世界 −z（下插座）。上口 free：A 区只蹭 N03 零位 1.56 mm³（y 9.6..9.8 尖端）；下口 none：A 区蹭 B 轴承外圈 0.72 / H03 6.1 / N03 零位 27.8 mm³。只有 1 口 → 链尾（harness.yaml:HB01 F_head 链尾）。与 lib.CONN_MODE[("jaw_soft", 0)] 同表
+      note_2026-09-23_hr39c: hr39c 嘴舵机挪到新嘴轴 (31.75, y, 245.5)、ψ 5°、法兰面 y 47.75（jaw.JAW_CONN_MODE 两口 free）：插座都在舵机背面 y 21.75，局部 +y ≈ 世界 −z 下口（插头顶面中心 (41.69, 21.75, 238.59)）、局部 −y ≈ 世界 +z 上口 (40.34, 21.75, 254.03)（duckstructure/wiring_head.JAW_PLUG）；离那摞件真实姿态 2.89 / 2.41、线 2.89 / 2.33（jaw_verify）。进下口（S1 腿① → 转接块 → PH2.0 双头 10 cm），出上口 → 嘴原配 200 扁线 → 8 下口；嘴在头链中间，一分二回到 5 根（harness.yaml:HB01）
+    summary_2026-09-23_hr39c: 嘴舵机两口都 free（新嘴轴），两口可用 10 颗、1 口 5 颗；嘴改到头链中间（S1 → 14 → 8 → 7 → 6），hr38 的 S6 一分二取消，采购回到 5 根
+    summary_2026-09-23_hr38: 加第 15 颗嘴舵机（上口 free / 下口 none，1 口可用 → 链尾）。两口可用仍 9 颗，1 口 6 颗（髋偏航 ×2 / 踝 ×2 / 颈俯仰 / 嘴）；链数仍 6（嘴挂在头链尾）
+    summary_2026-09-21: 两口可用 9 颗（髋横滚 / 髋俯仰 / 膝 / 头俯仰 / 头偏航 / 头横滚），1 口 5 颗（髋偏航 ×2 壳柱压外侧口；踝 ×2 后口 L07 扫过；颈俯仰 −y 口 T03/T01 扫过）→ 6 条链（左/右腿链从髋横滚到踝、左/右髋偏航单挂、颈俯仰单挂、头俯仰→头偏航→头横滚），一分二 ×5（harness.yaml:HB01）
+    summary_2026-09-20（作废）: 两口可用 12 颗（髋横滚 / 髋俯仰 / 膝 / 踝 / 颈俯仰 / 头俯仰 / 头偏航 / 头横滚），1 口 2 颗（髋偏航，外侧口压在冻结壳柱下）→ 串联可行：5 条链（左/右腿链从髋横滚起、左/右髋偏航各自单挂、颈-头链），4 根一分二（harness.yaml:HB01）
+    motion_caveat: 表是零位姿。A 区固连在载体上、只与邻件有相对运动；W 只查载体自己（hr24）。09-21 起 tools/cad/asmcheck.py --from-placed 的 socket_motion 段对每个 window/free 口逐**单关节**（载体关节 + 子件关节，frozen.yaml target_range_deg 5°/档）与不同 body 的件求交（L07 绕踝、N02 脸颊绕头俯仰、T03 绕颈俯仰的让位就靠它复核）；组合姿态归 L6 / 真实姿态采样（那两处不含线翘区；09-21 用 hr22 件 + 28 个 4.5 线翘体跑过 5601 真实姿态一次：window 口只剩 body_all_max / roulade 极限姿态里基线本来就撞的同族，见记录第 31 条）掠盯
+  cad_fix_required: []
+  cad_fix_done_2026-09-21:
+  - duckstructure/s288.py wire_out 2.0→4.0（measured）+ wire_clr 0.4（hr23 0.5）；lib.py conn_zone A 到 −17.4、CONN_MODE 踝/颈俯仰/头俯仰改 window（踝后口、颈俯仰 −y none）、新增 conn_hump_sweep
+  - legs.py：L04 前口 window（后口不切）；build_ankle_parts 减线翘区绕踝反向扫掠（L05/L07，hr24 放过 6700 座环）
+  - neck.py：N01 颈俯仰 +y / 头俯仰两口 window + 窗-惰轮孔薄环挖掉；N02 −y 脸颊按线翘区绕头俯仰全程反向扫掠挖穿（hr23 加厚 3.05 撞 H03 作废）
+  - trunk.py：T03 减颈俯仰 +y / 头俯仰两口线翘区绕颈俯仰的扫掠（hr24 grow 0，壁留 1.0）
+  - tools/cad/asmcheck.py socket_motion + W 只查载体；tools/gate/layers/l3_static.py KO01 加 wire_clr_mm、W solid_targets=载体
+  cad_fix_done_2026-09-20:
+  - duckstructure/s288.py conn_x/conn_z/plug_body/plug_clr/plug_top_x/wire_out/plug_y_in（plug_out/plug_pull 删）
+  - duckstructure/lib.py CONN_MODE / conn_zone / conn_cut(R, sides, mode)（CONN_PULL 删）
+  - legs.py：L01 两侧 pocket 刀（削板角）；L03 髋俯仰/膝四口 window；L04 踝两口 pocket
+  - neck.py：N01 颈俯仰/头俯仰四口 pocket；N02 −y 脸颊 wire_clr 扫掠让位；N03 头偏航两口 window（裙墙不再开口）
+  - head.py：H01 去掉头横滚刀（free）、yrm_hi 改 window 刀；H03 去掉可见孔
+  - trunk.py：T01 顶板内侧口 window（左 −y / 右 +y）
+  - tools/cad/asmcheck.py：按 CONN_MODE 查 A/B/W 对全部 placed 件
+  checked_by: tools/cad/asmcheck.py --from-placed（A/B/W × 全部 placed 件，0.05 mm³）+ Gate L3 keepout_KO01（本条 dims 独立建实体，与 lib.conn_cut 对照只报不判）
+  status: checked
+  status_detail_2026-09-21: 28 处 = 23 查 + 5 不查（髋偏航外侧 ×2、踝后口 ×2、颈俯仰 −y 各 none）。零位姿 + 单关节扫掠（asmcheck socket_motion）；motion 见 motion_caveat
+  status_detail_2026-09-20: 28 处 = 26 查 + 2 不查（髋偏航外侧 none）。零位姿；motion 见 motion_caveat
+  unknowns:
+  - 【09-21 用户定：按手册图纸反推为准，不再卡尺】缺口 y/z 范围（conn_z / plug_y_in 的前提）是像素反推 ±0.3。旧敏感处（N02 脸颊内面离插头顶只有 1.5）已随 hr24 脸颊下半截挖穿消失（脸颊没有外移）
+  - 【显式缺口，hr26 复审 F-08】23 个可用口的线翘体 A **不在** L6 组合姿态扫描与 5601 真实姿态采样里（那两处只有打印件 + 舵机本体）；A 的运动核只有 asmcheck.socket_motion 的**单关节** 5° 扫 + 复审的 1° 复刻。要补齐得把 A 实体作为 zz_wire_* 常驻 placed/。
+  - 【未验证走线，hr26 复审 F-02/F-03 + hr28 改根】总线根改在头里后三段**线路径**没有让位依据（harness.yaml:HB01 hops 标 route_unverified）：S1（头）→ S2（顶板口袋）的 PH 延长线跨头横滚/偏航/俯仰 + 颈俯仰四个关节；S2 → 颈俯仰 +y 口（T03 壳顶在 neck_pitch ≥ +30° 压住 N01 −y 面外侧走廊，线只能走壳外）；头偏航前窗 → 头俯仰前口。实物试装定路径。
+  - 【假设】插头外面贴机身侧面（缺口 y 深 ≥ 4.5+0.5）。若座更靠里，A/W 的 |y| 内沿 5.0 要跟着往里
+  - 【已实测 2026-09-22】原配线是**扁排线**三芯并排 4.5 × 1.5（用户卡尺，harness.yaml:HB01.cross_section_mm / flat_cable: true）；**过孔一律按截面算，禁止用外接圆 Ø4.74**。【未量】最小弯曲半径（harness.yaml:HB01.min_bend_r_mm）；wire_out=4.0 是 09-21 用户目测（原配线硬，直立 ≈4），不是卡尺
+  - 【已实测】管脚序：转接板 PH 座 信号–电源(中)–地（components.yaml:bus_adapter / harness.yaml:HB01.pin_order，09-20 万用表）；舵机端按手册 B 版同序
+  provenance:
+  - docs/design_2026-09-17_bearing_rebuild/电子件尺寸核实_2026-09-19.md §7 §8（09-20 实物）
+  - duckstructure/s288.py conn_*/plug_*（S 表）/ duckstructure/lib.py CONN_MODE、conn_zone、conn_cut
+  - tools/cad/asmcheck.py（插座段）
+  - docs/reference/s288/S288使用手册_含尺寸图_2026-09-10.pdf 第 2 页尺寸图（缺口 y/z 像素反推）
+  - JST ePH.pdf（PHR-3 尺寸）
+  - harness.yaml:HB01（链与每颗用哪几口）
+- id: KO02
+  name: 舵机装入直线走廊（14 条）
+  checked_in_layer: 4
+  covered_by_subjects: [step01, step02, step06, step07, step09, step11, step12, step14, step15]
+  covered_by_note: "扫掠类禁入体，零位姿静态交集没有意义；义务落在第 4 层这些步（每步含把舵机滑入载体的 motion，14 颗：踝×2 / 横滚×2 / 髋·膝×4 / 偏航×2 / 头横滚 / 头偏航 / 头俯仰 / 颈）。core.obligations 按 checked_in_layer 派义务，记分卡 L4/KO02 = 这些格子状态的汇总"
+  owner_parts: T01/L01/L03/L04/N01/N03/H01
+  geom_verbatim: servo_mesh 沿方向 60 mm，0.5 步
+  frame: servo_local
+  frame_note: world_frozen_* 表示这条禁入体的坐标本身就是冻结项（关节轴线 / 电池仓 / IMU-相机 site），允许硬编码；其余一律以本件基准或舵机局部系表述
+  why: 装得进去
+  checked_by: assembly_audit.verify_assembly servo_paths（含同载体邻机）
+  status: checked
+  provenance:
+  - mechanical_audit.json:assembly_and_fits.servo_paths
+  - inventory_v2.json:keepouts[1]
+- id: KO03
+  name: 踝子装配四阶段路径
+  checked_in_layer: 4
+  covered_by_subjects: [step01, step02, step03, step04]
+  covered_by_note: "踝子装配四阶段 = 第 4 层步 1–4（脚→舵机、脚+舵机、轴承→后臂、后臂+轴承）"
+  owner_parts: L04/L05/L07/6700
+  geom_verbatim: ±ex 60 mm，0.25 步
+  frame: part_local
+  frame_note: world_frozen_* 表示这条禁入体的坐标本身就是冻结项（关节轴线 / 电池仓 / IMU-相机 site），允许硬编码；其余一律以本件基准或舵机局部系表述
+  why: L07 拆件后能装
+  checked_by: assembly_audit ankle_paths
+  status: checked
+  provenance:
+  - mechanical_audit.json:assembly_and_fits.ankle_paths
+  - inventory_v2.json:keepouts[2]
+- id: KO04
+  name: 头部装配七条路径（09-12 ④）：H03 -z / 偏航舵机 -z / N04 销 -x / 轴承 -z / H02 -x / 横滚舵机 -x / N03 空件 -z
+  checked_in_layer: 4
+  covered_by_subjects: [disasm03, disasm04, disasm05]
+  covered_by_note: "N04 销顶回 + 22×16×4 掉出 + H02 压板（disasm03）、横滚舵机 -x 抽出笼（disasm04）、N03 -z 抽出半座（disasm05）"
+  owner_parts: H01/N03/N04/H03
+  geom_verbatim: 45 mm（N04 12 mm，偏航舵机 60），0.5 步
+  frame: part_local
+  frame_note: world_frozen_* 表示这条禁入体的坐标本身就是冻结项（关节轴线 / 电池仓 / IMU-相机 site），允许硬编码；其余一律以本件基准或舵机局部系表述
+  why: 头部装配序
+  checked_by: mechanical_audit assembly_paths_mm3
+  status: checked
+  provenance:
+  - mechanical_audit.json:assembly_paths_mm3
+  - inventory_v2.json:keepouts[3]
+- id: KO05
+  name: N03 A 端 6 颗螺丝起子包络
+  owner_parts: N03/H01/H02
+  geom_verbatim: Ø4.2 × 45 沿横滚轴，经 N03 B 端 Ø16.2 通道（09-12 ④；N04/轴承未装时）
+  frame: part_local
+  frame_note: world_frozen_* 表示这条禁入体的坐标本身就是冻结项（关节轴线 / 电池仓 / IMU-相机 site），允许硬编码；其余一律以本件基准或舵机局部系表述
+  why: 能拧上
+  checked_by: mechanical_audit N03_tools（最大 0.013）
+  status: checked
+  provenance:
+  - mechanical_audit.json:N03_tools_mm3
+  - duck.py:840
+  - inventory_v2.json:keepouts[4]
+- id: KO06
+  name: N02 头俯仰 6 螺丝头
+  servo_frame_of_joint:
+    v: neck_pitch
+    src: "frame=servo_local 的那颗舵机 = 驱动 neck_pitch 的舵机（features.yaml:N02 六孔 = 头俯仰法兰；以前写死在 l3_static.py）"
+  owner_parts: N02
+  geom_verbatim: Ø4×1.6 @x17.2
+  facet_noise_mm3:
+    v: 0.0727
+    src: derived
+    src_note: 第 3 层禁入柱体按**外接 128 边形**建（l3_static._cyl），比真圆多出的体积上界 = π((r/cos(π/128))²−r²)×长度（6 × Ø4×1.6）。人读字段：超阈值 0.05 的红里有多少可能是刻面。**不据此放宽阈值、不改成与 CAD 同源的 64 边内接**（审计 F-L3-1 口径，2026-09-13）
+  frame: servo_local
+  frame_note: world_frozen_* 表示这条禁入体的坐标本身就是冻结项（关节轴线 / 电池仓 / IMU-相机 site），允许硬编码；其余一律以本件基准或舵机局部系表述
+  why: 头不被沉坑壁挡
+  checked_by: mechanical_audit N02_heads
+  status: checked
+  provenance:
+  - mechanical_audit.json:N02_heads_mm3
+  - duck.py:31
+  - inventory_v2.json:keepouts[5]
+- id: KO07
+  name: N02 立筒 Ø15 内腔（头偏航 6 螺丝起子）
+  axis_joint:
+    v: head_yaw
+    src: "frozen.yaml:joint_axes.head_yaw —— N02 立筒轴 = 头偏航关节轴（neck.py:build_neck_pitch bore；以前写死在 l3_static.py）"
+  owner_parts: N02
+  geom_verbatim: Ø15 z 214.7..222.36
+  facet_noise_mm3:
+    v: 0.8157
+    src: derived
+    src_note: 第 3 层禁入柱体按**外接 128 边形**建（l3_static._cyl），比真圆多出的体积上界 = π((r/cos(π/128))²−r²)×长度（Ø15 × 7.66；2026-09-18 前 9.26 → 0.9861）。人读字段：超阈值 0.05 的红里有多少可能是刻面。**不据此放宽阈值、不改成与 CAD 同源的 64 边内接**（审计 F-L3-1 口径，2026-09-13）
+  frame: world_frozen_joint
+  frame_note: world_frozen_* 表示这条禁入体的坐标本身就是冻结项（关节轴线 / 电池仓 / IMU-相机 site），允许硬编码；其余一律以本件基准或舵机局部系表述
+  why: 唯一起子通道
+  checked_by: 无（只在注释 duck.py:766）
+  status: unchecked
+  provenance:
+  - duck.py:766
+  - inventory_v2.json:keepouts[6]
+  - duckstructure/neck.py:build_neck_pitch（bore 上限 ZF−NP_DISC_T）
+  - features.yaml:N02-F05
+  unknown_class: not_audited
+  unknown_reason: 现有工具不查这条：无（只在注释 duck.py:766）
+  geom_verbatim_was_until_2026-09-18: Ø15 z 215..224.26
+  geom_note_2026-09-18: hr13 数据修正（几何没变）：顶盘 hr05 头部补丁起加厚到 NP_DISC_T 5.25（F16 M2×8 叠 5.25 / 咬 2.75，fasteners.yaml:F16），法兰面 ZF 227.615（SERVO_SHIFT +5 → 09-14 起）→ 坐面 = 227.615 − 5.25 = 222.365；bore 下端 hr11 由 215.0 下延到 214.7（原版 214.8..215.0 那圈 Ø14.37 台阶擦 F16 #0/#3 起子 0.012 mm³）。旧顶 224.26 是 3.5 厚顶盘时代的值，hr12 Gate 因此报 tube × N02 246.49 mm³（= 顶盘 222.365..224.26 那 1.9 mm 的料，不是起子被挡：hr12 头部审计 F16 六条起子探针对 N02 全 0）。写 222.36 同 09-12 的取整理由（顶多 0.005 留给坐面本身）。features.yaml:N02-F05 同源同改。
+  geom_verbatim_was_until_2026-09-12: Ø15 z 215..224.3
+  geom_note_2026-09-12: 顶盘底实际 = ZF 227.7646 − NP_DISC_T 3.5 = 224.2646（neck.py:build_neck_pitch bore 上限，也是 F16 六颗的坐面）；旧值 224.3 是 duck.py:766 的 0.1 取整，多出的 0.035×134 mm² = 4.7 mm³ 是螺丝坐面本身。写 224.26（不写 224.265：0.0004×134=0.053
+    > 0.05 仍红）。features.yaml:N02-F05 同源。
+- id: KO08
+  name: L05 Ø4.6 access 通道（L04 上排螺丝）
+  owner_parts: L05/L07
+  geom_verbatim: 2×Ø4.6 x -29..-9
+  frame: part_local
+  frame_note: world_frozen_* 表示这条禁入体的坐标本身就是冻结项（关节轴线 / 电池仓 / IMU-相机 site），允许硬编码；其余一律以本件基准或舵机局部系表述
+  why: 拧 L04 上排
+  checked_by: 无
+  status: unchecked
+  provenance:
+  - duck.py:552
+  - inventory_v2.json:keepouts[7]
+  unknown_class: not_audited
+  unknown_reason: 现有工具不查这条：无
+- id: KO09
+  name: H01 右前脚 Ø4.6 通道
+  owner_parts: H01
+  geom_verbatim: Ø4.6 z 233.2..273.2 @(49.1,9.35)
+  facet_noise_mm3:
+    v: 0.4006
+    src: derived
+    src_note: 第 3 层禁入柱体按**外接 128 边形**建（l3_static._cyl），比真圆多出的体积上界 = π((r/cos(π/128))²−r²)×长度（Ø4.6 × 40）。人读字段：超阈值 0.05 的红里有多少可能是刻面。**不据此放宽阈值、不改成与 CAD 同源的 64 边内接**（审计 F-L3-1 口径，2026-09-13）
+  frame: world
+  frame_note: world_frozen_* 表示这条禁入体的坐标本身就是冻结项（关节轴线 / 电池仓 / IMU-相机 site），允许硬编码；其余一律以本件基准或舵机局部系表述
+  why: 拧脚螺丝
+  checked_by: 无（几何切了，未做工具包络/头可见性检查）
+  status: unchecked
+  provenance:
+  - duck.py:888
+  - inventory_v2.json:keepouts[8]
+  unknown_class: not_audited
+  unknown_reason: 现有工具不查这条：无（几何切了，未做工具包络/头可见性检查）
+- id: KO10
+  name: 脖子摆动包络
+  checked_in_layer: 6
+  covered_by_note: "第 6 层自己发 KO10 格（neck_pitch / head_pitch 单轴 + 组合）"
+  owner_parts: T02/T03
+  geom_verbatim: neck -60..45 + head_pitch -45, 外扩 0.8（本体）/ 0.5（N01 上排 6 颗螺丝头；2026-09-14 r3 新增 lib.py:91-95 NECK_HEAD_CLR=0.5，trunk.py:146-163 把 neck_screw_heads() 从本体包络里拆出来单独 minkowski ±0.5）
+  frame: world_frozen_joint
+  frame_note: world_frozen_* 表示这条禁入体的坐标本身就是冻结项（关节轴线 / 电池仓 / IMU-相机 site），允许硬编码；其余一律以本件基准或舵机局部系表述
+  why: 壳不碰脖子
+  checked_by: assembly_audit neck_shell_gaps ≥0.3（1.25° 采样）；run_checks
+  status: checked
+  provenance:
+  - duck.py:703
+  - mechanical_audit.json:assembly_and_fits.neck_shell_gaps
+  - inventory_v2.json:keepouts[9]
+- id: KO11
+  name: 躯干壳侧壁区 |y|≥19 外扩 0.5
+  probe_zone_z_mm:
+    v: [100.0, 175.0]
+    src: "duckstructure/lib.py:shell_cutter 的 zone（以前写死在 l3_static.py；本条 geom_verbatim 仍是代码符号，层照旧判 ambiguous 红）"
+  owner_parts: T01
+  geom_verbatim: shell_cutter
+  frame: world
+  frame_note: world_frozen_* 表示这条禁入体的坐标本身就是冻结项（关节轴线 / 电池仓 / IMU-相机 site），允许硬编码；其余一律以本件基准或舵机局部系表述
+  why: 壳可见不能挖
+  checked_by: run_checks 零位交集
+  status: checked
+  provenance:
+  - duck.py:662
+  - inventory_v2.json:keepouts[10]
+- id: KO12
+  name: 电池仓腔 + 后抽出路径
+  exempt:
+    - part: B01
+      segment: 抽出走廊
+      why: "电池门装在仓口，堵住**抽出走廊**是设计如此（抽电池前先拆门；门装得上归 assembly.yaml / 第 4 层 KO20）。**仓腔那一段不豁免** —— 门压进电池腔是真故障。以前写死在 l3_static.py，2026-09-13 搬入数据"
+  owner_parts: T01
+  geom_verbatim: x -83.8..-24.6 |y|≤13.1 z 73.7..146.9
+  frame: world_frozen_battery_bay
+  frame_note: world_frozen_* 表示这条禁入体的坐标本身就是冻结项（关节轴线 / 电池仓 / IMU-相机 site），允许硬编码；其余一律以本件基准或舵机局部系表述
+  why: 电池后装/充电抽出
+  checked_by: battery_frozen_region 体积 13467.58（hr50 完整 chain 前按 cad/duck_s288/mechanical_audit.json:battery_frozen_region_mm3 回填，与 frozen.yaml:battery_bay_26.baseline_volume_mm3 同一个数；was 13501.69，09-22 起标过期；电池仓/出线口已于 2026-09-22 解冻）；无抽出路径检查
+  status: checked_partial
+  provenance:
+  - duck.py:592
+  - mechanical_audit.json:battery_frozen_region_mm3
+  - inventory_v2.json:keepouts[11]
+- id: KO13
+  name: 腿绕髋偏航 ±25~30° 扫掠 vs 电池/仓/门
+  checked_in_layer: 6
+  covered_by_note: "第 6 层自己发 KO13 格（*_hip_yaw 单轴 + hip_yaw×hip_roll 组合）"
+  owner_parts: T01/B01/L04
+  geom_verbatim: battery 盒 sweep -30..25
+  frame: world_frozen_joint
+  frame_note: world_frozen_* 表示这条禁入体的坐标本身就是冻结项（关节轴线 / 电池仓 / IMU-相机 site），允许硬编码；其余一律以本件基准或舵机局部系表述
+  why: 导轨/门下段/小腿
+  checked_by: mechanical_audit L04_battery；run_checks 全件
+  status: checked
+  provenance:
+  - duck.py:532
+  - mechanical_audit.json:L04_battery
+  - inventory_v2.json:keepouts[12]
+- id: KO14
+  name: 头壳内电子占位（主板/摄像头/屏/麦/传感器）
+  note_2026-09-25_hr43d: "hr43d 头内电子现位（placed zz_* 实体，build 静态 / 扫掠核）：zz_adapter 转接板**平放**在 H08 托板上 x 51.8..81.8 × y −20..20 × z 264.5..273.5（研究 B′ 抬 2.0 版 +x 5.8 让 KO09）；zz_amp 功放挪后脑 +y (−10.8, 28.8, 235.8)（H09 支架，研究 E′ ①）；zz_gpio_dupont 功放 5 腿出壳改朝 −x（40 号斜 45°）；zz_sbc / zz_speaker / zz_mic / zz_ubec / zz_camera 不动。KO09（Ø4.6 F22#3 起子通道）× H08 / 转接板 0（hr43d/d08_f22_f35.json）。仍非几何登记（checked_by 只是 verify_layout）"
+  note_2026-09-25_hr43c: "hr43c 头内电子现位（全是 placed zz_* 实体，已由 build 静态 / 扫掠核）：zz_sbc Radxa 平放后脑 (−3.5, −1.0, 256.5)；zz_gpio_dupont 排针直插 14 壳 + 弯线管（取代 zz_adapter40）；zz_amp 功放 (56, −2, 263)；zz_adapter 转接板（H03 竖粘平床）；zz_camera / zz_mic / zz_ubec / zz_speaker 不变。本条仍是非几何登记（头扩展检查表），没改 geom_verbatim"
+  owner_parts: H01/H03/顶壳
+  geom_verbatim: 见头扩展检查表
+  frame: part_local
+  frame_note: world_frozen_* 表示这条禁入体的坐标本身就是冻结项（关节轴线 / 电池仓 / IMU-相机 site），允许硬编码；其余一律以本件基准或舵机局部系表述
+  why: 预留
+  checked_by: docs/head_expansion verify_layout.py（只读，非 Gate）
+  status: unchecked
+  provenance:
+  - docs/reports/头部扩展防御性检查_2026-09-09.md
+  - inventory_v2.json:keepouts[13]
+  unknown_class: not_audited
+  unknown_reason: 现有工具不查这条：docs/head_expansion verify_layout.py（只读，非 Gate）
+- id: KO15
+  name: 摄像头视锥 80°×60° @(89,0,264)
+  fov_deg:
+    v: [80.0, 60.0]
+    src: "docs/reports/头部扩展防御性检查_2026-09-09.md（name 字段同值；以前层从 name 正则解析）"
+  apex_world_mm:
+    v: [89.0, 0.0, 264.0]
+    src: "同上；注意 components.yaml:D-COMP-03：与 MJCF head_camera site (81.4,-0.09,251.11) 差 (+7.6,+0.09,+12.9)，选型时二选一"
+  optical_axis_world:
+    v: [1.0, 0.0, 0.0]
+    src: "components.yaml:A12『光轴以 site 为准（+x 向前）』（以前写死在 l3_static.py，Codex01 FG16）"
+  owner_parts: 顶壳/脸板
+  geom_verbatim: 4941 射线
+  frame: world_frozen_sensor
+  frame_note: world_frozen_* 表示这条禁入体的坐标本身就是冻结项（关节轴线 / 电池仓 / IMU-相机 site），允许硬编码；其余一律以本件基准或舵机局部系表述
+  why: 不被帽檐挡
+  checked_by: verify_layout.py（绑定出瞳位置）
+  status: checked_partial
+  provenance:
+  - docs/reports/头部扩展防御性检查_2026-09-09.md
+  - inventory_v2.json:keepouts[14]
+- id: KO16
+  name: 麦克风声孔 Ø2
+  owner_parts: 顶壳
+  geom_verbatim: 穿壳 1.749
+  frame: part_local
+  frame_note: world_frozen_* 表示这条禁入体的坐标本身就是冻结项（关节轴线 / 电池仓 / IMU-相机 site），允许硬编码；其余一律以本件基准或舵机局部系表述
+  why: 收音
+  checked_by: verify_layout.py（未开孔）
+  status: unchecked
+  provenance:
+  - docs/reports/头部扩展防御性检查_2026-09-09.md
+  - inventory_v2.json:keepouts[15]
+  unknown_class: not_audited
+  unknown_reason: 现有工具不查这条：verify_layout.py（未开孔）
+- id: KO17
+  name: IMU 安装空间
+  owner_parts: T01
+  geom_verbatim: 前壁前面 x -21.1 到髋横滚舵机背面 −11.2（零位净空 9.9；旧文『到舵机后端 ≈-18.5 只有 2.6』指的是髋偏航舵机那一带 z 122..142，不在 IMU 位）；真实姿态最坏 L01 扫到离墙 6.7（hr29 探针）
+  frame: world_frozen_battery_bay
+  frame_note: world_frozen_* 表示这条禁入体的坐标本身就是冻结项（关节轴线 / 电池仓 / IMU-相机 site），允许硬编码；其余一律以本件基准或舵机局部系表述
+  why: 板要放得下
+  checked_by: scratch imu2/sweep.py（hr29 离线：Adafruit 4438 板 25.4×17.78×4.6 + 两侧 SH 插头 +6 包络，5601 真实姿态 + 髋偏航/横滚/俯仰上游全程扫描，0 碰撞；最小间隙 板 2.07 / 插头 1.38 到 L01）；走线禁区：线离墙 >4.6 那层 2653 姿态撞 L01/髋横滚舵机，|y|>19 且离墙 >3.6 被 L01 扫到
+  status: checked_offline
+  provenance:
+  - duck.py:658
+  - inventory_v2.json:keepouts[16]
+  - docs/design_2026-09-17_bearing_rebuild/记录.md 第 37 条
+  unknown_class: not_in_gate
+  unknown_reason: Gate 没有本条判据（IMU 无 placed 实体）；hr29 离线探针结论见 checked_by，接入 L6 待办
+- id: KO18
+  name: XT30/17AWG 出线口与线长 55
+  owner_parts: T01
+  geom_verbatim: '|y|≤10 z 137.9..147.9'
+  geom_note_2026-09-22_hr38: '出线口 hr38 放大（用户解冻电池仓/出线口）：|y|≤7 × z 140.9..147.9（14×7）→ |y|≤10 × z 137.9..147.9（20×10）；同轮下延的 XT30 让位槽 |y|≤3.5 → |y|≤6（z 124.9..137.9）。源码 duckstructure/trunk.py:43-44（ybox(BX1−0.5, BX1+3.5, 10.0, BZ1−9.0, BZ1+1) / ybox(BX1−0.5, BX1+3.5, 6.0, BZ1−22.0, BZ1−9.0)），BX1=−24.6、BZ1=146.9 → x −25.1..−21.1。依据 docs/design_2026-09-17_bearing_rebuild/hr38_待办交接.md §3.1 ①② §6'
+  shared_with_2026-09-11: harness.yaml:HB01.bus_tree.hub.pass_through_to_below_plate —— 舵机总线两条腿支线（hub→ID0 / hub→ID9）也从这个口下到髋偏航层（T01 没有别的过线孔）。2×Ø2.8 电池线 + 2 根 3 芯干线 + 平衡线的截面够不够 = 未算（干线截面 2026-09-22 已实测 = 扁排线 4.5×1.5/根，harness.yaml:HB01.cross_section_mm；放大后的口 20×10 = 200 mm² 也还没做填充率判据，见 hr38_待办交接.md §4 阶段四 wire_through_opening）
+  frame: world_frozen_battery_bay
+  frame_note: world_frozen_* 表示这条禁入体的坐标本身就是冻结项（关节轴线 / 电池仓 / IMU-相机 site），允许硬编码；其余一律以本件基准或舵机局部系表述
+  why: 线要出得来
+  checked_by: 无（注释 duck.py:42-43 净空 5.1/12）
+  status: unchecked
+  provenance:
+  - duck.py:42-43
+  - duck.py:595
+  - inventory_v2.json:keepouts[17]
+  unknown_class: not_audited
+  unknown_reason: 现有工具不查这条：无（注释 duck.py:42-43 净空 5.1/12）
+- id: KO19
+  name: 头偏航 ±170° 线束
+  owner_parts: N02/N03
+  geom_verbatim: 无模型
+  frame: world_frozen_joint
+  frame_note: world_frozen_* 表示这条禁入体的坐标本身就是冻结项（关节轴线 / 电池仓 / IMU-相机 site），允许硬编码；其余一律以本件基准或舵机局部系表述
+  why: 线不被扭断
+  checked_in_layer: 6
+  covered_by_note: "扫掠类（头偏航转动中线束扭转 / 张紧 / 碰件），零位姿静态交集没有意义（同 KO10 / KO13）；义务落在第 6 层：L6/KO19（keepout_harness_twist，本条还没接模型、仍 unknown）+ L6/HB09_R、L6/HB09_L:harness_sweep（duckstructure.wiring_body 模型扫掠，hr44reg 2026-09-25 接入）"
+  checked_by: "l6_motion harness_sweep：HB09_R / HB09_L 按 duckstructure.wiring_body 模型逐线路扫掠（含偏航服务环 wrap 段）；keepout_harness_twist 本条还没接模型"
+  checked_by_was_until_2026_09_25_hr44reg: 无
+  status: "v2 未通过（sideLow 外观不可接受，待 hr44neck 专项），线束 agent 修中（2026-09-26 hr44）"
+  status_was_until_2026_09_25_hr44reg: unchecked
+  harness_model_2026-09-25_hr44: {"routes": ["HB09_R", "HB09_L"], "model": "duckstructure.wiring_body：偏航服务环 = 绕头偏航轴的螺旋（flex_wrap），转角随 head_yaw 连续展开，半径外鼓二分求解使长 = L；解不出 = 张紧", "target_range_deg": {"v": [-116.4, 95.4], "src": "frozen.yaml:joint_axes[head_yaw].target_range_deg"}, "HB09_R": {"od_mm": 5.26, "members": ["dupont", "dupont", "dupont", "dupont", "ph_ext_3c"], "length_mm": 214.8, "wrap": {"model": "wrap（绕头偏航轴螺旋）", "joint": "head_yaw", "L_mm": 71.1, "src": "wires_meta.json body.HB09_R.flex[k=0].L + note『v2 sideLow：偏航+横滚服务环挂颈两侧低位（头侧下垂 7 mm、hpow 4 快降，N02 侧锚 z 200.5 |y| 22.8）；躯干段扫掠障碍路由不穿壳（p33b）』"}, "min_bend_R": 1.02, "min_bend_limit": 2.0, "check_coarse": {"n_poses": 664, "hit_in_target": 53, "tension_in_target": 1}, "status": "外观不可接受，待 hr44neck 专项（协调员 00:45：sideLow 两支在 z 200–207、x 30–49 外鼓到 |y| 53–56，颈缝无壳遮挡，≈30 mm 线圈悬在脖子两侧；偏航余量须绕偏航轴附近 wrap 存 r ≤14、|y| ≤26、x 10..50、环顶 z ≤204）。v2 未通过（区内残余，待用户定）：全集 4745 姿态命中 922，区内 187、区内张紧 10。trunk_base×trunk 50 姿态深 1.50（例 [{'neck_pitch': 60.0}, {'neck_pitch': 60.0, 'head_pitch': -50.0}]）；jaw_soft×jaw 40 姿态深 0.99（例 [{'head_roll': 20.0}, {'head_roll': 22.5}]）；neck×servo__neck_neck 95 姿态深 9.53（例 [{'head_pitch': 50.0, 'head_yaw': -115.0}, {'head_pitch': 55.0, 'head_yaw': -115.0}]）；neck_pitch×neck_pitch 29 姿态深 1.53（例 [{'head_yaw': -115.0, 'head_roll': 25.0}, {'head_yaw': -110.0, 'head_roll': 25.0}]）。根因：偏航目标 −116..95 要 71 mm 服务环，零位外鼓到 |y|≈40–53"}, "HB09_L": {"od_mm": 5.96, "members": ["xt30_18awg_pair", "servo_flat"], "length_mm": 219.7, "wrap": {"model": "wrap（绕头偏航轴螺旋）", "joint": "head_yaw", "L_mm": 71.1, "src": "wires_meta.json body.HB09_L.flex[k=0].L + note『v2 sideLow：偏航+横滚服务环挂颈两侧低位（头侧下垂 7 mm、hpow 4 快降，N02 侧锚 z 200.5 |y| 22.8）；躯干段扫掠障碍路由不穿壳（p33b）』"}, "min_bend_R": 0.92, "min_bend_limit": 3.0, "check_coarse": {"n_poses": 664, "hit_in_target": 331, "tension_in_target": 0}, "status": "外观不可接受，待 hr44neck 专项（协调员 00:45：sideLow 两支在 z 200–207、x 30–49 外鼓到 |y| 53–56，颈缝无壳遮挡，≈30 mm 线圈悬在脖子两侧；偏航余量须绕偏航轴附近 wrap 存 r ≤14、|y| ≤26、x 10..50、环顶 z ≤204）。v2 未通过（区内残余，待用户定）：全集 4745 姿态命中 1031，区内 195、区内张紧 0。trunk_base×shell_R 31 姿态深 0.77（例 [{'neck_pitch': 57.5}, {'neck_pitch': 60.0}]）；jaw_soft×jaw 44 姿态深 1.00（例 [{'head_roll': -25.0}, {'head_roll': -22.5}]）；neck×servo__neck_neck 96 姿态深 9.59（例 [{'head_pitch': 55.0, 'head_yaw': 95.0}, {'head_pitch': 60.0, 'head_yaw': 85.0}]）；neck_pitch×neck_pitch 28 姿态深 1.47（例 [{'head_yaw': -90.0, 'head_roll': -25.0}, {'head_yaw': -85.0, 'head_roll': -25.0}]）。根因：偏航目标 −116..95 要 71 mm 服务环，零位外鼓到 |y|≈40–53"}, "od_src": "assumed：束径 = 成员截面积 ÷ 填充率 0.6 + 缠绕管壁 2×0.35（wiring_body.FILL / WRAP）", "wrap_len_basis": "wrap 线长按目标区间 [-116.4, 95.4] 定（wires_v2 sideLow：HB09_R 71.1 / HB09_L 71.1；wires_v1 为 64.4 / 59.7）；±170 全程要 ≈88（wires_v1 note，p16 第 1 版）→ 目标区间外的张紧只写不判", "status": "wires_v2（sideLow）未通过：外观不可接受，待 hr44neck 专项；粗扫掠区内线∩件 HB09_R 53 / HB09_L 331（各 664 姿态，wires_check.json）；零位最小弯 R 1.02 / 0.92 都低于限 2.0 / 3.0。线束 agent 修中", "src": "docs/design_2026-09-17_bearing_rebuild/hr43_work/hr44/wires_v2/wires_meta.json body.HB09_R / HB09_L（以 wires_meta 为准）+ wires_v2/wires_check.json summary", "l6": "L6/HB09_R、L6/HB09_L:harness_sweep（按模型逐线路判）；L6/KO19:keepout_harness_twist 本条还没接模型（仍 unknown，hr44reg 只加一个检查）"}
+  provenance:
+  - inventory_v2.json:keepouts[18]
+  - docs/design_2026-09-17_bearing_rebuild/hr43_work/hr44/wires_v2/wires_meta.json（body.HB09_R / HB09_L）+ wires_check.json
+  - duckstructure/data/wiring_body_v1.json（routes.HB09_R / HB09_L；duckstructure.wiring_body 模型）
+  unknown_class: not_audited
+  unknown_reason: "keepout_harness_twist 这条判据还没接 wiring_body 模型（本登记只加 L6 harness_sweep 一个检查）；模型 v2 未通过，见 harness_model_2026-09-25_hr44"
+  unknown_reason_was_until_2026_09_25_hr44reg: 现有工具不查这条：无
+- id: KO20
+  name: B01 +x 推入路径 / 卡珠越过
+  owner_parts: T01/B01
+  geom_verbatim: 无模型
+  frame: world_frozen_battery_bay
+  frame_note: world_frozen_* 表示这条禁入体的坐标本身就是冻结项（关节轴线 / 电池仓 / IMU-相机 site），允许硬编码；其余一律以本件基准或舵机局部系表述
+  why: 门装得上
+  checked_by: 无
+  status: unchecked
+  provenance:
+  - duck.py:571-576
+  - duck.py:600-613
+  - inventory_v2.json:keepouts[19]
+  unknown_class: not_audited
+  unknown_reason: 现有工具不查这条：无
+- id: KO21
+  name: 6704 / 6702 / 6700 / 22×16×4 完整实体
+  owner_parts: L01/L02/L03/L04/L07/T01/H01/H03/N04
+  owner_parts_note_2026-09-17: 髋横滚 6704 取消（docs/reports/髋横滚轴承取消_2026-09-17.md）后 L02 不再承载任何轴承、L01 只剩 6702 毂；owner_parts 字符串不改（L3/L6 按它过滤碰撞记录，多列无害），placed/ 里已无 bearing_left/right_hip_roll。
+  geom_verbatim: 环 od/id×4
+  frame: part_local
+  frame_note: world_frozen_* 表示这条禁入体的坐标本身就是冻结项（关节轴线 / 电池仓 / IMU-相机 site），允许硬编码；其余一律以本件基准或舵机局部系表述
+  why: 轴承装得进、不被削
+  checked_by: assembly_audit bearings + run_checks（bearings 参加扫掠）
+  status: checked
+  provenance:
+  - mechanical_audit.json:assembly_and_fits.bearings
+  - inventory_v2.json:keepouts[20]
+- id: KO22
+  name: 电池顶插头收纳/后抽通道
+  owner_parts: T01/T02/T03
+  geom_verbatim: x -46.6..-24.6, |y|≤12.5, z146.3..157.3
+  bounds_world_mm:
+  - - -46.6
+    - -12.5
+    - 146.3
+  - - -24.6
+    - 12.5
+    - 157.3
+  frame: world_frozen_battery_bay
+  why: 固定件不得侵入已拆盖/门后的插头后抽通道；实际叠置占位顶157.3，原报告154上界漏检
+  exempt:
+  - part: B01
+    segment: all
+    why: 后抽前必须拆门；不是固定障碍豁免
+  - part: B03
+    segment: all
+    why: 开盖后才能拔插/抽电池；静态盖下净空由B03×zz_xt30单独查
+  moving_components:
+  - zz_battery
+  - zz_xt30
+  # hr41 落盘 2026-09-25（主设计 Lane C）：补扫掠方向/行程（hr41_gate_work/记录.md §3/§6），KO22 进正式 L3（l3_static._ko_bounds_sweep）；hr41g 内存预演 PASS（最大交集 2.86e-6 mm³、终点脱离 PASS）
+  sweep_direction_world:
+    v:
+    - -1.0
+    - 0.0
+    - 0.0
+    src: hr39f check_service_2026-09-24.py：正常换电沿 −x 后抽
+  sweep_len_mm:
+    v: 60.0
+    src: hr39f check_service_2026-09-24.py travel_mm=60；终点 x−84.6 越过保留实体最后缘 x−51.78
+  checked_by: tools/gate/layers/l3_static.py:_ko_bounds_sweep（Gate L3 keepout_intersection / keepout_sweep_clear_at_end / keepout_sweep_declared；障碍 = placed/ 全部实体 − 随行件，exempt 按拆卸态不在场）
+  checked_by_was_until_2026_09_25: hr39f_work/check_lid_door.py + check_f_path_f.py；L3 _ko_geoms尚未实现此ID
+  status: checked
+  status_was_until_2026_09_25: unchecked
+  unknown_class_was_until_2026_09_25: not_audited
+  unknown_reason_was_until_2026_09_25: 正式Gate未接入KO22，独立布尔报告不能冒充Gate已通过；胶带/弯曲软线不在占位中
+  scope_note_2026_09_25: 只证明零位整机、登记包络盒沿 −x 平移 60；胶带/弯曲软线、插头真实分离、手指空间不在占位中（hr41_gate_work/记录.md §7）
+  provenance:
+  - duckstructure/electronics.py:XT30_MATED/BAL_PLUG
+  - hr39f_work/placed_probe_2026-09-24/metadata.json
+  - hr39_电池拔插代替开关.md §5/§9

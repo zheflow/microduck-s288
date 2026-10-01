@@ -1,0 +1,179 @@
+# L6 真实姿态碰撞（_capability/real_pose_collisions）的判定口径（hr50，2026-09-28）
+#
+# 来源：
+#   - 用户 2026-09-28 08:50："如果我发现这种非常极限的姿势，可以通过训练去限制，我们就不需要去削了。"
+#     主设计会话据此撤掉全部 14 把真实姿态区域刀，撞的件对和关节角留给重训（hr50_work/重训约束_极限姿态_2026-09-28.md）。
+#   - 轻碰容差 = 原版自身真接触峰值的 p25（算法会话 C 标定：hr50_work/algo/C_orig_collision_calibration.json → tolerance_tiers「中」，
+#     原版 (ii) 类 62 对峰值体积 / 峰值深度的 p25，精确值 2.2868 mm³ / 0.7696 mm；主设计会话 09-28 定用中档）。
+#
+# 判定（逐姿态、逐 body 对，交集 > tolerances.yaml 的数值容差 0.05 mm³ 才算命中）：
+#   1. 姿态所在 (mode, case) 在 retrain_segments 里 → 不判 FAIL，进"重训约束"清单（_capability/real_pose_retrain_constraints，INFO）：
+#      件对、姿态数、最大交集、最大那一帧的穿插深度、关节角（顶到限位的标"到头"）。
+#   2. 其余姿态：交集 ≤ light_contact.v_max_mm3 且 穿插深度 ≤ light_contact.d_max_mm → 轻碰，不判 FAIL（逐条列出）；
+#      深度算不出来的一律按超标处理（不因证据缺失变绿）。
+#   3. 其余姿态超出轻碰 → real_pose_collisions FAIL（BLOCK）。
+#   原版同 body 对也撞不是豁免（与旧口径相同）；原版 (i) 类建模误差对（orig_modeling_pairs）在诊断里不算"原版也撞"。
+version: 6
+decided: "2026-09-28 用户：非常极限的姿势靠训练去限制，不削（主设计会话 02b640 转达；算法会话 762c02 落地）"
+retrain_segments:
+  - {mode: alpha_stand, case: body_all_max, why: "站着把身体各向同时推到最大（关节顶到头）"}
+  - {mode: roulade, case: roulade_repeat, why: "连续翻滚"}
+  - {mode: alpha_sitstand, case: head_all_min, why: "坐下时头各关节推到最小（缩头低头）"}
+light_contact:
+  v_max_mm3: 2.2868
+  d_max_mm: 0.7696
+  source: "docs/design_2026-09-17_bearing_rebuild/hr50_work/algo/C_orig_collision_calibration.json: tolerance_tiers[name=中]"
+# 原版 (i) 类建模 / 装配重叠 15 对（C 的口径：两件 body 由一个关节直连、≥50% 姿态都在、零位或 STAND 站姿就交叠或峰值 ≤0.2 mm³）。
+# 只影响诊断文字里"原版同对也撞"的统计，不影响我们件的判定。
+orig_modeling_pairs_source: "docs/design_2026-09-17_bearing_rebuild/hr50_work/algo/C_orig_collision_calibration.json: class_i"
+orig_modeling_pairs:
+  - "ankle_left__ankle_left×leg__xl330"
+  - "ankle_right__ankle_right×leg_2__xl330"
+  - "jaw_soft__speaker×yaw_roll_motion__seeed_bearing__configuration__22x16x4"
+  - "jaw_soft__bottom_head_shell×yaw_roll_motion__seeed_bearing__configuration__22x16x4"
+  - "jaw_soft__bottom_head_shell×yaw_roll_motion__seeed_bearing__configuration__22x16x4_2"
+  - "jaw_soft__xl330_2×yaw_roll_motion__seeed_bearing__configuration__22x16x4"
+  - "neck_pitch__seeed_bearing__configuration__22x16x4×yaw_roll_motion__xl330"
+  - "hip_l_2__seeed_bearing__configuration__22x16x4×upper_leg_right__xl330_2"
+  - "hip_l__seeed_bearing__configuration__22x16x4×upper_leg_left__xl330_2"
+  - "bearing_roll__yaw2roll×trunk_base__seeed_bearing__configuration__22x16x4_2"
+  - "hip_l__hip_l×yaw2roll__seeed_bearing__configuration__22x16x4"
+  - "trunk_base__seeed_bearing__configuration__22x16x4×yaw2roll__yaw2roll"
+  - "bearing_roll__seeed_bearing__configuration__22x16x4×hip_l_2__hip_l"
+  - "ankle_right__seeed_bearing__configuration_default×leg_2__leg"
+  - "ankle_left__seeed_bearing__configuration_default×leg__leg"
+# ── v3（2026-09-28 10:50；10:22 的 v2 没进过任何 chain，复查后改掉三处：v2 不镜像、判"到过"只用 ±5°、组合记录在件格子/汇总里仍按旧目标区间判）──
+# L6 pair_combination（相邻两关节全行程网格）按"真实动作包络"分类
+# 来源：用户 2026-09-28 选定（主设计会话 02b640 转达）："原版真实动作从没到过的角落，写成'q1、q2 不能同时到这个区间'，
+#   列进重训约束；真实动作到过的地方仍必须不撞，轻碰按原版标准。"
+# 逐条碰撞记录（网格姿态 (q1, q2) × 件对）按次序判：
+#   1. 有一轴在 frozen.yaml:joint_axes[].target_range_deg 外 → workspace：工作空间问题 WARN（F-L6-3 原口径不变；目标区间由能力包络
+#      ± margin_deg 推导，人为收窄要带 date + reason）。
+#   2. 否则看"到过"：包络样本 = frozen.yaml:capability_envelope.pose_steps_source
+#      （用户原话里的"参考动作 + rollout"：上游 microduck_rl@5946fd9 各任务全是奖励驱动，没有参考动作文件（roulade cfg 明写 no reference
+#      motion；"keyframe"只是坐/站两个复位姿态），所以真实动作数据 = 原版策略 rollout 逐步记录这一个来源）（sha256 必须与声明一致，否则 unknown）里
+#      modes_in_scope 各段的前 prefall_n 步，去掉上面 retrain_segments 三段（它们本身交训练限制，不能反过来把角落算成"到过"），
+#      再按 capability_envelope.mirror_symmetric / mirror_pairs 左右镜像求并（左 ≡ sign × 右，与 derive_target_ranges._mirror 同一约定；
+#      用户 09-16 定"能力不分左右"）。没有分箱：(q1, q2) "到过" ⇔ 存在样本 s 使 |s[q1] − q1| ≤ reach_deg 且 |s[q2] − q2| ≤ reach_deg。
+#      reach_deg = 组合网格半步 2.5°（每个真实样本至少落进一个网格点的邻域）+ capability_envelope.margin_deg 3.0°（能力包络两端的安全边）= 5.5°。
+#   3. 没到过 → retrain：重训约束（_capability/pair_combination_retrain_constraints，INFO）：件对的撞点网格按 8 邻接分连通块，
+#      每块给 q1 区间 × q2 区间（各向外扩一格 5°，真实边界在相邻无碰撞格点之间），写成"q1、q2 不能同时进这个区间"；
+#      附最大交集、该帧深度、格点清单；盒子里若有原版真实样本（盒子会误伤真实动作）标出来，要按格点限。
+#   4. 到过 → 交集 ≤ light_contact.v_max 且深度 ≤ light_contact.d_max 为轻碰（不 FAIL，逐条列）；否则 / 深度算不出 → viol：BLOCK。
+#   同一批记录在 L6 件格子 motion_collision 与 _summary/collision_buckets 里也按这个分类：只有 viol 算件的问题（BLOCK），
+#   其余三类不升 BLOCK；分类失败 / 口径文件坏 → 这些记录判 unknown（不当作通过）。单轴扫描与策略包络姿态的记录照旧按目标区间。
+pair_combination:
+  reach_deg: 5.5
+  reach_source: "组合网格半步 2.5°（l6_motion._COMBO_STEP_DEG / 2）+ frozen.yaml:capability_envelope.margin_deg 3.0°"
+  exclude_retrain_segments: true
+  mirror: "follow frozen.yaml:capability_envelope.mirror_symmetric / mirror_pairs"
+
+# ── v4（2026-09-28）：用户逐条批准的重训联动限位 ──────────────────────────────────────────
+# 来源：用户 2026-09-28（主设计会话 02b640 转达）："都交重训的联动限位，不改件"。
+# 判定：pair_combination 里"到过且超轻碰"的记录，若件对、关节对都匹配某条、网格点落在 q1×q2 盒内、体积 ≤ approved_up_to_mm3
+#   → 归"用户批准交重训"，不 FAIL，逐条列在 pair_combination detail 与 _capability/pair_combination_retrain_constraints.approved；
+#   盒外或体积超上限 → 照旧 BLOCK（几何变了，批准不算数）；登记了但没命中的条目列 unused（要核）。
+# approved_up_to_mm3 = 正式 chain 在冻结 STL 上量出的、盒内"到过且超轻碰"格的最大体积，原样登记，不留余量不乘系数
+#   （主设计会话 09-28 定；chain 数超过用户批准时看到的 54.2 / 97 mm³ 要先回用户确认）。
+# 耦合盒 = 撞点格各向外扩一格（5°）后夹到目标区间；左右镜像各一条，符号取自 L6 网格记录。
+# 注意：原版真实动作**到过**这些盒（这正是它们没归"没到过 → 重训约束"的原因）：ARC01/02 = kick_left 右腿偏航 26.3°（4 步）、
+#   ARC03/04 = sit_down / sit_then_stand 右腿膝 75.4–77.2° 俯仰 31.5–31.9°（4 步；alpha_stand/body_all_max 另 11 步已属极限段）。
+#   所以这两条限位是对原版行为的真实收窄（重训策略坐下时膝不能弯过 75°），不是白捡的角落。
+approved_retrain_constraints:
+  - id: ARC01
+    joints: [left_hip_yaw, left_hip_roll]
+    pair: lower_leg×zz_battery
+    q1: [-25.0, -20.0]        # left_hip_yaw：撞点格 −25 外扩一格、夹到目标区间下限 −25
+    q2: [-10.0, 0.0]          # left_hip_roll：撞点格 −5 外扩一格
+    approved_up_to_mm3: 54.225  # 正式 chain 在冻结 STL 上量出的精确数，原样登记（原占位 54.2）
+    date: "2026-09-28"
+    decided_by: "用户（主设计会话 02b640 转达）"
+    why: "让位要切穿膝法兰 6 颗沉窝的头座面（L04-F08 保护区），不改件；限位：横滚与偏航同向时 |偏航| ≤ 24.5°。原版 5601 完整姿态不撞（偏航到头时膝踝是弯的），但二维包络里 kick_left 右腿偏航到过 26.3°，这是真实收窄"
+    evidence: "docs/design_2026-09-17_bearing_rebuild/hr50_work/legs/final/grid_check.json；tools/gate/out/policy_steps_2026-09-16/policy_steps.npz ball_kick_left/kick_left_repeat step 4/254/504/754"
+  - id: ARC02
+    joints: [right_hip_yaw, right_hip_roll]
+    pair: lower_leg_R×zz_battery
+    q1: [20.0, 25.0]
+    q2: [0.0, 10.0]
+    approved_up_to_mm3: 54.225  # 正式 chain 在冻结 STL 上量出的精确数，原样登记（原占位 54.2）
+    date: "2026-09-28"
+    decided_by: "用户（主设计会话 02b640 转达）"
+    why: "同 ARC01（右侧镜像）"
+    evidence: "同 ARC01"
+  - id: ARC03
+    joints: [left_hip_pitch, left_knee]
+    pair: ankle_rear_arm×hip
+    q1: [-40.0, -25.0]        # left_hip_pitch：撞点格 −35 / −30 外扩一格
+    q2: [75.0, 85.0]          # left_knee：撞点格 80 外扩一格
+    approved_up_to_mm3: 64.1155  # 正式 chain 在冻结 STL 上量出的精确数，原样登记（原占位 64.1）
+    date: "2026-09-28"
+    decided_by: "用户（主设计会话 02b640 转达）"
+    why: "消掉要切 L07 的 8% 并切开起子通道半边壁，不改件；限位：|髋俯仰| ≥ 30° 时 |膝| ≤ 75°。原版 5601 完整姿态不撞（踝弯着、sit_down 全程 0），但二维包络里 sit_down 右腿膝到过 77.2° / 俯仰 31.5°，这是真实收窄"
+    evidence: "docs/design_2026-09-17_bearing_rebuild/hr50_work/legs/final/grid_check.json；policy_steps.npz alpha_sitstand/sit_down 与 sit_then_stand step 34/35"
+  - id: ARC04
+    joints: [right_hip_pitch, right_knee]
+    pair: ankle_rear_arm_R×hip_R
+    q1: [25.0, 40.0]
+    q2: [-85.0, -75.0]
+    approved_up_to_mm3: 64.1155  # 正式 chain 在冻结 STL 上量出的精确数，原样登记（原占位 64.1）
+    date: "2026-09-28"
+    decided_by: "用户（主设计会话 02b640 转达）"
+    why: "同 ARC03（右侧镜像）"
+    evidence: "同 ARC03"
+# ── v5（2026-09-28 17:0x）：ARC05/06 —— 大腿撞壳（shell×upper_leg，T02×L03 @ 髋偏航 ∓10° / 横滚 ±22°）不削，登记交重训联动限位 ──
+# 来源：用户 2026-09-28 17:0x（主设计会话 02b640 转达，原话"不削，登记 ARC05/06，我同意"）。15:5x 曾定走改件（L03 倒角 ≥1.35）；
+#   校验会话算出让位要在 1.14 厚顶板内侧上棱削 1.6（剩壁 0.81）或圆角 R3.4 零余量，用户"别倒角倒穿了"→ 撤刀改登记。
+# 为什么这两格没归"没到过 → 重训约束"而要走批准：在册动作最远只有 alpha_stand/body_all_min 静止姿态 (偏航 −8.7, 横滚 17.6)（935 步），
+#   它外扩 reach 5.5° 的邻域盖到网格 (−10, 22) → L6 判"到过"；其它在册非极限段横滚最多 14.3°（body_roll_max 右）/ 13.8°（kick_left 左）。
+#   真正常态到撞点附近的只有能力清单外的轮滑模式 roller（frozen.yaml modes_out_of_scope；parts.yaml roller_kit do_not_restore）：
+#   7 段离撞点 0.22–3.10°、各 89–862 步在 5.5° 圈内（reach_by_mode.txt）。
+# 件的真实起碰点（1° 细扫、其它关节 0，冻结 STL，probe_frozen.txt）：偏航 ∓10° 时横滚 ±20° 壳×大腿交集 0、±21° 0.1094 / 1.4336 mm³（轻碰内）、
+#   ±22° 才超（2.5867 / 7.4978 mm³，深 0.693 / 1.033 mm）；偏航 ∓5° 到 ±22° 全 0；偏航 ∓15° 从 ±17° / ∓16° 起碰、±18° / ∓17° 起超轻碰
+#   —— 那一列格 (∓15, ±20)、(∓15, ±22) 原版没到过 → 已在 retrain 块里（INFO），不靠本条。
+#   14 轴整姿态摆真实帧：body_all_min 横滚最大 20 帧壳×大腿、躯干×大腿都是 0；roller/max_turn_right 横滚最负 20 帧（−22.67…−23.67）壳×大腿也是 0
+#   （俯仰带离；躯干×大腿最大 7.22 mm³，roller 不在能力清单）。
+# 限位口径（交重训；复审 r1 修正：偏航 ∓15° / 横滚 ±20° 细扫已 44.7 / 61.1 mm³，原写法在 15° 那头不成立）：|髋偏航| ≤ 10° 时 |髋横滚| ≤ 20°；
+#   |髋偏航| 10–15° 时 |髋横滚| ≤ 15°（11–14° 未扫取保守值；细扫偏航 ∓15° 横滚 ±15° 交集 0、±16° 0.002 / 0.28、±17° 1.64 / 4.11）；|髋偏航| > 15° 那一列由重训块
+#   [∓25,∓10]×[±10,±22] 管（INFO）。**盒内有原版真实样本**：body_all_min (−8.7, 17.6) 落在 ARC05 盒 [−15,−5]×[17,22] 里
+#   （右侧镜像 (8.7, −17.6) 落在 ARC06 盒里）→ 按 v3 注释"盒子里若有原版真实样本要按格点限"：限位只禁撞点格 (∓10, ±22) 所在的横滚 > 20° 一侧，
+#   17.6° 必须保留可达，不能把整个盒写成"不能同时进"。盒本身只用于 Gate 匹配记录（撞点格外扩一格、夹到目标区间，与 ARC01–04 同约定）。
+# 上限 = 冻结 STL（docs/…/hr50/placed 归档 = run1 几何）定向扫描按 L6 同一布尔、4 位小数记录得到的数（contact_where.py 复算一致）；
+#   正式 chain 量出不同就原样改登记，超过时先回用户（校验会话 17:0x 约定）。
+  - id: ARC05
+    joints: [left_hip_yaw, left_hip_roll]
+    pair: shell_L×upper_leg
+    q1: [-15.0, -5.0]         # left_hip_yaw：撞点格 −10 外扩一格
+    q2: [17.0, 22.0]          # left_hip_roll：撞点格 22 外扩一格、夹到目标区间上限 22
+    approved_up_to_mm3: 2.5867  # 冻结 STL（hr50/placed）定向扫描 4 位小数；chain 若不同以 chain 为准，超过先回用户
+    date: "2026-09-28"
+    decided_by: "用户（主设计会话 02b640 转达）"
+    why: "撞点只有能力清单外的轮滑模式 roller 常态才到：在册动作最远是 alpha_stand/body_all_min 静止姿态 (−8.7, 17.6)，件到横滚 21° 才开始碰、22° 才超轻碰，整姿态摆真实帧交集 0；让位要在 1.14 厚顶板内侧上棱削 1.6（剩 0.81）或圆角 R3.4 零余量，用户不接受（'别倒角倒穿了'），不改件；限位（复审 r1 修正）：|偏航| ≤ 10° 时 |横滚| ≤ 20°；|偏航| 10–15° 时 |横滚| ≤ 15°（细扫偏航 −15° / 横滚 +20° 已 44.7 mm³ 深 1.42，11–14° 未扫取保守值）；|偏航| > 15° 那一列由重训块 [−25,−10]×[10,22] 管。⚠ 盒内有原版真实样本 body_all_min (−8.7, 17.6)（935 步）→ 按格点限：只禁上述限位之外的一侧，17.6° 不误伤。撞点格 (−10, 22) 2.5867 mm³ / 深 0.693 mm，大腿外侧上后角碰壳内壁（x −37.5..−28.2，z 123.4..124.7）"
+    evidence: "docs/design_2026-09-17_bearing_rebuild/hr50_work/legs/arc56_evidence/（probe_frozen.txt/json = 1° 细扫 + 整姿态帧；reach_by_mode.txt = 逐 mode/case 到撞点距离；probe_frozen.py / reach_source.py 可复跑）；hr50_work/algo/gate_tools/contact_where.log；hr50_work/algo/gate_tools/v5_staging/targeted_joints_frozen_v5.log；policy_steps.npz alpha_stand/body_all_min 横滚最大帧"
+  - id: ARC06
+    joints: [right_hip_yaw, right_hip_roll]
+    pair: shell_R×upper_leg_R
+    q1: [5.0, 15.0]
+    q2: [-22.0, -17.0]
+    approved_up_to_mm3: 7.4978  # 同上；右壳内壁在此比左侧更靠内，体积与深度（1.033 mm）都大于左
+    date: "2026-09-28"
+    decided_by: "用户（主设计会话 02b640 转达）"
+    why: "同 ARC05（右侧镜像）；限位（复审 r1 修正）：|偏航| ≤ 10° 时 |横滚| ≤ 20°；|偏航| 10–15° 时 |横滚| ≤ 15°（细扫偏航 +15° / 横滚 −20° 已 61.1 mm³ 深 1.45）；|偏航| > 15° 那一列由重训块 [10,25]×[−22,−10] 管。⚠ 盒内有原版真实样本（body_all_min 左腿镜像 (8.7, −17.6)）→ 按格点限，−17.6° 不误伤。撞点格 (10, −22) 7.4978 mm³ / 深 1.033 mm（x −38.1..−25.6，z 123.0..124.9）"
+    evidence: "同 ARC05"
+
+# ── v6（2026-09-28 19:2x）：策略包络角点姿态记录（_policy/policy_extreme_poses）按 pair_combination 同一口径分类 ──
+# 来源：用户 2026-09-28 19:1x 定 C（校验会话转达）：角点姿态记录做"到过"判定（同一套样本、去 3 段极限段、左右镜像、5.5° 圈），
+#   没到过的转重训约束 INFO；_policy/policy_extreme_poses 格按同一分类改（有"到过且超轻碰"才 BLOCK）。备忘：hr50_work/algo/gate_tools/v5_staging/corner_pose_options.md。
+# 角点姿态 = 每个 in-scope mode 取包络盒角点（all_lo / all_hi / 每条关节各自到端点、其余取该 mode 区间中点）= 30 个 14 轴同时摆的姿态；
+#   代码自注"这是包络盒的角点，不是可达集"。run2 目标区间内 11 条角点记录离最近真实样本 24.36°–64.74°（14 轴切比雪夫，corner_pose_reach.txt），5.5° 圈内 0 条。
+# 判定（逐条，与 pair_combination 同序）：目标区间外 → workspace WARN（F-L6-3）；区间内、**全部 14 轴同时** ±reach_deg 内原版真实动作从没到过 → retrain
+#   （_policy/policy_extreme_poses_retrain_constraints，INFO，带深度与姿态）；到过 → 轻碰（v_max / d_max）/ approved_retrain_constraints 盒（按条目两条关节在姿态里的角度判盒，
+#   体积 ≤ 上限）/ 否则 BLOCK（深度算不出按超标）。_policy 格：有"到过且超轻碰"→ FAIL BLOCK；只有区间外 → FAIL WARN；其余 → PASS。
+#   件格子 / _summary 里角点记录按同一分类（pose_class），只有"到过且超轻碰"算件的问题；缺段 / 口径文件坏 → 这些记录判 unknown（不当作通过）。
+# 全轴判定比两轴严得多（角点 = 各关节同时到端点，几乎不可能被逐步记录盖到）：实际效果 = 角点姿态不再阻断、改为重训约束清单，训练侧要照样加联动限位。
+# 数据口径差（记一笔）：角点盒来自 docs/workspace_2026-09-09/policy_envelope.json（09-09 逐 mode 统计），"到过"样本来自 pose_steps_source（09-16 逐步记录），
+#   不是同一批数据：alpha_walking 包络 head_pitch 到 −49.06°，而 09-16 样本里离它 24° 以内一步都没有 —— 角点盒比逐步记录宽。
+policy_extreme_poses:
+  classify: pair_combination      # 只认这一个值；缺段 → _policy 格与角点记录 unknown；别的值 → 口径文件无效
+  reach_source: "pair_combination.reach_deg，同一套样本（pose_steps_source、去 retrain_segments、按 mirror_pairs 镜像）"
+  reached: "全部 14 轴同时在 ±reach_deg 内有样本（切比雪夫），姿态里没写的关节按 0"
+  decided: "2026-09-28 19:1x 用户定 C（校验会话转达）"

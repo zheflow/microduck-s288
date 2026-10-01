@@ -1,0 +1,1938 @@
+# 本文件由 docs/gate/inventory_v2.json + inventory_original.json + comparison_original_vs_v2.md 机械转换而来。
+# 字段约定见 tools/gate/data/README.md：
+#   · 每条记录必须有 provenance（duck.py:行 / s288.py:行 / ankle_split.py:行 / mechanical_audit.json:键 /
+#     inventory_original.json:路径 / inventory_v2.json:路径 / MJCF:行 / comparison_original_vs_v2.md:编号）
+#   · 数值字段统一写成 {v: <值>, src: measured|datasheet|assumed}
+#   · 搬不过来的值写 v: null，并在同条记录里给 unknown_class + unknown_reason
+# 单位：mm / mm^3 / g / N / degC，除非字段名另有后缀。不四舍五入。
+# components.yaml —— 元件库：每个外购/占位元件一条。换件先改这里（DoD 见 tools/gate/README.md 第 5 节）。
+# housed_by 用件号引用 parts.yaml；不写元件的世界坐标（唯一例外是 frozen.yaml 里已冻结的电池仓与 IMU site）。
+# claim（2026-09-13 审计 F-L7-6）：L7 在 cad/duck_s288/placed/ 里认领本元件实体的规则，由每条元件自己声明，层不再按 category 分支：
+#   claim.by: mjcf_servo_geom（placed/servo__<body>_<drives>，来自 MJCF body.servos）| envelope_box（envelope_mm.v 的 a×b×c 反算体积+包围盒）
+#             | envelope_ring（envelope_mm.v 的 内径×外径×厚 反算环体积+包围盒）| placed_prefix（placed 名前缀 claim.pattern）
+#   claim.body_from: housed_by（缺省，按最近 body 原点落到左/右实例；跨互不镜像的多个连杆 → 不猜）| mjcf_part_mesh（MJCF visual geom 引用该网格的 body）
+#   claim.mass_estimate_from_geometry: true —— mass_g 取不出数时按 实体体积×密度 推 INFO 值（不冒充声明，仍算质量缺口）
+#   没有 claim 的元件 → L7/<id>.component_body unknown；认领到的实例数 ≠ qty → L7/<id>.component_qty FAIL(BLOCK)。规则内容 = 原层代码四个分支逐条搬入。
+
+schema_version: 1
+source:
+  duck_py_git: "d218c6f804b7660e10b6f6fe8b2901e206a4ab5e (HEAD, 工作区 tools/cad/duck.py 有未提交修改: ANK_SWEEP 37→62)"
+  duck_py_sha256_worktree: "efda71b6068001c9281385caf4ddd099ae663bdf65f9fb78f5bc626da19e38b1"
+  duck_py_sha256_HEAD_and_release_copy: "dfededcdfc936c69cbdd517257226123195cb3b5b67f2430d1638a9ebbbf5368"
+  stl_provenance: "cad/duck_s288/*.stl 与 audit_summary.json/mechanical_audit.json 生成于 2026-09-09 04:53~04:56，早于工作区 duck.py 修改(10:44)；audit_summary 踝碰撞从 ±40° 起 → 现有 STL/审计对应 HEAD(±37 让位)版本，不是工作区(±62)版本。17 个 STL 与 01_整鸭打印件/S288专用件 sha256 相同（抽查 L05/L07）。"
+  s288_py: "tools/cad/s288.py == 06_CAD源码/s288.py（diff 为空）"
+  kinematics: "upstream/microduck_rl @5946fd9 robot_walk.xml（不在 git 里）"
+  inventory_date: "2026-09-09"
+  units: "mm / mm³ / g；舵机局部坐标: 法兰朝 +x, 长边 z, 顶端 z=+9.5"
+counts:
+  components: 28
+  components_note_2026-09-29_hr52: "27 → 28：+ tof_vl53l5cx（v6-VL53L5CX 雷达，用户 09-29 定；deliberately_absent 里 A9 那条留作原版对照，加 restored 注，不删不减计数）"
+  components_note_2026-09-25_hr44reg: "27 不变：bus_splitter 改名 splitter_ph20_1to2（同一实物 ×5，不新增条目 → 不重复计数，L3 / L7 红格数不变）；扎带 zip_tie_2p5 / 缠绕管 spiral_wrap_d4 是耗材 → 顶层 consumables（hr43e tape_foam_1mm 先例：无 placed 实体的元件条目在 L3 world_placement / L7 component_body 必红）；cable_ph20_ext 已存在 → 不另建 cable_ph20_ext_250，只记 250 定案"
+  consumables: 2
+  components_was_until_2026_09_25_hr43e: 28
+  components_note_2026-09-25_hr43e: "28 → 27：tape_foam_1mm 撤出元件清单，改记在 bus_adapter.consumable_note_tape_foam_1mm_2026-09-25_hr43e（L7 只认 claim.by ∈ mjcf_servo_geom / envelope_box / envelope_ring / placed_prefix，by none 判 component_claim_rule BLOCK；L3 world_placement 同因 BLOCK）；旧条目原文见 bus_adapter.tape_foam_1mm_entry_was_until_2026_09_25_hr43e"
+  components_note_2026-09-25_hr43c: "27 → 28：+ tape_foam_1mm（转接板竖粘 1 mm 泡棉双面胶，协调员 14:55 ①）；gpio_rightangle_40p 退役（qty 1 → 0，条目留痕，不减计数）"
+  components_note_2026-09-25_hr43: "26 → 27：+ gpio_rightangle_40p（40P 直角转接 + 平插杜邦壳，hr43 新占位 zz_adapter40）"
+  components_note_2026-09-23_hr39f: "24 是旧数，早就没跟上（hr39f 前列表实有 28 条）；hr39f 把 switch_rocker / connector_wago_221_412 挪进 deliberately_absent → 26"
+  deliberately_absent: 15
+  deliberately_absent_note_2026-09-23_hr39f: "13 → 15：+ switch_rocker / connector_wago_221_412（不是 comparison 条目，是我们自己退役的元件）"
+  deliberately_added: 3
+components:
+  - id: "servo_s288"
+    category: "servo"
+    model: "Unitree S288 无刷数字舵机（塑料齿/塑料壳，减速比 288.35）"
+    bench_ids_2026-09-30: "主控板会话台架：15 颗已全部编号 0–14（0 左髋偏航 … 13 右踝，14 嘴；与 board_runtime/config/duck.toml 一致），逐颗归零到输出端编码器 0° ± 3°；15 颗串一条总线只读点名 200/200 零丢包，每颗自报 12.0 V。宇树上位机「查询 ID」多颗在线时会漏号，不可信"
+    qty: 15
+    qty_was_until_2026-09-23_hr38: 14（V1 只装 14 颗、下颚空着）
+    qty_note_2026-09-23_hr38: "用户 2026-09-23 拍板 15 颗全装：第 15 颗装回原版嘴舵机位（H01 毛坯自带的 XL330 口袋），见 hr38_嘴关节设计.md。**ID = 14**（手册地址 0–14 有效、15 = 广播），不是 15。"
+    qty_purchase: 15
+    claim:   # 2026-09-13 F-L7-6：原 l7_mass.py `cat == "servo"` 分支逐字搬入
+      by: "mjcf_servo_geom"
+      body_from: "mjcf_servo_host"
+    envelope_solid:   # 2026-09-13 F-L3-3：第 3 层按此独立建实体（落位借 placed 的 OBB），与 CAD/placed 占位体不同源
+      shape: box
+      size_mm: [34.0, 20.0, 19.9]
+      overall_mm: [34.0, 20.0, 25.7]
+      overall_src: "datasheet：T 轴总长 = 厚段 22.8 + 法兰 h2.9 = 25.7（envelope_mm 同源）；给 overall 是为了把 T19.9 与 W20 这两条差 0.1 的边落到正确的 OBB 轴上（厚段差 22.8−19.9=2.9 与法兰 h2.9 相等，所以薄段方块与总外形同中心）"
+      exact: false
+      src: "datasheet：envelope_mm『L34 × W20 × T19.9(薄段)』—— 薄段方块是任何舵机姿态下都被占住的最小包络；厚段 22.8 与法兰不进独立实体（L 形无法用一个盒表达），所以 exact: false（placed ⊇ 声明）"
+    housed_by:
+      - "T01"
+      - "L01"
+      - "L03"
+      - "L04"
+      - "N01"
+      - "N03"
+      - "H01"
+    envelope_mm:
+      v: "L34 × W20 × T19.9(薄段)/22.8(厚段)；法兰 Ø13.9 h2.9；副轴 Ø13.8 h2.9；top 9.5；6 孔 r4.75 M2 深≤3.0；背 4 角孔 16×30 Ø1.7 M2 自攻 深≤3.0"
+      src: null
+      src_note: "L=34.0（手册）；flange_h=2.9（实测 3.0，采用 2.9）；rear_boss_h=2.9（实测 2.8）；step_z=(-7,-12) 未量；mnt_dx=8.0/mnt_z=(7.5,-22.5)（官方图，卡尺 14.7×28.1 作废）；mnt_hole_d/horn_hole_d=2.4（我们的过孔；09-13 由 2.2 改，见 tolerances.yaml:fits.pla.m2_through_hole）；horn_depth/mnt_depth=3.0 MAX（官方图）；conn_z=(-13.9,-4.7)/conn_x=(-10.0,-3.4) 图纸反推 ±0.3（09-11），7a/7b/7c 卡尺未量；mass 19.5 官方参数表；副轴端面 vs 厚段背面 ≈0 推算 W=20.0 [量 8a]；T=19.9 [量 8c]；T_lo=22.8 [量 8d]；top=9.5 [量 1]；flange_d=13.9 [量 3]；horn_r=4.75 [量 2 中心距 9.5]；rear_boss_d=13.8 [量 5b]；法兰螺孔 1.9 [量 9]"
+      unknown_class: "not_measured"
+      unknown_reason: "清单未给外形尺寸"
+    dims_measured:
+      - v: "W=20.0 [量 8a]"
+        src: "measured"
+      - v: "T=19.9 [量 8c]"
+        src: "measured"
+      - v: "T_lo=22.8 [量 8d]"
+        src: "measured"
+      - v: "top=9.5 [量 1]"
+        src: "measured"
+      - v: "flange_d=13.9 [量 3]"
+        src: "measured"
+      - v: "horn_r=4.75 [量 2 中心距 9.5]"
+        src: "measured"
+      - v: "rear_boss_d=13.8 [量 5b]"
+        src: "measured"
+      - v: "法兰螺孔 1.9 [量 9]"
+        src: "measured"
+    dims_assumed:
+      - v: "L=34.0（手册）"
+        src: "assumed"
+      - v: "flange_h=2.9（实测 3.0，采用 2.9）"
+        src: "assumed"
+      - v: "rear_boss_h=2.9（实测 2.8）"
+        src: "assumed"
+      - v: "step_z=(-7,-12) 未量"
+        src: "assumed"
+      - v: "mnt_dx=8.0/mnt_z=(7.5,-22.5)（官方图，卡尺 14.7×28.1 作废）"
+        src: "assumed"
+      - v: "mnt_hole_d/horn_hole_d=2.4（我们的过孔；09-13 由 2.2 改，见 tolerances.yaml:fits.pla.m2_through_hole）"
+        src: "assumed"
+      - v: "horn_depth/mnt_depth=3.0 MAX（官方图）"
+        src: "assumed"
+      - v: "conn_z=(-13.9,-4.7)/conn_x=(-10.0,-3.4) 图纸反推（09-11 前是 (-16.5,-5.5) 估值）；7a/7b/7c 卡尺未量"
+        src: "assumed"
+      - v: "mass 19.5 官方参数表"
+        src: "assumed"
+      - v: "副轴端面 vs 厚段背面 ≈0 推算"
+        src: "assumed"
+    mass_g:
+      v: 20.33
+      src: "measured"
+      src_note: "2026-09-15 用户厨房秤称第 1 颗 S288（不含摆臂）20.33 g；官方参数表 19.5 g（2026-09-08 客服）。15 颗暂按同值，到货逐颗称后再改。同日测试台：舵机+TB02 摆臂+3×M2 = 28.10，3×M2 自攻 = 0.52 → 摆臂 7.25 g。电池 66 g 仍是商品页标称"
+      measured_2026-09-15: {servo_alone_g: 20.33, servo_arm_3screws_g: 28.10, three_m2_screws_g: 0.52, arm_alone_g: 7.25, n_samples: 1}
+      chain_measured_2026-09-30_hr54: {fifteen_servos_plus_all_stock_cables_g: 354.79, fifteen_times_single_sample_g: 304.95, remainder_g: 49.84, note: "用户 09-30 夜称：15 颗 + 全部原装线接成串一起称。余量 49.84 = 原装线 + 各颗个体差（只称过第 1 颗 20.33，逐颗未称）；v 不改"}
+      was_assumed: 19.5
+    mount: "背面 4 角孔（唯一载体接口）+ 法兰 6 孔（从动）"
+    fixation:
+      kind: screws
+      by:
+        - "F01_hipyaw_back"
+        - "F03_hiproll_back"
+        - "F05_hippitch_back"
+        - "F07_knee_back"
+        - "F09_ankle_back"
+        - "F11_neckpitch_back_upper"
+        - "F11b_neckpitch_back_lower"
+        - "F13_headpitch_back"
+        - "F15_headyaw_back"
+        - "F18_headroll_back_H02"
+      bearing_parts: ["T01", "L01", "L03", "L04", "N01", "N03", "H02"]
+      dof_note: "背面 4 角孔（16×30 网格，M2 深≤3.0）是唯一载体接口：4 颗螺丝把薄段背面压平在载体背板上 —— 背板法向的 1 个平动 + 2 个倾覆转动由贴合面锁死，面内 2 个平动 + 绕螺丝轴的转动由 4 个孔位锁死，六个自由度全约束。法兰 6 孔是输出侧（从动件），不参与把舵机固定在载体上。14 颗按 F01/F03/F05/F07/F09/F11+F11b/F13/F15 拧在 T01/L01/L03/L04/N01/N03 的背板上；头横滚那颗按 F18 拧在 H02 垫柱上（H02-F02 垫柱直接触薄段背面），H02 再由 F19_H02_to_H01 上 H01 —— H01-F01 的舵机笼留 0.3 装配间隙、不夹，所以真正托住头横滚舵机的打印件是 H02 而不是 H01。"
+    connectors: "PH2.0 3P ×2（两侧面各一，局部 x conn_x / z conn_z，图纸反推 ±0.3，卡尺未量）"
+    # ── 2026-09-10 新增：**管脚顺序是显式 unknown**，不是"没写所以默认对" ────────────
+    #   两版《J288/S288 使用手册》第三节的管脚表是**反的**。仓库里以前从来没有记录过针脚顺序
+    #   （只有 conn_z 这个位置量），所以**没有任何错误假设被写死** —— 但正因为没写，它也没被当成风险。
+    #   接反 = VCC 灌进 GND 脚 → 15 颗舵机一次全烧（15 颗 × 单价，且是唯一供货渠道）。
+    pinout:
+      v: null
+      src: null
+      unknown_class: "conflicting_sources"
+      unknown_reason: "**两份官方手册互相矛盾，且都是宇树自己发的。** A 版（仓库里那份，docs/reference/s288/manual.txt:33-39 第三节「数字舵机的接口说明」）：① SIGNAL ② GND ③ VCC(12V/25.2V)。B 版（2026-09-10 新收到、比 A 版多一页「数字舵机尺寸图」的那份）：① SIGNAL ② VCC ③ GND。② 和 ③ 对调。宇树客服未答（docs/reference/s288/给宇树客服的问题清单_2026-09-10.md:12-20 第 1 问，按『卡住我们的程度』排在**第一条**，2026-09-10 未回）。"
+      candidates:
+        - {version: "A（仓库版 manual.txt）", pin1: "SIGNAL", pin2: "GND", pin3: "VCC", where: "docs/reference/s288/manual.txt:33-39"}
+        - {version: "B（2026-09-10 新版，含尺寸图）", pin1: "SIGNAL", pin2: "VCC", pin3: "GND", where: "docs/reference/s288/S288使用手册_含尺寸图_2026-09-10.pdf 第三节"}
+      agreed_between_versions: "只有 ① = SIGNAL 是两版一致的。② / ③ 谁是 VCC 谁是 GND 完全没有共识。"
+      adapter_side_measured_2026-09-20: "宇树『单总线串口转 USB 模块』的 PH2.0 座用万用表量出：中间针 12 V（VCC），远离 XT30 拓展口那根与电池负极导通（GND），靠近拓展口那根 0 V 不导通（SIGNAL）→ 座上顺序 SIGNAL–VCC–GND = **B 版**。原配线两端同型直插，舵机座与转接板座必然同序（否则宇树自家配件互不兼容）。本键仍按规则保持 v: null，BN16 到货用同法在舵机座上量一次即可填 B 版；A 版已可判为过期文档。"
+      why_this_is_not_a_paper_problem: "PH2.0 是 2.0 mm 间距的**对称**连接器，反插不会有机械阻挡；我们又是 15 颗菊花链共一条总线，第一颗接反就会把整条总线的 VCC/GND 短接。**没有任何软件手段能在上电前发现这个错。**"
+      must_be_resolved_before: "任何一次上电（含单舵机测试台 TB01–TB03）。见 bench.yaml:BN16。"
+      bench_ref: "bench.yaml:BN16"
+      never_write_a_guess_here: "在 BN16 量完或宇树答复之前，本键必须保持 v: null。**不许因为『A 版是仓库里的所以按 A 版』就填上去** —— 仓库里有哪一版取决于当初谁下载的，不是权威性。"
+      affects:
+        - "harness.yaml:HB01_servo_bus（线束颜色/端序画不了）"
+        - "V2_S288版发布产物/04_电机到货测试/s288_probe.py:135（脚本里已经把线序列为『一颗都没找到』的排查项之一）"
+        - "V2_S288版发布产物/04_电机到货测试/S288到货测试方案.md:47（『只接电源、不接信号』那一步就已经要求知道哪脚是 VCC）"
+      provenance:
+        - "docs/reference/s288/manual.txt:33-39"
+        - "docs/reference/s288/给宇树客服的问题清单_2026-09-10.md:12-20"
+        - "docs/reference/s288/S288使用手册_含尺寸图_2026-09-10.pdf"
+    cable: "PH2.0 3P 15cm daisy chain；6 Mbps 单线半双工；ID 0–14，15 广播"
+    keepout_ref: "keepouts.yaml:KO01（09-20 背插模型：插头顶/线弯区 + 出线区，lib.conn_zone；旧侧插走廊/6×6×11 方块作废）"
+    insert_dir: "见 assembly_audit servo_paths：髋偏航 ±y 侧滑；髋横滚/髋俯仰/膝 -z；踝 +y(左)/-y(右)；颈俯仰 +y；头俯仰 +z；头偏航 -y 或 -z(选 +z 从下方)；头横滚 -x"
+    provenance:
+      - "s288.py:11-31"
+      - "inventory_v2.json:purchased[0]"
+      - "04_电机到货测试/S288实测尺寸记录.md"
+  - id: bearing_6704zz
+    category: bearing
+    model: 6704ZZ 20×27×4
+    qty: 4
+    qty_was_until_2026-09-17: 4
+    stale_keys_note_2026-09-17_hr12: 本条里 applies_to_which_bearing / mount / why_this_cell_stays_red / retired_hip_roll_2026-09-17
+      以及 deliberately_absent.bearing_22x16x4 下的 replaced_by_updated / actually_dropped / size_caveat 仍是 09-17 凌晨"取消髋横滚轴承"的口径，已被
+      hr08–hr12 推翻（髋横滚/髋俯仰各 6703 ×2 恢复，13 颗轴承）；保留作历史，以 housed_by 与 bearing_6703zz 条为准（hr12 复审 m1）。
+    restored_note_2026-09-17_hr08: 下面 retired_hip_roll 那条已被轴承恢复轮次推翻——髋横滚改装 6703（bearing_6703zz），6704 只装膝 ×2 + 头横滚
+      A + 头偏航（housed_by 已由头部补丁更新）。
+    retired_hip_roll_2026-09-17: 髋横滚法兰侧 6704 ×2 取消（docs/reports/髋横滚轴承取消_2026-09-17.md）：原版策略真实姿态 roulade/ground_pick
+      两髋同时内收时左右髋横滚 6704 本体互相压入 132.8 mm³（31/5601 姿态），任何 L01 座壁 28/77 起相交，换小轴承毂壁不够包 Ø13.9 法兰；改 L02 Ø20×3 盘直接坐 S288
+      法兰（legs.py:10 HIP_ROLL_DISC_D=20），L01 不做座凸台，lib.RINGS[left_hip_roll]=False。6704 只剩膝 L03/L04 两颗；build r4（docs/build_logs/build_2026-09-17_r4.log）起
+      placed/ 里没有 bearing_left/right_hip_roll.stl。
+    claim:
+      by: envelope_ring
+    envelope_solid:
+      shape: ring
+      bore_mm: 20.0
+      od_mm: 27.0
+      t_mm: 4.0
+      src: nominal standard procurement dimensions
+    housed_by:
+    - L03
+    - L04
+    - N02
+    - N03
+    - N05
+    - N06
+    - N08
+    - H01
+    - H03
+    housed_by_was_until_2026-09-17:
+    - L01
+    - L02
+    - L03
+    - L04
+    envelope_mm:
+      v: 20×27×4
+      src: assumed
+      src_note: 标准外廓采购要求；具体厂家尚未核定
+    dims_measured: []
+    dims_assumed:
+    - v: 座 Ø27.15（名义，+0.15 间隙，'压进'待 TC01）
+      src: assumed
+    - v: 毂 Ø19.85（名义 -0.15）
+      src: assumed
+    - v: 轴向局部 x 12.85..16.85
+      src: assumed
+    mass_g:
+      v: 5.45
+      src: measured
+      src_note: "2026-09-30 夜用户称：6704 每个 5.45 g（目录值 5.9，轻 7.6%，在 overturn_if 15% 内）"
+      src_note_was_until_2026_09_30_hr54c: 6704ZZ 20×27×4 深沟球轴承（铬钢、双面金属防尘盖）标准件净重 0.0059 kg = 5.9 g。2026-09-09 查，多家轴承目录站对该标准件给同一值（bearingsdirect.com
+        / iskbearing.com / bearingsize.info 的 6704ZZ 条目）。**这是标准件的通用目录重量，不是我们要买那一批的实称重。**
+      sanity_check_2026-09-09: 独立几何校核：实心环 π/4 × (27² − 20²) × 4 = 1033.63 mm³，× 7.85 g/cm³（铬钢）= 8.11 g。目录值 5.9 g =
+        实心环的 72.7%。深沟球轴承要扣掉沟道、球间空隙、保持架，只加两片薄防尘盖 —— 这个实心率合理。两个独立方法互相印证，才敢写 datasheet。
+      source_limitation_2026-09-09: '**取数方式必须说清楚：** 本值来自 2026-09-09 的网页检索结果摘要，**没有逐站打开原页面核对**（本机网络策略拦截了这些域名的直接抓取）。所以它的强度是『多家目录站的一致口径』，不是『某一份签字的规格书』。到货称重（bench.yaml:BN15）之前不要当实称重用。'
+      applies_to_which_bearing: 对应 inventory_v2 的 **20×27×4**，不是原版那颗 16×22×4（见本文件 discrepancies:D-COMP-01：原版清单把 16×22×4
+        错标成 6704ZZ，两者不是同一颗，质量也不能互相引用）。09-17 起本条只装膝（L03 座 / L04 毂）×2，髋横滚两颗已取消（见 retired_hip_roll_2026-09-17）。
+      bench_ref: bench.yaml:BN15
+      overturn_if: 到货称重与本值差 >15% → 推翻，改记 measured。
+      why_this_cell_stays_red: 填了质量**不会**让 L7/bearing_6704zz 变绿：同格的 component_body 还红着 —— housed_by = [L01, L02, L03,
+        L04] 跨 4 个件、落在 4 个 MJCF body 上（yaw2roll / hip_l / upper_leg_left / leg；外圈在载体 L01·L03，内圈在从动件 L02·L04），data
+        里没写这 5.9 g 该算在哪个 body 上，层**不猜**。要清那条红，得在 schema 里加一个『质量归属 body』字段（常规做法：外圈算座那侧、内圈算毂那侧，各 50%）—— 那是 schema +
+        层的改动，不在本次数据补齐范围。09-17 起 housed_by = [L03, L04]（upper_leg_left / leg 两个 body），跨 body 的理由不变。
+    mount: 外圈压入座，内圈套毂；外圈内侧台阶 0.575 径向 @x12.75，外侧无挡；内圈-盘面留 0.5（09-17 起只指膝 L03/L04；髋横滚已无此轴承）
+    fixation:
+      kind: seat
+      by:
+        - "L03-F04"
+        - "L04-F01"
+        - "F08_knee_flange"
+        - "N05-BR01"
+        - "N05-BR02"
+        - "N05-BR03"
+        - "F17_headroll_flange"
+        - "N06-BR01"
+        - "N06-BR02"
+        - "N06-BR03"
+        - "F16_headyaw_flange"
+        - "N08-BR01"
+        - "N08-BR02"
+        - "N08-BR03"
+        - "N08-BR04"
+        - "F30_N08_headyaw_cap"
+      bearing_parts: ["L03", "L04", "N02", "N03", "N05", "N06", "N08", "H01", "H03"]
+      dof_note: "4 颗分 3 个站位，都是座孔+毂/轴颈的名义间隙配合（+0.15 / −0.15），不是压配 —— mount 里那句『外圈压入座』按 dims_assumed 自己的注记『压进待 TC01』理解。膝 ×2：外圈坐 L03 ring_boss Ø27.15（L03-F04），内圈套 L04 从动毂 Ø19.85（L04-F01，法兰 6×M2×12 = F08_knee_flange），轴向靠座底与 L04 盘面（留 0.5）。头横滚 A：外圈坐 H01+H03 对开座壁 Ø27.3（head_specs.json:head_roll_A.roots.A_seat_wall，外圈径向留 float），内圈被 N05 轴套端面（contacts.inner_rear_N05）与 N03 A 盘（contacts.inner_front_N03）轴向夹住，N05 自身由 F17 6×M2×8 压在横滚法兰上。头偏航：内圈被 N02 立筒与 N06 压盘夹住（F16 6×M2×8），外圈被 N08 压盖（N08-BR01/BR02 唇 + F30 2×M2×6）与 N03 座环（yaw_seat_wall_330deg）夹住。每颗：2 个径向平动 + 2 个倾覆转动由座/毂圆柱面锁死，1 个轴向平动由端面/唇/压盖锁死，剩下绕轴转动是工作自由度。"
+    connectors: null
+    cable: null
+    keepout_ref: bearing_driven_clearance 环 Ø27.5×4.45
+    insert_dir: 轴向沿法兰方向进座（先装座，再毂穿入）
+    provenance:
+    - duck.py:30
+    - duck.py:393-418
+    - duck.py:301-305
+    - inventory_v2.json:purchased[1]
+    current_design_ref: docs/design_2026-09-17_bearing_rebuild/记录.md
+    contact_face_verification:
+      v: null
+      src: null
+      unknown_class: not_measured
+      unknown_reason: 所选厂家内外圈及防尘盖端面边界、预紧和阻力未测
+  - id: "bearing_6700zz"
+    category: "bearing"
+    model: "6700ZZ 10×15×4"
+    qty: 3
+    qty_was_until_2026-09-23_hr38: 2（左右踝各 1）
+    qty_note_2026-09-23_hr38: "hr38：嘴关节惰轮侧再用 1 颗（J01 Ø9.95 轴颈 + H01 上半拱/H03 下半环拼的 Ø15.1 座，座宽 4.0 正好）。**采购 +1**。原版这里是 Ø15×10×3，我们换 6700ZZ 10×15×4 与踝同型号。"
+    claim:   # 2026-09-13 F-L7-6：原 l7_mass.py `cat == "bearing"` 分支逐字搬入
+      by: "envelope_ring"
+    envelope_solid:   # 2026-09-13 F-L3-3
+      shape: ring
+      bore_mm: 10.0
+      od_mm: 15.0
+      t_mm: 4.0
+      src: "datasheet：6700ZZ 10×15×4（envelope_mm 同值）"
+    housed_by:
+      - "L04"
+      - "L07"
+      - "H01"
+      - "H03"
+    housed_by_note_2026-09-23_hr39c: "第 3 颗（嘴惰轮侧 bearing_jaw）外圈在 H01 上半拱（H01-F19）+ H03 下半环（H03-F17）拼的 Ø15.1 座里，内圈套 J01 轴颈（J01-F03，y −49.55..−45.05，新嘴轴 (31.75, y, 245.5)）。hr38 qty 2→3 时 housed_by 没跟（L4 把它算进踝闭包，约 15 格 present 缺 bearing_jaw）"
+    envelope_mm:
+      v: "10×15×4"
+      src: "measured"
+      src_note: "座 Ø15.1（实测射线 15.093–15.100）；轴颈 Ø9.95（射线 9.938–9.950）；轴向 x -21.4..-17.4"
+    dims_measured: []
+    dims_assumed:
+      - v: "座 Ø15.1（实测射线 15.093–15.100）"
+        src: "assumed"
+      - v: "轴颈 Ø9.95（射线 9.938–9.950）"
+        src: "assumed"
+      - v: "轴向 x -21.4..-17.4"
+        src: "assumed"
+    mass_g:
+      v: 1.86
+      src: "measured"
+      src_note: "2026-09-30 夜用户称：6700 每个 1.86 g（目录值 1.9，轻 2.1%）"
+      src_note_was_until_2026_09_30_hr54c: "6700ZZ 10×15×4 深沟球轴承标准件净重 0.0019 kg = 1.9 g（2026-09-09 网页检索，多家轴承目录站给同一值：bearingsdirect / iskbearing / fitrunbearing / astbearings / smbbearings 等的 6700ZZ 条目；另有一处给 1.5 g）。是标准件通用目录重量，不是实称。"
+      sanity_check_2026-09-09: "独立几何校核：实心环 π/4 × (15² − 10²) × 4 = 392.70 mm³ × 7.85 g/cm³ = 3.083 g；1.9 / 3.083 = 61.6%。比 6704 的 72.7% 低，方向对 —— 同样 4 mm 厚但环宽只有 2.5 mm，沟道占比更大。"
+      source_spread: "目录站之间 1.9 g 与 1.5 g 两个值都出现过。取 1.9（偏重 = 保守方向）。差 0.4 g × 2 颗 = 0.8 g，占整机 681.4 g 的 0.12%，不改变 L7 任何结论。"
+      source_limitation_2026-09-09: "**取数方式必须说清楚：** 本值来自 2026-09-09 的网页检索结果摘要，**没有逐站打开原页面核对**（本机网络策略拦截了这些域名的直接抓取）。所以它的强度是『多家目录站的一致口径』，不是『某一份签字的规格书』。到货称重（bench.yaml:BN15）之前不要当实称重用。"
+      applies_to_which_bearing: "对应 inventory_v2 的 **10×15×4**，不是原版那颗 15×10×3（厚度差 1 mm，见 discrepancies:D-COMP-01）。"
+      bench_ref: "bench.yaml:BN15"
+      overturn_if: "到货称重与本值差 >15% → 推翻，改记 measured。"
+      why_this_cell_stays_red: "同 bearing_6704zz：housed_by = [L04, L07] 跨 leg / ankle_left 两个 MJCF body，component_body 那条红不受质量影响。"
+    mount: "外圈从 +x 喂入 L07 座，唇边 Ø13.5 挡；内圈滑套光轴，无轴向台阶"
+    fixation:
+      kind: seat
+      by:
+        - "L07-F01"
+        - "L07-F03"
+        - "L04-F11"
+        - "H01-F19"
+        - "H03-F17"
+        - "J03-F01"
+      bearing_parts: ["L07", "L04", "H01", "H03", "J03"]
+      by_was_until_2026_09_24_hr41: "J01-F03 / bearing_parts J01（hr41 轴颈从 J01 拆到可拆的 J03 上）"
+      by_note_2026-09-23_hr39c: "L07-F01/L07-F03/L04-F11 管左右踝两颗；H01-F19/H03-F17/J01-F03 管嘴那颗（轴向：臂内面 −49.55 到轴承 −y 面 0.5 浮动，+y 向由座环宽 = 轴承宽挡住）"
+      dof_note: "外圈从 +x 喂入 L07 座 Ø15.1（L07-F01，对 Ø15 外圈是 +0.1 名义间隙）到 Ø13.5 唇（L07-F03，0.8 径向）→ 唇挡住 −x 向轴向平动；L07+轴承整体再沿 −x 套上 L04 的 Ø9.95 光轴颈（L04-F11，径向名义 0.025）。2 个径向平动 + 2 个倾覆转动由座孔与轴颈两段圆柱面锁死；内圈本身无轴向台阶，+x 向轴向定位靠 L07 与 L05 合体后 F24_L07_to_L05 两颗 M2×12 把 L07 夹在踝件上（分体面 L05-F09/L07-F06）；绕踝轴转动是工作自由度。"
+    connectors: null
+    cable: null
+    keepout_ref: null
+    insert_dir: "轴承→L07 (+ex)，L07+轴承→轴颈 (-ex)"
+    provenance:
+      - "ankle_split.py:50-54"
+      - "inventory_v2.json:purchased[2]"
+  - id: "bearing_6702zz"
+    category: "bearing"
+    model: "6702ZZ 15×21×4"
+    qty: 2
+    claim:   # 2026-09-13 F-L7-6：原 l7_mass.py `cat == "bearing"` 分支逐字搬入
+      by: "envelope_ring"
+    envelope_solid:   # 2026-09-13 F-L3-3
+      shape: ring
+      bore_mm: 15.0
+      od_mm: 21.0
+      t_mm: 4.0
+      src: "datasheet：6702ZZ 15×21×4（envelope_mm 同值）"
+    housed_by:
+      - "T01"
+      - "L01"
+    added_2026-09-12: "⑤ 髋偏航法兰侧径向轴承 —— 原版此处本来就有一颗 22×16×4 推力式夹持（受力报告第 96 行），S288 配不了那种夹法，我们改法兰侧径向 6702（docs/reports/受力分析与双支撑决策_2026-09-12.md §4：单腿支撑弯矩 331 N·mm、零副支撑，全机最差）。
+      不是 6704：偏航 6704 本体与髋横滚 6704 本体零位相交 4.39 mm³（docs/reports/髋偏航6702轴承实施规格_2026-09-12.md）。（09-17 髋横滚 6704 已取消，这条相交论据成历史；6702 选型不改，另有 T01 座环壁厚等理由。）"
+    envelope_mm:
+      v: "15×21×4"
+      src: "assumed"
+      src_note: "座 Ø21.15（名义 +0.15，同 6704 口径）；毂 Ø14.85（名义 −0.15）；轴向局部 x 12.85..16.85（与 6704 同站位）"
+    dims_measured: []
+    dims_assumed:
+      - v: "座 Ø21.15（名义 +0.15）"
+        src: "assumed"
+      - v: "毂 Ø14.85（名义 −0.15）"
+        src: "assumed"
+      - v: "挡肩 Ø18.5 只压外圈端面：外圈内径按 ≥Ø19.0、内圈外径按 ≤Ø17.2 假设"
+        src: "assumed"
+    mass_g:
+      v: 3.52
+      src: "measured"
+      src_note: "2026-09-30 夜用户称：6702 每个 3.52 g"
+      was_until_2026_09_30_hr54c: "v null / not_measured"
+      unknown_reason_was_until_2026_09_30_hr54c: "6702ZZ 目录质量未查（约 2.5~3 g 量级），到货称重 BN15"
+    mount: "外圈从法兰侧（腹面）推入 T01 座 Ø21.15 到挡肩 Ø18.5；内圈套 L01 毂 Ø14.85；轴承轴向浮动 0.05（挡肩）~0.5（盘面）"
+    fixation:
+      kind: seat
+      by:
+        - "T01-F25"
+        - "T01-F26"
+        - "L01-F02"
+      bearing_parts: ["T01", "L01"]
+      dof_note: "外圈从法兰侧（腹面）沿轴向推入 T01 座孔 Ø21.15（T01-F25，对 Ø21 外圈 +0.15 名义间隙）到 Ø18.5 挡肩（T01-F26 —— 挡肩只压外圈端面，不碰会转的内圈和 L01 毂）；内圈套 L01 毂 Ø14.85（L01-F02，对 Ø15 内圈 −0.15）。2 个径向平动 + 2 个倾覆转动由座孔/毂两段圆柱面锁死，轴向一侧由挡肩挡（浮动 0.05）、另一侧由 L01 Ø26 盘面限位（0.5）；绕髋偏航轴转动是工作自由度。"
+    connectors: null
+    cable: null
+    keepout_ref: "seat_ring_clearance 环 Ø25.2/Ø14.85 × 4.5（L01）；seat_ring_zone Ø24.6 × 4.5 绕横滚轴 ±24° 扫掠（L02）"
+    insert_dir: "轴向沿法兰方向进座（舵机侧滑装好后从腹面推入；再装 L01）"
+    provenance:
+      - "duckstructure/lib.py:P['brg_yaw']"
+      - "tools/cad/assembly_audit.py:bearing_specs left/right_hip_yaw"
+      - "docs/reports/髋偏航6702轴承实施规格_2026-09-12.md"
+  - id: "bearing_22x16x4"
+    category: "bearing"
+    model: "深沟球轴承 16×22×4（原版 BOM 同款；型号名别用 6704，见 D-COMP-01）"
+    qty: 1
+    claim:   # 2026-09-13 F-L7-6：原 l7_mass.py `cat == "bearing"` 分支逐字搬入
+      by: "envelope_ring"
+    envelope_solid:   # 2026-09-13 F-L3-3
+      shape: ring
+      bore_mm: 16.0
+      od_mm: 22.0
+      t_mm: 4.0
+      src: "envelope_mm『16×22×4』（型号未定，尺寸是设计要求）"
+    housed_by:
+      - "H01"
+      - "H03"
+      - "N04"
+    added_2026-09-12: "④ 头横滚 B 端从 PLA 滑配盘换回原版轴承（恢复原版，原版 A/B 两端都是这颗）。A 端仍 PLA 滑配（舵机逼的）。"
+    envelope_mm:
+      v: "16×22×4"
+      src: "assumed"
+      src_note: "外圈 Ø22 在 H01 上半座 + H03 下半座 Ø22.18 里（径向 0.09）；内圈 Ø16 套 N04 销 Ø15.9（径向 0.05）；世界 x 40.2..44.2"
+    dims_measured: []
+    dims_assumed:
+      - v: "内圈外径≈18 / 外圈内径≈20（N03 Ø17.6 台肩只顶内圈的依据）"
+        src: "assumed"
+    mass_g:
+      v: 3.69
+      src: "measured"
+      src_note: "2026-09-30 夜用户称：ET2216ZZ（16×22×4）每个 3.69 g"
+      was_until_2026_09_30_hr54b: "v null / not_measured：未查目录"
+    mount: "H01 子装配翻过来放进上半座，N04 从头偏航舵机腔沿 +x 插入内圈；H03 合上时下半座抱住外圈、唇顶外圈 +x 面"
+    fixation:
+      kind: seat
+      by:
+        - "H01-F05"
+        - "H01-F14"
+        - "H03-F03"
+        - "N04-F02"
+        - "N04-F03"
+        - "F29_N07_headroll_B_cap"
+      bearing_parts: ["H01", "H03", "N03", "N04", "N07"]
+      dof_note: "头横滚 B 端。外圈：H01 上半座 + H03 下半座拼成整圈 Ø22.18（H01-F05 / H03-F03，对 Ø22 外圈径向 0.09）锁 2 个径向平动 + 2 个倾覆转动；+x 面被 H01-F14 唇（Ø18.6/Ø23.2×0.7）与 H03 自带下半唇顶住（head_specs.json:head_roll_B.contacts.outer_front_lips），−x 面靠 H01 座环（contacts.outer_rear_H01_ring_float0p1）→ 轴向平动锁死。内圈：套 N04 轴颈 Ø15.9（N04-F02，径向 0.05），−x 面顶 N03 Ø17.6 台肩（contacts.inner_rear_N03_shoulder），+x 面被 N07 压盖压住（F29 中心 M2×8 拧进 N04 Ø1.7 底孔 38.7..44.1）；N04 自己由 N04-F03 上半圈凸缘坐 N03 腹板 Ø18.2×1.0 沉窝定 +x、−x 靠头偏航舵机本体（隙 0.3）。剩下绕头横滚轴转动是工作自由度。"
+    connectors: null
+    cable: null
+    keepout_ref: "assembly_audit.bearing_specs head_roll_B（mount jaw_soft）"
+    insert_dir: "−z 放进 H01 上半座（翻转态），N04 +x"
+    provenance:
+      - "tools/cad/assembly_audit.py:bearing_specs head_roll_B"
+      - "docs/reports/头横滚B端轴承N04实施规格_2026-09-12.md"
+  - id: battery_3s
+    category: battery
+    model: 3S 1100mAh 30C 短剑款 XT30，72×25×18（购物车 2026-09-22：花牌 竞技短剑 3S 11.1V 1100mAh 30C XT30 ¥105，用户确认尺寸就是 72×25×18；原写
+      Infinity RS 同规格换牌）
+    qty: 1
+    claim:
+      by: envelope_box
+    envelope_solid:
+      shape: box
+      size_mm:
+      - 72.1
+      - 25.0
+      - 20.0
+      exact: true
+      src: 2026-09-27 用户卡尺实测 20.0 厚 × 25.0 宽 × 72.1 高（envelope_mm 同值；exact：电池是整块，placed 占位体 zz_battery 必须与它同尺寸）；was_until_2026-09-27 商品页标称 72×25×18
+    housed_by:
+    - T01
+    - B01
+    - B03
+    envelope_mm:
+      v: 72.1×25×20（P['bat']=(20,25,72.1) x厚 y宽 z高）
+      src: measured
+      src_note: 2026-09-27 用户卡尺：厚 20.0 宽 25.0 高 72.1（设计按 18 厚，仓腔 x 19.2 塞不进 → hr48 B01 门外加厚 2.0 + 内面开槽 1.6，T01 不动；lib.DOOR_ADD/DOOR_SLOT_*）；放电线母头 XT30 ≈47 mm（起止点未定义）；was_until_2026-09-27 商品页标称 72×25×18、放电线 55 mm
+    dims_measured:
+    - v: 厚 20.0 × 宽 25.0 × 高 72.1（用户卡尺，2026-09-27）
+      src: measured
+    - v: 70.8 g 带放电线 + 平衡线（用户厨房秤，2026-09-27）
+      src: measured
+    - v: 放电线（XT30 母头）≈47 mm（用户口径，起止点未定义）
+      src: measured
+    dims_assumed:
+    - v: 平衡线长度 / 出线位置 / 母头壳尺寸未量；放电线 OD≈2.8（17AWG）沿用假定
+      src: assumed
+    mass_g:
+      v: 70.8
+      src: measured
+      src_note: 2026-09-27 用户厨房秤 70.8 g（带放电线+平衡线）；was_until_2026-09-27 66 g 商品页标称（S288 19.5 g 仍是官方参数表未称重）
+    mount: 后口沿+x推入；B01门 + B03锁门盖；胶带拉环仅用于取出
+    fixation:
+      kind: pocket
+      by:
+      - T01-F11
+      - T01-F12
+      - T01-F13
+      - T01-F31
+      - B01-F01
+      - B01-F02
+      - B01-F07
+      - B03-F02
+      - F28_snap_B01
+      - F31_B03_front_detents
+      - F32_B03_rear_barb
+      bearing_parts:
+      - T01
+      - B01
+      - B03
+      dof_note: 电池底/侧由T01仓限制，前壁挡+x、后门挡−x；B01底脚进入T01隧道，上口由B03后卡舌锁住。F21默认不装。卡扣的抗掀/拉出/振动保持力待BN19，不能由刚体布尔推断。
+    connectors: XT30U 母头（2026-09-22 用户看实物定案，harness.yaml:HB02.connector_gender_2026-09-22）；hr39f 起母头贴在电池顶前段，和延长线（connector_xt30）公头对插，顶盖
+      B03 下面
+    connectors_was_until_2026-09-23_hr39f: XT30U 公头（母头绑前壁 2×Ø2.2 扎带孔）—— 『公头』是 09-22 定案前的旧记录
+    cable: 本电池的放电线与平衡线都贴在电池顶前段，开B03拔XT30后随电池从后口抽出；55mm放电线为同规格旧牌参考，花牌实长未量。
+    balance_lead_2026-09-22:
+      src: measured
+      src_note: 2026-09-22 用户实物：**平衡线与 XT30 放电线同一方向、同一头**（都在电池顶部），长度 **≈80 mm**（用户口径『极限 8cm，别按这么极限算』→ 设计按 **可用 60
+        mm** 留，留 20 折减）
+      exit_side: 与 XT30 同侧（电池顶，z≈146.3）
+      len_mm:
+        v: 80.0
+        src: measured
+        design_usable_mm: 60.0
+      connector:
+        v: null
+        unknown_class: not_measured
+        unknown_reason: 平衡头型号未确认（3S 常规是 XH2.54 4P，本体约 11.4×5.8×6.4）—— 到货看一眼
+      route_hr38_superseded: 电池顶 → 仓顶中间通道（|y|<6，实测净空后段 5.4 / 前段 12）→ 往后 → B01 门顶缺口（|y|≤6, z 143..148，hr38 新开）→ 接头露在门外，胶带贴住。充电不用拆电池。
+        路径长度粗算：电池顶前端 x≈−25 → 门外 x≈−47，约 22 mm + 上下折弯 ≈ 35 mm << 可用 60 mm，**够**。
+      route_hr39f: 平衡头贴在电池顶部；当前zz_xt30占位把平衡头叠于XT30对插头之上，包络顶z157.3；开B03并拆B01后随电池从后口抽出，充电在体外。平衡头尺寸/胶带厚度/线束盘放待实物验证。
+    keepout_ref: KO22 插头通道 + T01仓腔/−x抽出路径
+    insert_dir: -x→+x 从后推入
+    provenance:
+    - duck.py:32
+    - duck.py:37-56
+    - duck.py:592-597
+    - inventory_v2.json:purchased[3]
+    consumables:
+    - 布基胶带拉环（或≤0.3mm拉带）
+    - 胶带固定本电池插头，厚度未建模，需BN19试抽
+  - id: "sbc_radxa_zero3w"
+    category: "board"
+    model: "Radxa ZERO 3W 2 GB 带 40 针排针版（用户 2026-09-17 拍板换回原版主控；**2026-09-22 已在瑞莎店下单**）"
+    i2c3_overlay_2026-09-30: "主控板会话查到的根因：40 针 3 / 5（I²C3_M0）之前起不来 —— Radxa 官方 rk3568-i2s3-m0 overlay 里带一段把 i2c3 置 disabled，且按文件名排序它排在 rk3568-i2c3-m0 之后。板上已修：i2c3 overlay 复制成 /boot/dtbo/zz-i2c3-m0.dtbo（原文件改名 .disabled）让它最后应用，重启后 i2c-3 / i2s3 / npu 三者都 okay → 线束口径（I²C3 3 / 5 与 I²S3 12 / 35 / 38 / 40 同时用）成立"
+    heatsink_candidate_2026-09-30: "用户准备买 Radxa 官方 Heatsink 5519A（纯铜 55×19×2 + 55×19×1.5 导热硅胶片，整面贴芯片面，缺口让排针 / 天线）；**未买未到，到货以实物为准，envelope 不改**。主控板会话估：芯片面包络 3.0 → 3.5；铜片按尺寸 × 铜密度约 19 g（55×19×2 × 8.96 = 18.7，缺口未扣；导热垫质量未计），比裸板还重（该会话口径裸板 15.4 g；本条 mass_g 是 09-23 称的 14.93 g 带排针、不含 TF，口径不同未改），头部质量要加。形体预检（hr53_work/a03_sbc_heatsink_probe.py / .json，只读，现役 placed + 头内线束实体，0.5 格，抽样误差 ≈0.1）：芯片面中部（x −11.6..4 × y −28..26）头顶 ≥ 3.9 → 叠高 3.5 余 ≥ 0.4；紧的在外圈 —— 孔旁 H05 吊柱外沿离板面 ≈3.4（离孔心 3 mm 处）、排针旁杜邦壳 3.0（x > 4）、板两头 / −x 口边 H05 壳低到 ≈0.6–0.7。整片放不放得下取决于散热片孔位缺口与两头 / 口边外形 → 到货或拿到官方尺寸图后逐点核；芯片面上方没有 H01"
+    decision_2026-09-17: "从 Orange Pi Zero 3W 换成 Radxa ZERO 3W。理由（本仓核实）：① 65×30、孔距 58×23 = 树莓派 Zero 脚印 = H01 现有 4 根 Ø5 立柱（冻结）**不用动**；② 原版 Microduck 头就是给这块板设计的：原版 placed 里 pcb 在 x 67.3..68.9、HAT 在 x 59.2..60.0（板后 7.3 = 40 针排针层），我们 H01 保留的 14 mm 口袋（前立板 x52 → 板 x66）正是给排针留的；③ RK3566 4×A55 ≤1.6 GHz 被动散热即可（香橙派 A733 要 65×32×11.8 风扇组件，头里任何朝向都放不下：前 11.2 且被镜头座占中、后 14 且排针无处放）；④ 40 针有 I²S（麦克风/功放模块直插），双 USB-C（USB3 主机口给宇树转接板、USB2 OTG 口供电）；⑤ 官方 Microduck 软件栈/RKNN 视觉在它上面现成。代价：≈¥309 vs ¥50+51，算力 0.8 TOPS vs 3 TOPS（走路用不到）。"
+    qty: 1
+    claim:   # hr37
+      by: "placed_prefix"
+      pattern: "zz_sbc"
+    envelope_solid: {shape: none, why: "hr43e：层只认单盒（OBB 中心落位）。Radxa 平放叠层 = 板底元件 / CSI 座（3.0）+ 板 1.6 + 顶面元件（3.0）/ 40 针塑座+针（8.7，只在 x 6.16..11.24 一条）+ TF / 边口外伸 → OBB 13.3×31.2×67.0 的中心 z 259.35 比板中面 256.5 高 2.85；1.6 板盒放在那里 = 悬在板上方的一整片 65×30 → × H05 顶内皮 133.79 mm³（hr43d 记分卡；hr43e 抽样 123.6，交区 z 258.9..259.9，顶壳内皮按真元件让位、板边外圈比这片低）；真元件 placed zz_sbc × 打印件 = 0（L3 part_vs_component_solid 0.000；hr43e 抽样 0）→ 登记口径问题；hr43 起就红（141.08 → hr43c / hr43d 133.79），不是 hr43d 引入。另：同一口径让 placed_covers_envelope 也红（OBB 13.3×31.2×67.0 vs 声明 1.6×30×65）。多盒见 envelope_boxes_2026-09-25_hr43e；层支持多盒前按 none"}
+    envelope_solid_was_until_2026_09_25_hr43e:   # hr37
+      shape: box
+      size_mm: [65.0, 30.0, 1.6]
+      exact: false
+      src: "radxa.com Tech Spec 65×30，板厚 1.6；placed 实体 = 板（R3 角）+ 40 针塑座 8.5 朝 −x + 元件面 3.0 包络（assumed，|y|≤27）"
+    envelope_boxes_2026-09-25_hr43e: "多盒（= electronics.sbc_boxes，SBC_A_C (−3.5, −1.0, 256.5) 平放、板顶 257.3）：板 65×30×1.6 R2.45 角（radxa.com Tech Spec / 官方 DXF）；顶面元件 x −16.5..9.5 × y −28..26 × 3.0（assumed，四孔 r3.0 禁布圈挖掉）；40 针塑座+针 8.7（x 6.16..11.24，官方机械图）；板底元件 3.0（|y| ≤ 27，assumed）+ CSI 22P 座 + TF 卡外伸 2（09-23 实物）+ 边口 USB-C ×2 / micro-HDMI 外伸 1.2。hr43e 抽样：多盒 × H01/H05 = 0"
+    board_faces_2026-09-23:
+      src: "measured"
+      src_note: "用户 2026-09-23 发的摄像头套件实拍（排针那面朝下、CSI 面朝上）+ docs.radxa.com『ZERO 3W Overview』官方正反面标注图（radxa_zero_3w-ca1d8a6f.webp），两者一致"
+      pin_side: "**40 针排针的长脚/塑座在芯片面**（RK3566 + LPDDR4 + WiFi 模块 + 两个 USB-C 那一面）；另一面只有通孔焊点。实拍图里 CSI 面沿长边只看到两排焊盘，没有塑座"
+      csi_side: "**MIPI CSI 座在芯片面的反面**（eMMC / microSD / micro-HDMI / Maskrom 键 / radxa 丝印那一面）—— 与排针分属两面"
+      consequence_in_head: "H01 四根立柱（冻结）逼着排针朝 −x 进 14 mm 口袋 → **芯片面朝 −x（对着口袋与宇树转接板，板面到转接板 +x 面 2.7 mm）**，**CSI 面朝 +x（对着摄像头，板面 67.6 到摄像头 PCB 背面 72.6 共 5.0 mm）**。摄像头排线不用绕到板背面，方向是对的"
+      csi_socket_xyz_mm: "按官方正反面图逐像素换算（板 65×30 标定，±1）：CSI 座在 **+y 短边**（microSD 在 −y 短边），座体沿板 30 宽方向居中 → z 约 242..260；沿板长方向占短边内侧 1.2..6.4 → **y 26.1..31.3**；座高约 1.5 → **x 67.6..69.1**；排线从 **+y 端出**"
+      csi_route_probe_2026-09-23: "座位区、+y 端外折弯区（y 31..38）、沿板前面 z 236..244 横过来到摄像头底边这条廊道，对全部头件实测只碰到 zz_sbc 自己那 3 mm 元件面包络与摄像头/麦克风本体（都是目的地或包络假设），**没有件挡路**。零位直线距离约 32 mm，随机附 22→15 pin 150 mm 排线绰绰有余，余量要扎带收"
+      open_questions: "① microSD 卡槽朝 −y 端弹出 —— 头装好后能否插拔未验（若 SKU 带 eMMC 则影响小，本 SKU 是否带 eMMC 未确认）；② 芯片面朝口袋 → H05 出风槽现在开在 x 67..77（CSI 面上方），热源其实在 x 66 的 −x 面，出风槽应考虑挪到口袋正上方 x 52..66；③ 板两面元件高度都还是 assumed，到货要量"
+    placed_note_2026-09-22_hr37: "placed zz_sbc：板背面贴 H01 立柱尖 x 66（板 66..67.6，中心 z 251，y ±32.5）；排针塑座 z 257.4..262.5（上长边）；顶壳内顶 |y| 32 处 z 265.2 — 直角板角顶到 0.8，R3 圆角后余 0.5（hr37 探测，到货核板角）"
+    header_side_2026-09-23_hr39c: "用户 09-23 分项实测（主 agent 转来）：排针侧（针尖到板背面，含板厚）10.3，模型 10.1 → 按取大用 10.3；背面凸起 1.4（= 总厚 11.7 − 10.3），模型 3.0 → 按取大保持 3.0；总包络 13.3（尺寸口径：避让/占位包络取实测与官方/模型的较大值）"
+    tf_card_2026-09-23_hr39c: "用户 09-23 看实物确认（另一会话转来）：TF 卡槽在 −y 端（USB-C1 / 5V IN 那头），卡凸出板边约 1.5，含卡总长 66.5 → 包络按 67（板边外 +2）；卡常驻，按**永久占位**（禁入）。CSI 22P 座在背面 +y 端（HDMI 那头），排线从板边外往里插，与模型一致；板边三个口顺序已核对一致；背面凸起目测约 1.5（未用卡尺），包络仍按 3.0。对 ⑧ 的影响（4a 终版）：包络 x 67.6..70.6 × y 到 −34.5 × z 243..259（离 H01 1.89、H03 5.02、H05 8.00）；USB 线改走 Radxa 与转接板之间的缝（Radxa 端插头朝 +x 出），离 TF 卡 0.94；xt30_12v 航点 19..25 往 −y 让 0.5..1.9，离 TF 卡 1.27。换卡（按几何推断，没按装配流程核）：摘 H05 上头壳 → 拨开 12 V 线和 UBEC 地线 → 用镊子从上往下推卡"
+    placed_note_2026-09-25_hr43: "hr43 方案 A（用户 09-24 17:25 定）：Radxa 平放后脑顶部、SoC/排针朝上，= 旧占位整体刚体变换（electronics.SBC_A_*：中心 (−3,−2,257)，板 x −18..12 × y −34.5..30.5 × z 256.2..257.8，板顶 257.8）；排针塑座 x 6.16..11.24；USB-C ×2 + micro-HDMI 在 −x 长边（口朝 −x）；CSI 座在板底 +y 端（x −11.2..5.0 × y 24.5..30.25 × z 254.7..256.2，线从 +y 沿 −y 插）；TF 在板底 −y 端；顶面加元件包络 3.0（SBC_COMP_H，孔周 r 3.0 挖掉 = 官方 DXF 禁布）；四孔 Ø2.8。⚠ 设计稿表写的板 z 255.2..256.8 与同表中心 257 / CSI 座口 255.4 / SoC 顶 258.5 矛盾，按脚本取 256.2..257.8（hr43_改件报告「待主设计定」）"
+    housed_by:
+      - "H05"
+    housed_by_was_until_2026_09_25_hr43: ["H01"]
+    envelope_mm:
+      v: "65×30×1.6 板；孔距 58×23（radxa.com Tech Spec：65 mm × 30 mm；Pi Zero 脚印孔距）；40 针排针高 8.5 朝 −x（H01 口袋侧）"
+      src: "datasheet"
+      src_note: "2026-09-17 radxa.com/products/zeros/zero3w Tech Spec 原文『Dimension 65 mm × 30 mm』；孔距 58×23 为 Pi Zero 标准脚印（原版 Microduck 用同板，orig placed pcb 网格 y ±32.5 含板边）。排针朝口袋侧时 IMU/麦克风的插头总高不能超 14（口袋深）：竖插杜邦母头 ≈16.5 超，改 2×3 IDC 压接头或弯脚杜邦。**hr29 更新**：IMU 改 Adafruit 4438 SH 侧插，主控端 IDC 放不下（立柱离端针 1.9），改 H01 前立板顶角开口缺口 + 单针杜邦壳从缺口伸出（H01-F17）；这句只对麦克风等还没定的小板仍适用"
+    dims_measured:   # 2026-09-23 用户到货卡尺（带排针版）
+      - v: "板 65 × 30（与官方一致）"
+        src: "measured"
+      - v: "含 USB 口外伸的最宽处 31.2 → 口外伸板边 1.2（与 electronics.SBC_PORT_PROTRUDE 1.2 一致）"
+        src: "measured"
+      - v: "最厚处 11.5–11.7，按 11.7 记 = 排针针尖 → 背面最凸（接口/插座）"
+        src: "measured"
+        vs_model: "electronics.sbc_boxes 包络 = 排针 8.5 + 板 1.6 + 元件面 3.0（assumed）= 13.1 → 模型偏保守 1.4；拆分（针顶到板面高、板厚）待量"
+      - v: "TF 卡插到底凸出 USB_OTG/5V IN 端短边约 1.5 → 含卡总长 66.5；用户定包络按 67 预留（该端板边外 +2，卡常驻）"
+        src: "measured"
+      - v: "背面（与排针塑座相对的一面）：22P CSI 抽屉式座在 HDMI 端短边、TF 卡槽在 USB_OTG/5V IN 端短边；板边口丝印顺序 HDMI / USB3.0 / USB_OTG+5V IN"
+        src: "measured"
+        note: "用户照片 2026-09-23"
+    dims_assumed:
+      - v: "头扩展检查用 65×32×1.6 R2 + 背侧 52×24×12 元件占位，中心下移 2 → z249（旧香橙派占位，比 Radxa 宽 2，偏保守，暂留）"
+        src: "assumed"
+    mass_g:
+      v: 14.93
+      src: "measured"
+      src_note: "2026-09-23 用户到货称重 14.93 g（带排针版 2 GB，已焊 40 针排针；不含 TF 卡、线）。与旧占位 14 g 差 +6.6%，在 overturn_if 15% 内 → 占位口径没错，改记实测。"
+      was_until_2026-09-23: "v 14 / assumed：**占位**：radxa.com Tech Spec / wiki.radxa.com/Zero3 都没列重量（2026-09-17 查）。沿用同尺寸级 Orange Pi Zero 3W 的 14 g 作占位（不含排针/散热片/线）。到货称重回填 measured（bench.yaml:BN15）。"
+      history_2026-09-09: "旧值 14 g = Orange Pi Zero 3W 官方规格（2026-09-09 网页检索摘要，未逐站核对）"
+      source_limitation_2026-09-09: "**取数方式必须说清楚：** 本值来自 2026-09-09 的网页检索结果摘要，**没有逐站打开原页面核对**（本机网络策略拦截了这些域名的直接抓取）。所以它的强度是『多家目录站的一致口径』，不是『某一份签字的规格书』。到货称重（bench.yaml:BN15）之前不要当实称重用。"
+      excludes: "不含 microSD、散热片、排针、连接线；也不含 C4 头内基准板（deliberately_added:C4_head_datum_plate，未设计，mass_g 也是 null）。"
+      bench_ref: "bench.yaml:BN15"
+      overturn_if: "到货称重差 >15% → 推翻，改记 measured。"
+      why_this_cell_stays_red: "填了质量**不会**让 L7/sbc_radxa_zero3w 变绿，只会把红的理由从 component_mass 换成 world_placement_for_mass —— cad/duck_s288/placed/ 里 48 个实体全是打印件 / 舵机 / 轴承 / 电池 / 原版件，**一个电子件都没有**。也就是说这 14 g 从来没进过整机合计、每 body 漂移、各关节静扭矩和重心投影，而它挂在 H01（body jaw_soft）上、是力臂最长的位置。红换了个理由，但换出来的才是真问题。"
+    placed_note_2026-09-25_hr43c: "hr43c：板整体平移 (−0.5, +1.0, −0.5) → 中心 (−3.5, −1.0, 256.5)、板 z 255.7..257.3、孔 (−15/8, −30/28)（协调员 13:35 四档 dy 比选取 +1.0）；板角 R 按官方 DXF 2.45（原 3.0）"
+    otg_port_assumed_2026-09-25_hr43c: "复审 #2 m9：OTG（USB-C1）口壳仍按 USB-C 规范全宽 8.94 + 官方图口中心推（assumed），离 (−15, −30) 孔心 2.33 < DXF 禁布 3.0；H05 吊柱端段在口壳旁削平（离 0.2，盒随板平移）。板已到货：请量口壳外沿离该孔心的距离，< 2.9 就把柱端削到 Ø5.0"
+    mount: "hr43：板顶面（SoC/排针面，257.8）贴 H05 四根吊柱端面（H05-F11），4×M2×8 盘头自攻 + GB848 小平垫从板底拧进柱 Ø1.7 底孔深 7.0（F37，咬入 6.1）；顶壳子总成台面工位 h05_bench_radxa 装"
+    mount_was_until_2026_09_25_hr43: "4×M2 自攻进 Ø1.7 立柱底孔（长度未定）；板子排针面朝 −x（口袋），元件面朝 +x（脸）"
+    fixation:
+      kind: screws
+      by:
+        - "F37_sbc_to_H05"
+        - "H05-F11"
+        - "H05-F12"
+      bearing_parts: ["H05"]
+      by_was_until_2026_09_25_hr43: ["F25_sbc_to_H01", "H01-F02", "H01-F03", "H01-F04"]
+      bearing_parts_was_until_2026_09_25_hr43: ["H01"]
+      dof_note_2026-09-25_hr43: "四根吊柱端面（257.8，端段 Ø5.4）四点共面顶住板顶面 → +z 平动 + 绕 x/y 两个倾覆转动锁死；4 颗 M2 自攻（F37）经板孔 Ø2.8 拧进柱 → x/y 平动 + 绕 z 转动锁死、−z 由螺丝头 + 小平垫压住（螺丝未建模 = 几何上 −z 只靠螺丝）；板随顶壳整体拆装（拆壳翻过来插线、换 TF）。静态：板角离顶壳内面 0.64、离颈转动件 1.0（头横滚 −25°，hr43_work/sweep43.json）"
+      dof_note: "4 根 Ø5 立柱（H01-F03，x 51..66，孔距 58×23 = Pi Zero 脚印，柱端面 x 66）顶住板背面 → x 向平动 + 2 个倾覆转动由四点共面接触锁死；4 颗 M2 自攻（F25_sbc_to_H01）拧进柱端 Ø1.7 深 10 底孔（H01-F04）→ y/z 两个平动 + 绕 x 的转动由 4 个孔位锁死，六个自由度全约束。立柱基座是 H01-F02 前立板（x 47..52），板排针面朝 −x 进 14 mm 深口袋、元件面朝 +x。螺丝长度仍未定（F25 spec 原文『M2 自攻（长度未定）』）。"
+    fixation_note_2026-09-24_hr41: "**固定方式待 hr43：H05 四柱**（协调员 09-24 17:15：Radxa 在 hr43 搬到后脑顶）。本轮 H01 四柱不动、F25 不动；fix41.json 现位自核：+x/−x/±y/−z 在 1.25 内挡住，+z 3 mm 内无打印件挡（靠 F25 四颗螺丝，螺丝未建模）"
+    connectors: "USB-C2(USB3 主机)←宇树转接板 Type-C（弯头公对公 15 cm，同在头里）；40 针 pin 4/6 ← UBEC 5 V（HB04，杜邦 公对母 40 cm）；40 针 pin 3/5 ← IMU I²C3（HB05，经 H01-F17 缺口）；40 针 I²S ← 麦克风；22 针 CSI ← Radxa Camera 8M 219。（09-22 改：原写 USB-C1 供电 / IMU SPI 作废）"
+    cable: "未建模"
+    keepout_ref: "板+元件占位（头扩展检查）"
+    insert_dir: "先装主板再装摄像头（屏 2026-09-19 取消；头扩展检查）"
+    provenance:
+      - "duck.py:33"
+      - "duck.py:870-872"
+      - "duck.py:887"
+      - "inventory_v2.json:purchased[4]"
+  - id: "imu_icm42688"
+    category: "imu"
+    model: "Adafruit 4438 LSM6DSOX 6-DoF（STEMMA QT）—— hr29 定型（用户 2026-09-21 选，淘宝代购 ¥108）；id 沿用 imu_icm42688 不改（引用太多），旧 GY-601N1 ICM-42688 作废"
+    bench_2026-09-30: "主控板会话台架实测（用户接线 + 万用表）：落点 VIN → 1（3.3 V）/ SDA → 3 / SCL → 5 / GND → 14（1 号针 = micro HDMI 端、内列）；设计口径仍是 harness HB05 hr52_route（V+ 17 / SDA 3 一分二 / SCL 5 一分二 / GND 14），台架只是临时。第一次按标准 Qwiic 颜色接 → IMU 没接上地、把 I²C3 总线拽住（每次访问超时），拔掉 IMU 总线立刻正常；IMU 暂无烧毁迹象，截至 09-30 还没按实测线序重接验证。线序见 cable_qt_dupont_m.colors_measured_2026-09-30"
+    qty: 1
+    claim:   # hr37
+      by: "placed_prefix"
+      pattern: "zz_imu"
+    envelope_solid:   # hr37
+      shape: box
+      size_mm: [25.4, 17.78, 1.6]
+      exact: false
+      src: "Adafruit 4438 板文件 25.4×17.78×1.6；placed 实体 = 板 + 元件/侧插座 3.0 包络朝 +x"
+    placed_note_2026-09-22_hr37: "placed zz_imu：板贴 T01 前壁外面 x −21.1..−19.5（元件朝 +x 中央通道），长边沿 y ±12.7，z 96.4..114.2；孔 (±10.16, 111.65) 对 T01-F20"
+    housed_by:
+      - "T01"
+    envelope_mm:
+      v: "25.4 × 17.78 × 4.6（板 1.6 + JST-SH 侧插座 2.9 + 元件），R2.54；两个 JST-SH 1.0 4P 侧插座在两条 17.78 短边正中，线沿长轴出"
+      src: "datasheet"
+      src_note: "adafruit.com/product/4438『25.6mm x 17.8mm x 4.6mm』；板文件 github adafruit/Adafruit-LSM6DSOX-PCB（EagleCAD，2026-09-21 在线读）：板 25.4×17.78、孔 MOUNTINGHOLE_2.5 @(2.54,15.24)/(22.86,15.24)、CONN3/4 JST_SH4 @(22.86,8.89)/(2.54,8.89)、LSM6DSOX @(12.7,8.89)"
+    dims_measured: []
+    dims_assumed:
+      - v: "孔距 20.32、Ø2.5（板文件）；装法：板长边沿 y，芯片中心 = 冻结 site，两孔 (±10.16, 111.65)"
+        src: "datasheet"
+    mass_g:
+      v: 1.87
+      src: "measured"
+      src_note: "2026-09-27 用户称 Adafruit 4438 板（不含线）1.87 g（docs/measured_2026-09-27/实测登记_电池_Radxa_2026-09-27.md；当时只记在那份文档里，09-30 夜 hr54 回填到这里）。比 datasheet 1.7 g 重 0.17 g（+10%）"
+      was_until_2026_09_30_hr54: "v 1.7 / datasheet：adafruit.com/product/4438『Weight: 1.7g』（hr29）；到货称重回填 measured"
+      unknown_class_superseded_hr29: "not_measured"
+      unknown_reason: "清单未给质量；第 7 层质量预算缺此项 → BLOCK"
+      unknown_class_corrected_2026-09-09: "not_selected —— 原来记 not_measured（『没量』），但真正的原因是形态就没定，属于选型未定。旧值保留在上面一行不动。"
+      refused_2026-09-09: "**拒填。** ICM-42688 只写了芯片型号，没写形态：裸 QFN 芯片（2.5×3×0.9 mm，<0.1 g）、GY-42688 类转接小板（约 1 g 量级）、还是带稳压+电平转换的模块板 —— 之间差一个数量级。本条 envelope_mm 同样是 null（『板厚/外形未知』）；连外形都没有的件不能凭空给质量。"
+      what_would_unblock: "① 选定具体模块（连商品页）→ 商品页重量记 datasheet；② 到货称重 → 记 measured。"
+      where_it_lands: "IMU 位姿是冻结项（frozen.yaml:imu_pose，T01 电池仓前壁），一旦有数是挂 trunk_base、力臂很短 —— 对各关节静扭矩影响可忽略，对 trunk_base 的逐 body 漂移（现在 −25.419 g）有影响。"
+      bench_ref:
+        - "bench.yaml:BN07"
+        - "bench.yaml:BN15"
+    mount: "2×M2×4 自攻（F26，hr30 由 M2×5 改短：通孔 3.5 墙，5 会顶出仓侧口）进 T01 前壁 (±10.16, 111.65) Ø1.7 通孔；Ø2.5 孔配 M2 盘头 Ø3.8 单边压 0.65。**装 L01（第 10 步）之前装**：装好后前方只有 6.7~13 mm，起子从 +x 进不去"
+    fixation:
+      kind: screws
+      by:
+        - "F26_imu_to_T01"
+        - "T01-F20"
+      bearing_parts: ["T01"]
+      dof_note: "2×M2×4 自攻（F26_imu_to_T01）穿板上 2×Ø2.5 孔（孔距 20.32）拧进 T01 电池仓前壁的 2×Ø1.7 自攻底孔（T01-F20 @(−23.1, ±10.16, 111.65)，穿通 3.5 厚壁）：板背面贴前壁外面 x −21.1 → x 向平动 + 绕 y/z 的倾覆由贴合面锁死，y/z 两个平动由两孔锁死，绕 x 的转动由 20.32 的孔距锁死（两点够）。M2 盘头 Ø3.8 对 Ø2.5 孔单边压 0.65。只有两颗螺丝、没有第三点，所以垫平面就是防倾覆的唯一依靠 —— 前壁那一面必须是实面（T01-F12）。"
+    connectors: "STEMMA QT（JST-SH 1.0 4P 侧插，GND/V+/SDA/SCL）→ HB05：都会明武『QT转公头杜邦线 150』+ 泽杰『40P 母对母 400』撕 4 根，公母对插在躯干侧腔/顶板口袋；主控端 4 个杜邦母 1P 套 Radxa 3/4/5/6 脚（SDA/5V/SCL/GND；I²C3 用 overlay rk3568-i2c3-m0；V+ 走 5 V，板上 AP2112K 稳压 + 电平转换，VIN 3–5 V）"
+    cable: "cable_qt_dupont_m + cable_dupont_ff"
+    keepout_ref: "KO17（hr29 探针：零位板前净空 9.9 到髋横滚舵机背面；5601 真实姿态 + 髋三关节扫描，板+插头包络 0 碰撞、最坏 1.4 mm 到 L01）"
+    insert_dir: "板沿 −x 贴前壁前面（x −21.1），螺丝沿 −x 拧；SH 插头沿 −y 插进 +y 侧插座"
+    insert_dir_unknown_class: null
+    insert_dir_unknown_reason: null
+    provenance:
+      - "duck.py:658"
+      - "MJCF:109"
+      - "inventory_v2.json:purchased[5]"
+  - id: "camera_csi"
+    category: "camera"
+    model: "Radxa Camera 8M 219（IMX219，官方『适配 ZERO 3W/3E』款，含 22 pin 0.5 → 15 pin 1.0 同向排线 150 mm）"
+    model_was_until_2026-09-22: "OV5647/IMX219 类 CSI 摄像头（未选型）"
+    selected_2026-09-22: "用户定型并已下单（瑞莎店 ¥130）。安装位 H04 脸板仍未设计（electronics 尺寸核实 §2：PCB 贴脸板内侧 x 72..73.6、镜头前端 x≈88、脸板正中开 Ø14；PCB 背面离主板元件只有 2 mm，要实物到手再出件）"
+    qty: 1
+    claim:   # hr37
+      by: "placed_prefix"
+      pattern: "zz_camera"
+    envelope_solid:   # hr37
+      shape: box
+      size_mm: [32.0, 32.0, 15.98]
+      exact: false
+      src: "Radxa 官方机械图：PCB 32×32×1.6、镜座 13.2×13.2 高 14、总高 15.98；placed 实体 = PCB + 镜座 + 镜头 Ø8×0.38 + 背面 FPC 座 2×16×5（assumed）"
+    placed_note_2026-09-22_hr37: "placed zz_camera：PCB x 72.6..74.2（前面贴 H04 立柱端面），|y|≤16，z 235..267；镜座穿 H04 13.6 方孔，镜头前端 x 88.6；4×M2×4 从背面拧（F27，台面工位 h04_bench）"
+    mount_2026-09-23_hr39c: "hr39c-⑦（4a 终版）：摄像头倒装 180°（绕光轴转，图像软件翻转；electronics.CAM_FLIPPED）→ 背面 FPC 翻盖座从底边换到顶边（实测 高 5.1 × 宽 20.1，深 6 按照片取大，座外侧与板边齐平），排线从座顶朝 +z 出；光轴世界坐标不动 (y 0, z 257.94)，PCB x 84.67..86.27（前面贴 H04 立柱端面 86.27），镜头前端 x 101.07（按实测 16.4，比官方口径往前 0.42）；H04 方孔 / 4 立柱、圆眼 E01–E03 都不挪。PCB 32×32、孔距 28×28、镜座 13.2 方在模型里关于光轴对称（镜头居中 = 官方图口径，到货没单独核）。排线走法见 harness.yaml:HB06_camera_csi.cable_2026-09-23_hr39c.route"
+    housed_by:   # hr37：H04 脸板已出件
+      - "H04"
+    housed_by_was_until_2026-09-22_hr37: "[]（H04 未设计）"
+    envelope_mm:
+      v: "PCB 32×32×1.6，4×Ø2 孔距 28×28；镜座 13.2×13.2 高 14；总高 15.98（PCB 背面到镜头前端）；FPC 座在背面底边"
+      src: "datasheet"
+      src_note: "docs/design_2026-09-17_bearing_rebuild/电子件尺寸核实_2026-09-19.md §2（Radxa 官方机械图 09-19 抄录）；到货卡尺复核"
+      was_until_2026-09-22: "占位 20×18×6 + 镜筒 Ø9 前端 x=89；备选 25×24×6（assumed）"
+    dims_measured:   # 2026-09-23 用户到货卡尺
+      - v: "PCB 32 × 32（与官方图一致）"
+        src: "measured"
+      - v: "总厚 21.5 ±0.2 = 镜头最前端 → 背面 FPC 翻盖座最高点（用户：难量，先后报过 21.7 / 21.3，最后定 21.5）"
+        src: "measured"
+      - v: "背面 FPC 翻盖座：高 5.1（PCB 背面起，按与官方 15.98 自洽推定；用户未明说是否含 1.6 板厚）、沿边长 20.1"
+        src: "measured"
+        vs_model: "electronics.py:camera_boxes 的 fpc 按 assumed 2 高 × 16 宽 × 5 深建 → 实物高 +3.1、宽 +4.1。深（离边多远）未量"
+      - v: "正面 PCB 背面 → 镜头前端 21.5 − 5.1 = 16.4（官方 15.98，+0.4，卡尺/镜头旋入量内）"
+        src: "measured"
+    dims_assumed: []
+    mass_g:
+      v: 7.32
+      src: "measured"
+      src_note: "2026-09-23 用户到货称重：裸摄像头模组 7.32 g；摄像头 + 随附两根排线（白、金各一）合计 8.7 g → 两根线共 1.38 g。装机只用 22→15 pin 那一根，单根未单独称 → 装机件（模组 + 一根线）∈ [7.32, 8.70] g，保守取 8.7 g 进头部质量。"
+      installed_with_cable_upper_g: 8.7
+      was_until_2026-09-23: "v null / not_measured：09-22 已定型下单（Radxa Camera 8M 219），官网/商品页未给整件重量 → 到货称重记 measured；不编"
+      unknown_reason_was_until_2026-09-22: "清单未给质量；第 7 层质量预算缺此项 → BLOCK"
+      unknown_class_corrected_2026-09-09: "not_selected（旧值 not_measured 保留在上面）；2026-09-22 起回到 not_measured（已选型未称重）。"
+      refused_2026-09-09: "**拒填。** model 自己写着『（未选型）』：OV5647 与 IMX219 是两种模组，加不加镜筒 / 滤光片 / 排线，重量差几倍。envelope 也只是占位（20×18×6 + 镜筒 Ø9，备选 25×24×6）。"
+      what_would_unblock: "选型定稿 → 商品页重量记 datasheet；到货称重记 measured。选型时还要一起解决 discrepancies:D-COMP-03（视锥出瞳点与 MJCF head_camera site 差 13 mm）。"
+      budget_g:
+        v: 495.8
+        src: "measured"
+        value_status: "proposed"
+        src_note: "**共享上界，不是这一件的估重。** = tolerances.yaml:load.head_added_mass_budget_g 的 509.8 g 减去已经确定要进头的 sbc_radxa_zero3w 的 14 g。摄像头 / 麦克风 / 小板 **三件共用这一个池子**（1.9\" 屏 09-19 取消），不是每件各 495.8 g。"
+        pool_ref: "tolerances.yaml:load.head_added_mass_budget_g"
+        hard_warning: "509.8 g 是按 static_torque_margin = 1（即名义**堵转** 0.6 N·m）二分出来的上界。S288 的可持续扭矩未知（tolerances.yaml:load.servo_rated_torque_Nm.continuous_torque_Nm = null）。按同一条的 sensitivity_illustration：系数 0.5 → 165 g、0.3 → 27 g、≤0.261 → 0 g。**BN13/BN03 实测出来之前，这个预算没有选型决策价值。**"
+        bench_ref:
+          - "bench.yaml:BN13"
+          - "bench.yaml:BN15"
+    mount: "hr41：PCB 贴 H04 内面（x 90.57..92.17），四角定位销 + H06 压框 2×M2×8（F27）"
+    mount_was_until_2026_09_24_hr41: "需新脸板 H04/压框（未设计；09-22 定型 8M 219 后按 32×32 / 孔距 28×28 / Ø14 镜孔出件）"
+    placed_note_2026-09-24_hr41: "zz_camera 前移 5.9（electronics.CAM_POST_REMOVED_SHIFT）：PCB x 90.57..92.17，镜头前端 106.97；PCB 占位补 4×Ø2 孔（官方图）—— 之前 H04 定位销插进实心 PCB 占位盒，静态 12.158 mm³ 即此；补孔后 0"
+    fixation:
+      kind: screws
+      by:
+        - "F27_camera_to_H04"
+        - "H04-F01"
+        - "H04-F05"
+        - "H04-F06"
+        - "H04-F07"
+        - "H06-F01"
+        - "H06-F02"
+        - "H06-F03"
+      bearing_parts: ["H04", "H06"]
+      by_was_until_2026_09_24_hr41: ["F27_camera_to_H04", "H04-F01", "H04-F02"]
+      dof_note: "hr41 贴板（用户定）：PCB 前面贴 H04 内面四角 5×5 贴合面 x 92.17（H04-F06 浅坑 0.8 给正面元件让位）→ +x 平动与绕 y/z 倾覆由四角共面锁死；四角 Ø1.8×1.2 定位销（H04-F05，孔距 28）进 PCB 4×Ø2 孔 → y/z 平动与绕 x 转动锁死；H06 压框（H06-F01 两竖条 + 底梁、H06-F02 四角压块贴 PCB 背面 90.57）→ −x 锁死，F27 2×M2×8 自攻从耳（H06-F03）拧进 H04 凸台（H04-F07），耳离凸台顶 0.2，拧紧即预压。镜头穿 Ø23 通窗（H04-F01）。六向/翻倒自核（hr41_work/fix41.json（六向平移每 0.25 mm 到 3 mm / 翻倒每 0.5° 到 8°，对头里打印件+舵机+轴承并集，交 >0.05 mm³ 即算挡住））：±x/±y/±z 全在 0.25 内挡住（+x/±y/±z = H04，−x = H06），±rx/ry/rz 全在 0.5° 内挡住。放入 / 锁住 = 台面工位 h04_bench（装序 P 18d 之前）。**未覆盖**：PCB 正面元件高度没量（0.8 浅坑 assumed）、背面元件除 FPC 座外没量（压框离背面 3.37 assumed）"
+      dof_note_was_until_2026_09_24_hr41: "hr37 已出件，旧 mount 文本『需新脸板 H04/压框（未设计）』过时。4 根 Ø4.5 立柱（H04-F02，x 74.2..80.15 @(y ±14, z 251±14)）从脸板内面伸出 5.9 顶住 PCB 前面 x 74.2 → x 向平动 + 2 个倾覆转动由四点共面锁死；4×M2×4 自攻（F27_camera_to_H04）从背面 −x 侧穿 PCB 的 4×Ø2 孔（孔距 28×28）拧进柱端 Ø1.7 深 5.0 底孔 → y/z 平动 + 绕 x 转动锁死。镜座 13.2 方穿 H04-F01 的 13.6 方孔（单边 0.2）再加一道防转。H04 本身无螺丝：插顶壳凹槽 + H03 前唇槽锁底边（parts.yaml:H04.role）—— 摄像头是刚性拧在 H04 上的，H04 对头壳的固定是另一条链。"
+    connectors: "22 pin 0.5 mm FPC（Radxa ZERO 3W CSI 座）← 22→15 pin 同向排线 **200 mm**（hr43：Radxa 搬后脑，随机 150 不够；设计稿 §1；**用户未答买不买** → hr43_改件报告「待用户答」）；头内不跨关节"
+    connectors_was_until_2026_09_25_hr43: "22 pin 0.5 mm FPC（Radxa ZERO 3W CSI 座）← 随机附 22→15 pin 同向排线 150 mm；头内不跨关节"
+    cable: "跨颈线束寿命未证"
+    keepout_ref: "视锥 80°×60° @(89,0,264) 无遮挡（绑定该出瞳）"
+    insert_dir: "先拆顶壳与脸板；早于屏"
+    insert_dir_2026-09-24_hr41: "台面 h04_bench：PCB 正面朝 +x 按进 H04 四角定位销（世界 +x），扣 H06、拧 F27；H04 随 H05 组在装序 P 18d 从上 −z 盖下"
+    provenance:
+      - "inventory_v2.json:purchased[6]"
+      - "docs/archive/头部扩展防御性检查_2026-09-09.md"
+  - id: "display_lcd"
+    category: "other"
+    model: "1.9\" LCD（占位）—— **2026-09-19 用户定：取消屏幕**，整块脸归摄像头（H04 脸板待出）"
+    qty: 0
+    cancelled_2026-09-19: "用户拍板取消（docs/design_2026-09-17_bearing_rebuild/记录.md 第 23 条）；记录保留只作历史，qty=0 不进质量/布局"
+    housed_by: []
+    housed_by_unknown_class: "not_modeled"
+    housed_by_unknown_reason: "整鸭 CAD 里没有该件的安装位（['前脸下部']）"
+    envelope_mm:
+      v: "46.5×27×3 占位（不含转接板）"
+      src: "assumed"
+      src_note: "全部占位"
+    dims_measured: []
+    dims_assumed:
+      - v: "全部占位"
+        src: "assumed"
+    mass_g:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "清单未给质量；第 7 层质量预算缺此项 → BLOCK"
+      unknown_class_corrected_2026-09-09: "not_selected（旧值 not_measured 保留在上面）。"
+      refused_2026-09-09: "**拒填。** 1.9\" LCD 只有一个占位外形 46.5×27×3，且注明『不含转接板』。屏 + 转接板 + FPC 的总重取决于具体模组，未选型。"
+      what_would_unblock: "选型定稿（连商品页）；同时要核 02_小车打印件/13_face_panel 与顶壳 8.914 mm³ 的干涉，那条也还开着。"
+      budget_g:
+        v: 495.8
+        src: "measured"
+        value_status: "proposed"
+        src_note: "**共享上界，不是这一件的估重。** = tolerances.yaml:load.head_added_mass_budget_g 的 509.8 g 减去已经确定要进头的 sbc_radxa_zero3w 的 14 g。摄像头 / 麦克风 / 小板 **三件共用这一个池子**（1.9\" 屏 09-19 取消），不是每件各 495.8 g。"
+        pool_ref: "tolerances.yaml:load.head_added_mass_budget_g"
+        hard_warning: "509.8 g 是按 static_torque_margin = 1（即名义**堵转** 0.6 N·m）二分出来的上界。S288 的可持续扭矩未知（tolerances.yaml:load.servo_rated_torque_Nm.continuous_torque_Nm = null）。按同一条的 sensitivity_illustration：系数 0.5 → 165 g、0.3 → 27 g、≤0.261 → 0 g。**BN13/BN03 实测出来之前，这个预算没有选型决策价值。**"
+        bench_ref:
+          - "bench.yaml:BN13"
+          - "bench.yaml:BN15"
+    mount: "小车 13_face_panel 直装撞顶壳 8.914 mm³，接口未核"
+    connectors: null
+    cable: null
+    keepout_ref: null
+    insert_dir: null
+    insert_dir_unknown_class: "not_modeled"
+    insert_dir_unknown_reason: "装配方向未定义；第 4 层无法生成扫掠路径"
+    provenance:
+      - "inventory_v2.json:purchased[7]"
+  - id: "mic_inmp441"
+    category: "other"
+    model: "方型 I²S 数字麦克风模块 10×10（信泰微电子 『方型兼容芯片版本 已焊排针』，芯片 敏芯 MSM261S 系 —— 商家 2026-09-22 答复；INMP441 圆板正品 1 只备用）"
+    model_was_until_2026-09-22_hr37: "INMP441 麦克风（占位）"
+    qty: 1
+    claim:   # hr37
+      by: "placed_prefix"
+      pattern: "zz_mic"
+    envelope_solid: {shape: none, why: "hr43e：层只认单盒（OBB 中心落位）。麦克风 = 板 10×10×1.6 + 板下两排短针（0.64 宽 × 2.5）+ 芯片 Ø4 + 板上两排塑座+杜邦壳（7.62×2.54 × 16.5）；单盒 10×10×20.6 把两排之间、板下整块 10×10×2.5 都当实体 → × H03 麦克风台 103.84（台面托板，只给两排针开槽 / 芯片沉坑）、× H04 脸板内面 84.14 mm³（盒 +x 面 92.67 × 板上 16.5 高，真元件只有 PCB 边进 H04-F03 浅槽）（hr43d 记分卡；hr43e 抽样 94.5 / 80.0）；真元件 placed zz_mic × 打印件 = 0（L3 part_vs_component_solid 0.000；hr43e 抽样 0）→ 登记口径问题。hr43d 台面泡棉下沉 0.8 让交从 134.79 降到 103.84，不是它造成的（hr43 / hr43c 就是 134.79）。多盒见 envelope_boxes_2026-09-25_hr43e；层支持多盒前按 none"}
+    envelope_solid_was_until_2026_09_25_hr43e:   # hr37
+      shape: box
+      size_mm: [10.0, 10.0, 20.6]
+      exact: false
+      src: "商品页标称 10×10（信泰微电子 方型兼容芯片版本，敏芯 I²S，已焊 11 mm 标准排针，商家答复）；板厚 1.6 / 芯片 Ø4×1.2 assumed；总高 20.6 = 短针 2.5 + 板 1.6 + 塑座 2.5 + 杜邦壳 14（hr38：芯片 1.2 被短针 2.5 覆盖，用户 2026-09-23 看实物）"
+    envelope_boxes_2026-09-25_hr43e: "多盒（= electronics.mic_boxes，世界系 hr39c 平移后）：PCB x 82.67..92.67 × y 30.31..40.31 × z 236.66..238.26；芯片 Ø4×1.2 板下居中；两排（y 边内 1.27）塑座+杜邦壳 x 83.86..91.48 × 2.54 × z 238.26..254.76；两排短针 x 83.86..91.48 × 0.64 × z 234.16..236.66。10×10 商品页，其余 assumed。hr43e 抽样：多盒 × H03/H04 = 0"
+    placed_note_2026-09-23_hr38: "台顶 233.0→234.2（台加厚到 3.2），两排短针各一条 2.0 宽×2.8 深让位槽（head.MIC_PIN_SLOT_*），PCB z 234.2..235.8，杜邦壳顶 z 252.3，H04-F03 浅槽随之 z 234.0..236.0；orientation_2026-09-23.design_impact_BLOCKER 按 (a) 方案解决"
+    placed_note_2026-09-22_hr37: "placed zz_mic：平放在 H03 麦克风台（H03-F12，台顶 z 233）上，x 70.6..80.6 × y 24..34，芯片朝 −z 对 Ø1.5 声孔；+x 边进 H04 浅槽（H04-F03）；两排 3P 杜邦母壳朝 +z 到 z 251.1（购物车 10 cm 母对母撕 3P ×2）"
+    placed_note_2026-09-23_hr39c: "麦克风台/麦克风/H04 浅槽整组平移 head.T_MIC (12.07, 6.31, 2.46)：PCB x 82.67..92.67 × y 30.31..40.31 × 台顶 z 236.66（H03-F12 / H04-F03）"
+    housed_by:
+      - "H03"
+    housed_by_was_until_2026-09-22_hr37: "H01（占位说法）"
+    envelope_mm:
+      v: "19×15×5"
+      src: "assumed"
+      src_note: "占位"
+    dims_measured: []
+    dims_assumed:
+      - v: "占位"
+        src: "assumed"
+    mass_g:
+      v: 0.63
+      src: "measured"
+      src_note: "2026-09-27 用户称 信泰方型 I²S 麦克风（已焊排针，不含线）0.63 g（docs/measured_2026-09-27/实测登记_电池_Radxa_2026-09-27.md；当时只记在那份文档里，09-30 夜 hr54 回填到这里）"
+      was_until_2026_09_30_hr54: "v null / not_measured"
+      unknown_reason_was_until_2026_09_30_hr54: "清单未给质量；第 7 层质量预算缺此项 → BLOCK"
+      unknown_class_corrected_2026-09-09: "not_selected（旧值 not_measured 保留在上面）。"
+      refused_2026-09-09: "**拒填。** 型号写了 INMP441 但整条记录标着『占位』，envelope 19×15×5 也是占位；裸模组与带引出线的成品板重量不同。"
+      what_would_unblock: "选型定稿（连商品页）→ datasheet；到货称重 → measured。"
+      budget_g:
+        v: 495.8
+        src: "measured"
+        value_status: "proposed"
+        src_note: "**共享上界，不是这一件的估重。** = tolerances.yaml:load.head_added_mass_budget_g 的 509.8 g 减去已经确定要进头的 sbc_radxa_zero3w 的 14 g。摄像头 / 麦克风 / 小板 **三件共用这一个池子**（1.9\" 屏 09-19 取消），不是每件各 495.8 g。"
+        pool_ref: "tolerances.yaml:load.head_added_mass_budget_g"
+        hard_warning: "509.8 g 是按 static_torque_margin = 1（即名义**堵转** 0.6 N·m）二分出来的上界。S288 的可持续扭矩未知（tolerances.yaml:load.servo_rated_torque_Nm.continuous_torque_Nm = null）。按同一条的 sensitivity_illustration：系数 0.5 → 165 g、0.3 → 27 g、≤0.261 → 0 g。**BN13/BN03 实测出来之前，这个预算没有选型决策价值。**"
+        bench_ref:
+          - "bench.yaml:BN13"
+          - "bench.yaml:BN15"
+    mount: "垫座接 H01 横梁（3.5 mm）"   # **过时**：hr37 起改为 H03 地板上的麦克风台 H03-F12 + H04-F03 浅槽
+    orientation_2026-09-23:
+      src: "measured"
+      src_note: "用户看实物 + 商品图（2026-09-23）"
+      sound_port: "**声孔在正面**，即 MEMS 芯片那一面（芯片罐顶上那个小孔）—— 顶端口（top-port），不是底端口"
+      header_orientation: "排针出厂已焊。**短脚那一面在有字（丝印 SD/VDD/GND）的那一面 = 芯片面**；标准 11 mm 排针 = 塑座 2.5 + 长脚 6.0 + 短脚 2.5。
+        → **芯片面（正面）有 2.5 mm 短针露出；背面有 8.5 mm（塑座 2.5 + 长脚 6.0）**"
+      design_impact_BLOCKER: "**推翻现有麦克风台设计**（electronics.MIC_* / head.mic_pad）：现在的模型是『芯片朝 −z 扣进台面 Ø4.2 沉坑、PCB 平贴台顶 z 233.0、排针 8.5 朝 +z』，
+        但芯片面还有 2.5 短针 —— **PCB 根本贴不平台面**。hr38 重做麦克风台时必须二选一：
+        (a) 台面下沉 ≥2.5 或给 2×3 短针开让位孔/槽（2.54 间距），PCB 才能落位；
+        (b) 翻过来芯片朝上、声孔改开在别处 —— 但那样声音得绕路，且与 H04 浅槽方案冲突。
+        这条与复审 B-01（麦克风口袋两边 0 间隙、刚体路径搜索无解）是同一处，hr38 一并重做。"
+    fixation:
+      kind: captive
+      by:
+        - "H03-F12"
+        - "H04-F03"
+      bearing_parts: ["H03", "H04"]
+      dof_note_2026-09-24_hr41: "hr41：H04 跟摄像头贴板一起加厚到内面 92.17，麦克风 +x 边浅槽（H04-F03）改成**下开口**（槽底开到 H04 下缘）—— 装序 P 里 H04 随 H05 从上 −z 盖下，麦克风已在 H03 台上，槽得从上往下套进 PCB 边；其余（台托 −z、三面墙 x/y、−x 唇压 +z）同 hr38。六向/翻倒自核（hr41_work/fix41.json（六向平移每 0.25 mm 到 3 mm / 翻倒每 0.5° 到 8°，对头里打印件+舵机+轴承并集，交 >0.05 mm³ 即算挡住））：六向全在 0.25 内挡住（H03 + H04），翻倒全在 0.5° 内挡住。放入 = 18c 前台面（H03 上），锁住 = 18d（H04 盖下）"
+      dof_note: "无螺丝，两件夹持。旧 mount 文本『垫座接 H01 横梁（3.5 mm）』是 hr37 之前的口径，已过时 —— 现在是 H03 地板上的麦克风台（H03-F12：地板 z 231.1 上 2.0 厚台，台顶 z 233，台 x 69.8..80.1 × y 23.2..34.8）。10×10 PCB 平放在台面上 → −z 由台面托；三面 0.8 墙（−x/±y，高 2.6）夹住 x/y 两个平动与绕 z 的转动；−x 墙 0.6 内伸唇（x 70.6..71.2, z 234.8..235.6）压住 PCB 那条边 → 管 +z；+x 边落进 H04 脸板内面浅槽（H04-F03，x 80.05..80.65 深 0.55）→ 装上 H04 后 +x 与剩下的 +z/倾覆全封死，板被 H03+H04 夹成 captive。芯片朝 −z 对台顶 Ø4.2×1.4 沉坑 + 穿地板的 Ø1.5 声孔（也是六向射线判据在这件上从 −z 穿出去的原因）。"
+    connectors: null
+    cable: null
+    keepout_ref: "上方 Ø2 声孔只穿顶壳（壳厚 1.749），未开"
+    insert_dir: [0, 0, -1]
+    insert_dir_note_2026-09-24_hr41: "世界 −z：台面上从上往下放进 H03 麦克风台（−x 边先塞进唇下），随 H03 组在 18c 从下 +z 合上（assembly step18 c_H03_group_up movers 含 zz_mic）"
+    insert_dir_was_until_2026_09_24_hr41: {v: null, unknown_class: not_modeled, unknown_reason: 装配方向未定义；第 4 层无法生成扫掠路径}
+    provenance:
+      - "inventory_v2.json:purchased[8]"
+    fixation_note_2026-09-25_hr43d: "hr43d 加固：H03-F12 台面在两排短针槽之间下沉 0.8（head.MIC_FOAM），贴 1 mm 泡棉胶条 ≈9.5 × 6.2、中间开 Ø4.4 孔（让芯片 Ø4 × 1.2 穿过、围住 Ø1.5 声孔 = 声学密封垫），压到 0.8 → PCB 顶在 −x 唇下（唇离 PCB 顶 0.2）= 预压；PCB 位置 / 针槽 / 沉坑绝对深度不变。研究写「Ø3 孔」按芯片外形改 Ø4.4（assumed，到货看芯片）"
+    consumables_2026-09-25_hr43d: ["1 mm 泡棉胶条 9.5×6.2 带 Ø4.4 孔（tape_foam_1mm 裁）"]
+  - id: "tof_vl53l5cx"   # hr52（2026-09-29）：用户定名「v6-VL53L5CX 雷达」，补回原版头部 ToF（comparison A9 那颗）
+    category: "sensor"
+    model: "通用 VL53L5CX 8×8 多区 ToF 模块「VL53L5X V2」（绿板，6 针 VIN GND SCL SDA INT LPn；芯片 ST VL53L5CX；商品页『型号 VL53L5CX / 品牌 mw』）"
+    selected_2026-09-29_hr52: "用户 09-29 定这块板、定名「v6-VL53L5CX 雷达」；要商家代焊 6P 直排针（用户：不接受焊线，整鸭不焊接）。**还没下单**（2026-09-29 只核了商品页）"
+    purchase:
+      shop: "都会明武电子（淘宝；用户买过的店）"
+      url: "https://item.taobao.com/item.htm?id=737603917521"
+      sku: "颜色分类『VL53L5X V2模块』（skuId 5090650052052）—— 不要『配盖片』：盖片会把芯片垫高，脸板上开的芯片槽就是窗"
+      price_cny: 44.5
+      price_checked: "2026-09-29 商品页（内置浏览器只看，没加购没下单）；页上『已售 1000+』"
+      same_board_other_shops: ["晟屹 ¥45 item 690426576893", "大蜗牛创客基地 ¥45 item 1038443957652"]
+      screenshots_dir: "docs/design_2026-09-17_bearing_rebuild/tof_预检_2026-09-29/商品页截图_2026-09-29/"
+      screenshots: ["01_标题_价格44.5_选模块SKU.jpg", "02_产品参数_尺寸图_手工测量仅参考.jpg", "03_主图_正面_散装排针_盖片.jpg", "04_实拍_正面引脚丝印_背面元件.jpg", "05_盖片方向_芯片正面.jpg"]
+      page_params_verbatim: "工作电压 3～5V；通信 IIC；测量绝对距离 0-4 米；Xshutdown（复位）/GPIO（中断）；尺寸『手工测量仅参考』"
+      ask_seller: ["能否代焊 6P 直排针：塑料座焊在芯片反面（背面）、针朝后伸", "芯片那一面的针脚**不用剪**（hr52c 用户 09-30 定：怕剪坏板；H04 开通透长条 H04-F13 让位）——原问「剪平、焊点 ≤0.6」作废", "LPn 板上有没有上拉到高电平（没有就要多接一根线到 3.3 V）", "只要模块，不要盖片"]
+    qty: 1
+    claim: {by: "placed_prefix", pattern: "zz_tof"}
+    envelope_solid: {shape: none, why: "hr52：多盒（板 + 芯片 + 背面元件包络 + 6P 直排针 + 4 个杜邦壳，= duckstructure/tof.py:module_local，放置 tof.to_world）；板斜 27.5°，单盒 OBB 会把排针 / 杜邦壳之间的空当也算成实体（同 mic_inmp441 口径）"}
+    housed_by: ["H04"]
+    envelope_mm:
+      v: "24.7×10×19.6"
+      src: "datasheet"
+      src_note: "24.7 × 10 = 商品页尺寸图（卖家手工测，仅参考）；19.6 = 芯片 1.5 + 板 1.6 + 排针塑座 2.5 + 杜邦壳 14（塑座 / 杜邦壳 = electronics.GPIO_DUP 实量口径；板厚 assumed）。到货卡尺复核"
+    dims_datasheet:
+      - {v: "总长 24.7（含两耳）", src: "datasheet", src_note: "商品页尺寸图，卖家标『手工测量仅参考』"}
+      - {v: "本体 15.8 × 10", src: "datasheet", src_note: "同上"}
+      - {v: "耳宽 5.2", src: "datasheet", src_note: "同上"}
+      - {v: "芯片 6.4 × 3.0 × 1.5（ST VL53L5CX 封装）", src: "datasheet", src_note: "ST 规格书；芯片在正面，页上图『VL53L5CX』丝印旁"}
+      - {v: "6 针 2.54 单排：正面看、排针在上，左 → 右 LPn INT SDA SCL GND VIN", src: "datasheet", src_note: "商品图丝印（截图 02 / 04）"}
+      - {v: "I²C 7 位地址 0x29（页面 / 原版 tofd 写 0x52 是 8 位写法）；ST 规格 8×8 区 15 Hz、对角视场 63°（页写『宽 63°』）", src: "datasheet"}
+    dims_derived:
+      - {v: "孔距 19.5 = 24.7 − 2 × 2.6（孔心在耳圆心）", src: "derived", src_note: "duckstructure/tof.py:HOLE_A = 9.75"}
+    dims_assumed:
+      - {v: "安装孔 Ø2.2", src: "assumed", src_note: "tof.HOLE_D；H04 定位销 Ø1.8 → 孔只要 ≥Ø2.0 就套得上"}
+      - {v: "板厚 1.6", src: "assumed", src_note: "tof.PCB_T；决定 M2×6 还是 ×5（压条压耳朵，板厚变了压条要跟着改）"}
+      - {v: "排针行中心离板中线 3.0（模型）；商品 3D 图（截图 04，按两条长边定标）量焊盘心离排针侧长边 ≈1.0 → ≈4.0", src: "assumed", src_note: "tof.PIN_B（模型仍 3.0，线束 ToF 端按它走；3.0 … 4.3 背面杜邦壳都不碰件、离 H05 ≥1.37（b 4.3 时 1.367，复审 r2 m4））；hr52c H04 开口按 3.0 … 4.3 放宽（焊锡包槽 b 2.1..5.6 + 通透长条 b 2.4..4.9）"}
+      - {v: "芯片中心离板中线 −2.2（排针对侧；hr52c 按商品图：正面俯视图芯片外沿离非排针长边 ≈1.25、3D 图 1.3–1.45；原 assumed −1.5 作废）", src: "assumed", src_note: "tof.CHIP_B；H04 芯片窗 7.6 × 4.2（hr52d 各边 +0.6）→ 芯片心 b −2.5 … −1.8、沿 a ±0.45 都放得下（hr52_work/probe_b6.py 位置扫）"}
+      - {v: "芯片沿板长居中（a 0）", src: "assumed", src_note: "tof.CHIP_A（复审 r1 m9：原是写死的隐含假设，hr52c 补成常量）；商品正面俯视图芯片在 SDA / SCL 两针正中"}
+      - {v: "背面元件包络高 1.5（两颗 SOT-23 + 阻容，截图 04）", src: "assumed", src_note: "tof.BACK_COMP_H；H10 压条离板背 2.27、压脚 Ø3.4 只压耳朵"}
+      - {v: "正面（芯片面）针脚不剪：通用 2.54 排针短脚 3.0 − 板 1.6 = 冒 1.4（尖离脸面 0.1）+ 焊锡包", src: "assumed", src_note: "tof.HDR solder_front 1.4（hr52c；原 ≤0.6 剪平方案作废，用户 09-30 定不剪）；H04-F10 焊锡包槽 + H04-F13 通透长条让位"}
+    to_measure_on_arrival: ["孔距、孔径", "板厚（< 1.4 压条压脚够不着板 → 压脚垫泡棉或重打 H10）", "芯片在板上的位置（离非排针长边、离两耳孔连线、沿板长是否居中）和芯片高", "排针行位置（离排针侧长边）", "正面针脚 + 焊锡包高度", "正面除芯片外有没有别的元件", "背面元件最高点", "LPn 板上有没有上拉（没有 → 多接一根到 3.3 V）", "重量（带焊好的排针）"]
+    face_exposure_note_2026-09-30_hr52d: "复审 r2 m2：H04 排针长条是通的，VIN（3.3 V）/ GND 针尖在脸面长条里看得见（板 1.6 时在脸面下 0.1；板 1.2 / 1.0 时冒出 0.3 / 0.5）→ 装好后用一小条 Kapton / 白胶带或 UV 胶封住长条，防金属同时碰到两针把 Radxa 3.3 V 短路；胶带宽 ≤5–6 mm、只盖长条，别盖芯片窗（离长条只有 2.5）和脸板边，UV 胶别流进芯片窗（复审 r3 m2）"
+    to_measure_on_arrival_was_until_2026_09_30_hr52c: ["孔距、孔径", "板厚", "芯片在板上的位置（离两孔连线、离板边）和芯片高", "排针行位置", "正面焊点 / 针脚高度", "正面除芯片外有没有别的元件", "背面元件最高点", "重量（带焊好的排针）"]
+    dims_measured: []
+    electrical:
+      supply: "VIN 接 Radxa 1 号针 3.3 V（页写 3～5 V；**不接 5 V**：板上 I²C 上拉接在哪条电源上没核，接 5 V 可能把 SDA/SCL 拉到 5 V，Radxa 针只能受 3.3 V）"
+      bus: "I²C3（Radxa 3 号 SDA / 5 号 SCL），和 IMU LSM6DSOX（0x6A/0x6B）同一条，不撞地址；原版 tofd 默认 /dev/i2c-3 + 0x29，两代芯片自动认（revision 0x02 = L5CX）"
+      unused_pins: "INT 不接（tofd 每 10 ms 轮询寄存器，不用中断）；LPn 板上有上拉就不接，没有就要多一根到 3.3 V（问商家）"
+    wiring_plan_2026-09-29_hr52: "4 根杜邦母线插在模块背面排针上（VIN / GND / SCL / SDA，正面看右边 4 根；从背面插时从 VIN 那一端数 4 根，线色 VIN 红、GND 黑 —— hr52d）→ VIN → Radxa 1 号（3.3 V，原空）、GND → 6 号（原空）、SDA → 3 号、SCL → 5 号（3 / 5 号现有 IMU 线，要换成杜邦『一分二』单母头插排针，两头分给 IMU 与 ToF，同 17 号那根的做法 → 一分二再多 2 根）。头内走线（harness）另轮登记"
+    mass_g:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "hr52：还没下单；商品页没写重量"
+      what_would_unblock: "到货称重（带焊好的排针，另称 4 根杜邦线）→ measured"
+    mount: "hr52：板正面贴 H04 内面 0.2 实心平台（板正面 x 91.97），芯片进 7.6×4.2 通槽（hr52d；原 6.9×3.5 @ b −1.5）、顶面与脸面 93.47 齐平；芯片面针脚不剪、针尖进 H04-F13 通透长条（hr52c）；两耳孔套 H04 两根定位销；H10 压条压两耳背面，2 颗 M2×6 自攻（F39）从背面拧进 H04 两根 Ø5 柱。位置：鸭子左脸（+y）眼睛右上，板斜 27.5°，板心 (y 28.0, z 274.0)（duckstructure/tof.py）"
+    fixation:
+      kind: screws
+      by: ["F39_tof_to_H04", "H04-F08", "H04-F09", "H04-F10", "H04-F11", "H04-F12", "H10-F01", "H10-F02", "H10-F03"]
+      bearing_parts: ["H04", "H10"]
+      dof_note: "hr52 贴面版（用户定，同摄像头 H06 做法）：板正面整片贴 H04-F08 实心平台（~112 mm² 贴合面：hr52d 实测 112.4，hr52 原 ~125；芯片窗 / 焊锡包槽放大后变小，复审 r3 m1）→ +x 平动与两个倾覆锁死；两耳孔套 H04-F11 定位销（Ø1.8×1.2）→ 平面内平动与转动锁死；H10 压条（H10-F01 条 + H10-F02 两只 Ø3.4 压脚贴耳背面 90.37）→ −x 锁死，F39 2×M2×6 拧进 H04-F12 两根柱（压条盘比柱顶退 0.2，拧紧后压条微弯给板预压）。芯片在 H04-F09 通槽里不受力；正面针脚不剪：焊锡包落 H04-F10 槽、针尖进 H04-F13 通透长条（hr52c）"
+    connectors: "6P 2.54 直排针（商家焊，塑座在背面、针朝 −x）；插 4 个 1P 杜邦母壳（SDA / SCL / GND / VIN）；INT / LPn 空针"
+    cable: "4 根杜邦母线到 Radxa 排针（长度待 harness 登记；头内不跨关节）"
+    keepout_ref: "视野（原版 tofd 8×8，45°×45° 核）：脸面前方 5 点 × 361 条 × 嘴 −5 / 0 / +30° 全 0 遮挡（tof_预检_2026-09-29/v6_paths_fov2.py，预览版几何）；hr52c / d 芯片改到 b −2.2 后 v6_check 重核仍全 0 遮挡（hr52_work/v6_check_b5.log / v6_check_b6.log）"
+    insert_dir: [1, 0, 0]
+    insert_dir_note_2026-09-29_hr52: "世界 +x：台面工位 h04_bench，板正面朝前按进 H04 两根定位销（芯片进槽）→ 放 H10 → 拧 F39 → 插 4 个杜邦壳（hr52d 复审 r2 m5：最好装板前先插 —— 正面有针名丝印；装好后再插就从背面 VIN 那一端数 4 根）；H04 随 H05 组在装序 P 18d 从上 −z 盖下（同摄像头）"
+    software: "原版 upstream/microduck/tof（tofd）直接可用；原版只给特雷门琴 / 监控 / 3D 查看用，走路策略不用"
+    provenance:
+      - "docs/design_2026-09-17_bearing_rebuild/tof_预检_2026-09-29/ToF候选模块_2026-09-29.md（候选 ①、接线、v6 贴面版）"
+      - "docs/design_2026-09-17_bearing_rebuild/tof_预检_2026-09-29/商品页截图_2026-09-29/"
+      - "duckstructure/tof.py"
+  - id: "sensor_small_boards"
+    category: "other"
+    model: "小 IMU 10×10×4 / 额外传感器 20×16×6（占位）"
+    qty: 2
+    housed_by:
+      - "H01"
+    envelope_mm:
+      v: "10×10×4 / 20×16×6"
+      src: "assumed"
+      src_note: "占位"
+    dims_measured: []
+    dims_assumed:
+      - v: "占位"
+        src: "assumed"
+    mass_g:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "清单未给质量；第 7 层质量预算缺此项 → BLOCK"
+      unknown_class_corrected_2026-09-09: "not_selected（旧值 not_measured 保留在上面）。"
+      refused_2026-09-09: "**拒填。** 这条本身就是两块占位板（『小 IMU 10×10×4 / 额外传感器 20×16×6』），既没定型号也没定要不要装。一个 qty=2 的占位条目给单值质量没有意义。"
+      what_would_unblock: "先决定装不装、装什么；确定后应当拆成两条独立元件记录，各自给 mass_g。"
+      budget_g:
+        v: 495.8
+        src: "measured"
+        value_status: "proposed"
+        src_note: "**共享上界，不是这一件的估重。** = tolerances.yaml:load.head_added_mass_budget_g 的 509.8 g 减去已经确定要进头的 sbc_radxa_zero3w 的 14 g。摄像头 / 麦克风 / 小板 **三件共用这一个池子**（1.9\" 屏 09-19 取消），不是每件各 495.8 g。"
+        pool_ref: "tolerances.yaml:load.head_added_mass_budget_g"
+        hard_warning: "509.8 g 是按 static_torque_margin = 1（即名义**堵转** 0.6 N·m）二分出来的上界。S288 的可持续扭矩未知（tolerances.yaml:load.servo_rated_torque_Nm.continuous_torque_Nm = null）。按同一条的 sensitivity_illustration：系数 0.5 → 165 g、0.3 → 27 g、≤0.261 → 0 g。**BN13/BN03 实测出来之前，这个预算没有选型决策价值。**"
+        bench_ref:
+          - "bench.yaml:BN13"
+          - "bench.yaml:BN15"
+    mount: "接 H01，不能粘 N03"
+    connectors: null
+    cable: null
+    keepout_ref: "横滚 201 姿态 0 mm³"
+    insert_dir: null
+    insert_dir_unknown_class: "not_modeled"
+    insert_dir_unknown_reason: "装配方向未定义；第 4 层无法生成扫掠路径"
+    provenance:
+      - "inventory_v2.json:purchased[9]"
+  - id: "buck_12v_5v"
+    category: "other"
+    model: "航模外置 UBEC 5V/3A —— **2026-09-22 定型：科亿航模 UBEC-3A（店铺 KEYIUAV）**，成品热缩包。旧 09-20 口径（输入裸线 → WAGO）作废：WAGO 两个侧腔都塞不下。"
+    connectors_2026-09-22: "**两端都已向卖家问实（客服 ky技术 聊天记录）：**\n  输入端 = 卖家代焊，下单拍『XT60 焊接插头』选项 + 备注『输入焊接 XT30 母头（XT30U-F，带洞）』。客服原话『公母头外观很清晰的，你确定好来是焊公，还是母，备注清楚就行』→ 公母由我们定。\n  客服起初答『公头』是按通用规矩（母头=送电端、公头=取电端，他假设插电池）；**不适用**：我们插的是宇树转接板 XT30 扩展口，实物照片确认是公针，针对针插不上 → 必须母头。见 harness.yaml:HB02.connector_gender_2026-09-22。\n  输出端 = **JR 杜邦插头，间距 2.54 mm**（客服原话），即 3 位舵机插头（商品图实物是**黑色**外壳，不是常见白色；3 位里只用 2 位——红=+5V、黑=GND，第三位空），出厂自带、不是选项、无需代焊。输入端在商品图里是**两根裸线**（红/黑，端头搪锡），卖家就是在这两根上焊 XT30。插头公母到货看一眼：标准是母头（3 个洞）→ 用购物车『公对母 40CM』；万一是公针 → 改用购物车『母对母 40CM』，两根都已在车里，不用补买。\n  **输出端定案（2026-09-22，客服主动提出）：由 JR 3P 改为 1P 插头 —— 正负各一个独立 1P 母头（套 2.54 排针），并请卖家把输出线做到 ≈10 cm。**客服原话：『你的被供电的配件，正负极是否也是并联的呢？还是分开不同位置的，如果是分开不同位置的话，降压模块的输出端也要改一下哦／改成 1P 插头方式的』。\n  理由：目标是 Radxa 40 针的 pin4(5V) 与 pin6(GND)，同排相邻（2.54），2P/3P 插得上但**无防呆**——插反即红线落 GND 针、黑线落 5V 针，5V 对地直接短路、板子报废；1P 两根各自独立按针插，物理上不存在插反。副作用：省掉原方案的杜邦 公对母 40 cm 转接（该线留作备用，不退）。\n  线长 10 cm 的依据：转接板（H03 口袋）、UBEC（H01 前立板背面，hr38）、Radxa（H01 立柱）三者同在头内，间距都在几十毫米量级；原配长线无处盘绕（hr38 的 zz_dupont_slack 余量盒按 ≈10 cm 建）。\n  **若卖家最终只能给 JR 3P**：退回杜邦转接方案，且**禁止**把 JR 插头直接怼到排针上（三位正好落在 pin2/4/6，插反即短路）。"
+    qty: 1
+    claim:   # hr37
+      by: "placed_prefix"
+      pattern: "zz_ubec"
+    envelope_solid:   # hr37
+      shape: box
+      size_mm: [6.0, 12.0, 26.0]
+      size_mm_was_until_2026-09-23_hr38: "[15.0, 4.5, 18.0]（电池仓 −y 侧腔的*可用空间盒*，不是买得到的件；作废）"
+      exact: false
+      src: "**腔包络**（不是件）：−y 侧腔实测可用 x −40..−25 × |y| 22.7..27.2 × z 132..150（hr37 射线+布尔探测）= Matek Micro BEC 6-60V→5V 官方 18×15×4.5 竖放；zave UBEC-5V3A 商品页无尺寸，通用款 25×20×7 三个朝向都放不进"
+    placed_note_2026-09-22_hr37: "placed zz_ubec = 腔包络盒；买的件必须 ≤ 15×4.5×18。候选 Matek Micro BEC 6-60V→5V/9V/12V（mateksys 官方 18×15×4.5、2 g、12V 入 ≥2.5 A 连续/3 A 峰，淘宝 广州开心模型 ¥36），代价 2 个焊点（输入焊盘）。UBEC 改在头里/尾部都没位置（记录 45）"
+    placed_note_2026-09-23_hr39c: "UBEC-3A 座平移 head.T_UBEC (12.07, −5.59, 2.46)：模块 x 84.37..90.37 × y −37.29..−25.29 × z 235.46..261.46（H03-F13）；**assumed：两组线都从顶端出**；装序 hr39c 起随 H03 一起合上（assembly 步 18），不再是步 19 躯干件"
+    placed_note_2026-09-23_hr39c_4a: "4a 终版（用户 09-23 按商品页产品图：输入裸线、输出舵机插头从两头各出一组，没到货）→ 上一条的「assumed：两组线都从顶端出」作废：模块在座里抬高 5（z 240.46..266.46），座加 ±x 两条 0.8 托条 + ±y 墙底开口（H03-F13.ubec_two_end_leads_2026-09-23_hr39c）；输入线走底端（离 H03 0.47、麦克风 0.58），输出走顶端；到货核出线位置"
+    housed_by:
+      - "H03"
+    housed_by_was_until_2026-09-23_hr38: "[\"T01\"]（电池仓 −y 侧腔）"
+    housed_by_note_2026-09-20: "电池仓 −y 侧腔（壳内、导轨外：x −43.8..−21.3 × |y| 15..29 × z 120..152）用 T01 导轨外面的扎带环（tail.tie_loops，x −39/−29）扎住；与 WAGO 同腔。尺寸未量 → 不做贴合口袋"
+    envelope_mm:
+      v: "26 × 12 × 6"
+      src: "datasheet"
+      src_note: "**2026-09-23 用户定死**：就用采购的这个 —— 科亿航模 UBEC-3A，商品页规格表 26 × 12 × 6 mm。用户原话：『UBEC 的外形和螺位就是用我采购的呀，肯定不是用那个 CAD 现画的东西，那个 CAD 现画的东西我根本就买不到』。到货卡尺复核升 measured。"
+      supersedes_2026-09-22: "旧口径『侧腔可用包络 15 × 4.5 × 18』**作废** —— 那是电池仓 −y 侧腔的*可用空间盒*，不是任何买得到的件；按它选型只剩 Matek Micro BEC（要 2 个焊点，用户不接受）。"
+      cad_todo_hr38: "**`duckstructure/electronics.py:UBEC_BOX` 还是旧的 15×4.5×18 @ 电池仓侧腔，未改** → L3 placed_covers_envelope 会红，直到 hr38 把实体改成 26×12×6 并挪到 H01 前立板背面（x 39..46 × y −16..11 × z 251..264）。那两根 10 cm 线长就是按头里这个位置算的（输入需 86.8、输出需 64.1）。"
+    dims_measured: []
+    dims_assumed: []
+    mass_g:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "清单未给质量；第 7 层质量预算缺此项 → BLOCK"
+      unknown_class_corrected_2026-09-09: "not_selected（旧值 not_measured 保留在上面）。"
+      refused_2026-09-09: "**拒填。** model 写的是『LM2596/MP1584 12V→5V 3A』—— 这是两种模块二选一：LM2596 带电感和大电解的板子是十克量级，MP1584 mini 板是一到两克量级，**差一个数量级**。二选一没做，envelope_mm 也是 null。给任何一个数都等于替选型做了决定。"
+      what_would_unblock: "定下用哪一种（并考虑 5 V 负载：香橙派 + 屏 + 摄像头）→ 商品页重量记 datasheet。"
+      where_it_lands: "拟放躯干上部口袋 x −22..+6、|y|≤20（无 CAD）—— 落在 trunk_base，力臂短。"
+      bench_ref: "bench.yaml:BN15"
+    mount: "H03 地板 −y 侧的 UBEC 座（H03-F13，麦克风台 H03-F12 的镜像位）：2.0 厚台 + 四面 0.8 墙 12 高，模块从 +z 放下，一根扎带从台上两条槽穿上来兜住顶面"
+    fixation:
+      kind: zip_tie
+      by: ["H03-F13"]
+      bearing_parts: ["H03"]
+      dof_note_2026-09-24_hr41: "hr41（复审 #1 M7）：① +y 墙出线窗改成 4.4 宽 U 槽开到墙顶（head.UBEC_NOTCH_OPEN_TOP），卖家代焊的 XT30U-F 输入线从上面放进槽，不用穿窗；② 扎带槽从 ±y 墙外（hr39c，正好压在出线窗外）挪到 ±x 墙外 0.1 各一条 0.8×3 地板槽（y 以模块中心 ±1.5，head.UBEC_TIE_X），扎带在 x–z 平面绕：模块顶上沿 x 过、从 H03 地板底下兜回。+x 那段夹在 +x 墙与 H04 内面之间 0.95 的缝里（薄扎带 ≤0.9 厚 assumed）。六向/翻倒自核（hr41_work/fix41.json（六向平移每 0.25 mm 到 3 mm / 翻倒每 0.5° 到 8°，对头里打印件+舵机+轴承并集，交 >0.05 mm³ 即算挡住））：±x/±y/−z 在 0.25 内由 H03 挡住，**+z 3 mm 内无打印件挡 = 靠扎带（扎带未建模，+z 未由几何覆盖）**；翻倒全在 0.5° 内挡住。放入 / 锁住 = 18c 前台面（H03 上，扎好再随 H03 合上）"
+      by_note_2026-09-24_hr41: "H03-F13 的 dof 描述里「扎带穿台上两条 3.0×0.8 槽，槽在墙外侧 y …」是 hr39c 口径，hr41 已挪到 ±x；features.yaml H03-F13 已同步（hr41 update）"
+      dof_note: "无螺丝。−z 由台顶（z 233.0）托住；±x 由 −x/+x 两面墙（内面 x 72.3 / 78.3，墙厚 0.8、高 12）；±y 由 −y/+y 两面墙（内面 y −31.7 / −19.7）；+z 由一根扎带（穿台上两条 3.0×0.8 的槽，槽在墙外侧 y −33.6..−32.8 与 −19.2..−18.4，x 73.5..76.5）兜住模块顶面。六向 8 mm 内 H03 有料：+x 115 / −x 122 / +y 57 / −y 78 / −z 251 mm³，+z 是开口（靠扎带）。"
+    fixation_note_2026-09-23_hr38: "hr37 之前一直是『未建模』（Agent A 填 fixation 时两件填不上，这是其中一件）。"
+    connectors: null
+    cable: null
+    keepout_ref: null
+    insert_dir: [0, 0, -1]
+    insert_dir_note_2026-09-23_hr38: "世界 −z：H03 合壳前，模块从上往下放进四面墙围出的口袋，再扎带"
+    provenance:
+      - "inventory_v2.json:purchased[10]"
+    placed_note_2026-09-23_hr38: "placed zz_ubec = **UBEC-3A 本体 26×12×6**（不再是腔包络盒）：x 72.3..78.3 × y −31.7..−19.7 × z 233.0..259.0，立放（6 沿 x、12 沿 y、26 沿 z）。
+      定位依据：hr38 体素扫描（1 mm 栅格 + 1 格膨胀 ≥1 mm 净空；占用 = 零位静态件 ∪ N03 组件绕头横滚 ±30° 扫掠 ∪ J01 张嘴 0..30° 扫掠；整盒要落在 conv(H03∪H05) 内）——
+      26.6×12.6×6.6 在整个头里只有三处站得下，这是唯一一处坐在打印件上的（另两处 x 15..19×y 12..18×z 252..257 与 x −16..−10×y 17..21×z 223..225 都悬空）。
+      用户 2026-09-23 给的候选『−y 侧地板 x 22..48 × y −29..−17 × z 232..238 平放』**不成立**：那正是 N03 穿底壳开口的走廊（head.py cuts 里的 wbox((12,−27,200),(42,13,237.6))），零位看着空、头一横滚就被扫过。
+      实测：zz_ubec ∩ {H01,H03,H04,H02,H05,嘴舵机,嘴轴承,zz_sbc/mic/camera/adapter/speaker/amp,两颗横滚轴承,N01} 全 0；对 N03 组件 ±30° 扫掠与 J01 0..30° 扫掠也全 0。"
+    cad_note_2026-09-23_hr38: "duckstructure/electronics.py:UBEC_BOX 已改（旧值留在 UBEC_BOX_was_until_2026_09_22_hr37），ELECTRONICS 里 body 由 trunk_base 改 jaw_soft。"
+
+    fixation_note_2026-09-25_hr43d: "hr43d 加固：H03-F13 两条托条顶下沉 0.8（head.UBEC_FOAM），各贴 1 mm 泡棉胶压到 0.8（模块位置不变）；+x 扎带缝（+x 墙外槽离 H04 内面 0.05，缝 0.95）不改 → 扎带必须 ≤0.9 厚（细扎带，assumed；普通 2.5 宽扎带 ≈1.0–1.1 过不去）"
+    consumables_2026-09-25_hr43d: ["1 mm 泡棉胶 2 条 0.8×12（tape_foam_1mm 裁）", "细扎带 ≤0.9 厚 ×1（沿 x 绕模块顶、从 H03 地板底兜回）"]
+  - id: "bus_adapter"
+    category: "other"
+    model: "宇树单总线串口转 USB 模块（透明壳，2026-09-17 定为整鸭用件）"
+    qty: 1
+    housed_by:
+      - "H08"
+    housed_by_was_until_2026_09_25_hr43d: ["H03"]
+    housed_by_note_2026-09-23_hr39c: "hr39c 选项 C：挪到 Radxa 前面竖放（head.H03_ADP_*：x 72.5..81.5 × y −24..16 × z 235.4..265.4；9 沿 x、40 沿 y、30 沿 z），底边进 H03-F14 槽（两道 1.2 壁 6 高 + 两条托筋 + 两端底角挡块），顶边被 H05-F06 两条压筋压住（隙 0.3）。A 边（PH + XT30 扩展）朝 +y、B 边（Type-C + XT30 主输入）朝 −y。理由：新嘴舵机插座端 x 55.3..57 压在旧位 +y 边 XT30 插头上；顺带解 USB-C2 插不上与 12 V 头内绕行。旧 H03-F08 tub 删。4a 终版：板位置不变（⑦ 改用摄像头倒装解决）；⑧ USB FPC 在 Radxa 与本板之间 1.9 缝里竖起，槽 −x 壁 y −13.6..−4.4 开口、y −24.5..−13.6 削到 z 239.0（这段壁仍高出板底 3.6，卡住板底边）；Type-C 插头按超薄 90° FPC 弯头建模（assumed，买线规格见 harness.yaml:HB01.usb_link_2026-09-23_hr39c.purchase_spec）"
+    housed_by_note_2026-09-21: "hr28（用户定『进头里、保留排针』）：竖放在 H03 地板浅槽 + Radxa 排针口袋下段（head.py H03_ADP_*：x 54.3..63.3 × |y|≤20 × z 226.8..256.8，9 沿 x、40 沿 y、30 沿 z），原版 HAT 叠在 Pi 后面就是这个位置；占位 zz_adapter 挂 jaw_soft 进 placed/ 参与检查。开关仍在 T02 壳顶，UBEC/WAGO/S3–S5 在电池仓两侧腔，S1 在头里、S2 在顶板口袋"
+    housed_by_note_2026-09-20_superseded: "hr17–hr27：B02 尾部托架（平放 40 沿 y / 30 沿 x，z 124..133）—— 屁股后凸 37 mm 难看、训练 MJCF（hr12）没有它、仰躺起立先着地 → 作废（hr26 复审 + 用户 09-21）"
+    claim:
+      by: "placed_prefix"
+      pattern: "zz_adapter"
+    envelope_solid:
+      shape: box
+      size_mm: [9.0, 40.0, 30.0]
+      exact: true
+      src: "2026-09-17 卡尺 40×30×8.7（按 9.0）；占位体 head.adapter_box 与之同尺寸（hr28 竖放：9 沿 x、40 沿 y、30 沿 z；hr43d 平放：30 沿 x、40 沿 y、9 沿 z = 板 1.6 + 零件 7.4，electronics.adapter_boxes）"
+    envelope_mm:
+      v: "40×30×9（透明壳外形，2026-09-17 卡尺；平放 30 沿 x、40 沿 y）"
+      src: "measured"
+      src_note: "2026-09-17 用户卡尺实测：长 40、宽 30、高 8.7（最高点为立式电解电容/卧式 XT30）；按 9.0 算"
+    ports_2026-09-20:
+      src: "measured"
+      src_note: "2026-09-20 用户照片 + 万用表。四个口全部从两条 30 mm 短边侧出（不朝上）"
+      edge_A: ["PH2.0 3P 座（总线：信号–12 V–地，见 ph_pin_order）", "XT30(2+2) 拓展口，**公**（2 大针 + 2 小针）：两大针 = 电池 12 V 直通（09-17 实测 ≈12 V）"]
+      edge_B: ["XT30 电源入口，**公**（针）← 延长线的母头（XT30 公转母延长线，电池 12 V；hr39f 2026-09-23 取消开关，原写『电池/开关来的 XT30 母』）", "Type-C（USB 到主控）"]
+      ph_pin_order: "远离拓展口 = GND（与电池负导通）；中间 = VCC 12 V；靠拓展口 = SIGNAL（未接 USB 时 0 V，逻辑由 USB 5 V 供）→ 手册 B 版"
+      xt30_ext_2small_pins: "小针功能未查（疑似信号/5 V），整鸭不用"
+    port_positions_2026-09-22:
+      src: "photo_scaled"
+      src_note: "2026-09-22 用户两张带钢尺照片（板贴白墙、尺与板 40 mm 长边平行）。标尺换算 10 mm ≈ 182 px，板实测长 39.0（对上卡尺 40）、宽 28.7（对上 30）。
+        下列『沿短边位置』= 口中心到**板同一条 40 mm 长边（照片里的左边，Type-C / PH2.0 所在那侧）**的距离。**不确定度 ±1.5 mm**（照片轻微失焦 + 透视）。
+        要升 measured：用卡尺量这四个数即可，其余（哪条边、公母、脚序）09-20 已是 measured。"
+      edge_B_短边:  { Type_C_中心: 8.1, XT30_电源入口_中心: 22.6 }
+      edge_A_短边:  { PH2_0_3P_中心: 6.0, XT30_2plus2_拓展口_中心: 19.9 }
+      port_axis_height_mm:
+        v: null
+        unknown_class: "not_measured"
+        unknown_reason: "四个口的轴线离 PCB 平面多高 —— 俯拍照片量不出来。建线时先按连接器本体半高 assumed，到手侧拍一张即可。板总高 8.7（含最高的立式电解电容/XT30）"
+    dims_measured: ["长 40", "宽 30", "高 8.7（按 9.0）", "口位与公母（09-20）"]
+    dims_assumed: []
+    mass_g:
+      v: 9.83
+      src: "measured"
+      src_note: "2026-09-30 夜用户称：宇树单总线串口转 USB 模块（透明壳）9.83 g（用户报『宇树转接板』，按单板不带线理解）"
+      was_until_2026_09_30_hr54b: "v null / not_measured"
+      unknown_reason_was_until_2026_09_30_hr54b: "请用户称重回填（BN15）；已定整鸭用这块板，不再是选型悬案"
+      bench_ref: "bench.yaml:BN04"
+    mount_2026-09-25_hr43d: "hr43d（B′，hr43_work/转接板安放研究.md §5.3/§5.4 + agent_brief_hr43d 第 1 条）：平放在新件 H08 转接板托板上，脚印 x 51.8..81.8 × y −20..20、板 264.5..266.1、零件顶 273.5 （研究抬 2.0 版 x 46..76 整体 +x 5.8：研究位盖住 F22 右前脚 (49.1, 9.35) 起子通道 KO09 Ø4.6，托板 18a 先装后 F22#3 拧不进）；两条 30 短边朝 ±y、四口全部 ±y 侧出：A 边（PH (x 57.8) + XT30 扩展口 (x 71.7)）朝 +y、B 边（Type-C (x 59.9，90° 弯头线朝 −x) + XT30 主输入 (x 74.4)）朝 −y；口位基准长边 L 在 −x（x 51.8，photo_scaled ±1.5）；插头底贴板面 266.1（口轴高没量，assumed）。间隙（hr43d/d07_gap_table.json）：板 → 喇叭 1.75 / H05 2.05 / H06 2.7 / 摄像头 3.67 / H01 6.5 / 嘴舵机 7.15；插头 → H01 1.1 (PH) / 1.45 (XT30ext) / 1.24 (Type-C) / 3.81 (XT30in)、H05 ≥4.7；头横滚 ±25° N03 那一摞 > 8。H03-F14 / F22 / F23 / F15 与 H05-F06 / F09 全删"
+    mount_2026-09-25_hr43c: "hr43c（协调员 14:55 ①，用户看实物：40×30 四边全是接口、边上没地方卡）：不卡边、改 1 mm 泡棉双面胶把板背面（光面 assumed）竖粘到 H03-F22 平床（胶在 H03-F23 0.5 深浅坑里），合壳后 H05-F06 顶压筋压板顶边当保险；−x 侧壁 / 托筋 / 两端挡块保留。协调员 15:20：板安放位置用户要重定，本条按已做几何登记"
+    mount: "hr28：H03 地板浅槽（H03-F08，四周 0.5 隙、两条 0.8 托筋）+ Radxa 40 针排针带从上面压住（板顶 256.8 / 排针 258）；两条 30 mm 短边竖着朝 ±y，四个口全部侧出到头壳内侧空间（|y| 20..35）。09-20 说『头里放不下』是没算排针带之下那 30 mm（地板下挖 5 就够）"
+    fixation:
+      kind: zip_tie
+      kind_was_until_2026_09_25_hr43d: adhesive
+      kind_was_until_2026_09_25_hr43c: pocket
+      by:
+        - "H08"
+      by_was_until_2026_09_25_hr43d: ["H03-F22", "H03-F23", "H03-F14", "H05-F06", "H05-F09"]
+      dof_note_2026-09-25_hr43d: "hr43d（B′，agent_brief_hr43d 第 1 条；修 hr43c 全链 L3 fixation_declared 红：kind adhesive 不在枚举）：板平放、零件面朝上，1 mm 泡棉双面胶满贴进 H08 托面 0.5 深胶坑（36×26 = 78 % 板面，坑底 263.5 + 胶 1.0 = 板底 264.5）+ 2 条扎带（≤3 宽 ≤1.2 厚，沿 x 绕板 + 托面，y −9.0 / −16.5，−x 侧穿 H08 耳上 1.6×3.4 孔、+x 侧卡托面边 1.0 深定位槽、托面下过竖板扎带槽）+ 托板 3×M2×8 拧 H01 旧立柱端面（F35_H07_to_H01 复用，头侧改 H08）。−z 托面 / +z 扎带 / ±x ±y 胶 + 扎带摩擦；螺丝 > 平面粘 + 扎带捆（用户优先级最高两档叠加）"
+      by_was_until_2026_09_25_hr43c: ["H03-F14", "H03-F19", "H05-F06", "H05-F09"]
+      dof_note_2026-09-25_hr43c: "hr43c（协调员 14:55 ①）：板背面双面胶竖粘 H03-F22 平床（胶在 F23 坑）；槽 −x 壁 / 托筋 / 底角挡块 / H05-F09 齿 / H05-F06 压筋保留当保险；H03-F19 两根 +x 立柱并进平床（superseded）。协调员 15:20：板安放位置用户要重定"
+      bearing_parts: ["H08"]
+      bearing_parts_was_until_2026_09_25_hr43d: ["H03", "H05"]
+      by_was_until_2026-09-23_hr39c: "H03-F08（hr28 tub，hr39c 取消）"
+      by_was_until_2026_09_24_hr41: ["H03-F14", "H05-F06"]
+      dof_note_2026-09-24_hr41: "hr41（复审 #1 M1，按 hr28『底边进槽 + 顶边限位』写全）：**底边** 竖插 H03-F14 槽（两道 1.2 壁 + 两条托筋 + 两端底角挡块）→ −z 由托筋托、±x 由两道槽壁、±y 由底角挡块；**顶边** 叉形限位 —— −x 侧 H05-F09 齿（x 71.0..72.2，z 262.4 起，离板 −x 面 0.3）、+x 侧 H03-F19 两根立柱（x 81.8..83.4、|y| 10.5..13.5、到 z 256，隙 0.3）、+z 由 H05-F06 压筋（隙 0.3）。板顶可倾：−x 0.7° / +x 0.9°（hr39c ≈6.25°，extras41b.json）。六向/翻倒自核（hr41_work/fix41.json（六向平移每 0.25 mm 到 3 mm / 翻倒每 0.5° 到 8°，对头里打印件+舵机+轴承并集，交 >0.05 mm³ 即算挡住））：±x/±y/+z 在 0.5 内挡住（±x/±y = H03，+z = H05，−x 顶部 H03+H05），−z 0.25（H03 托筋）；翻倒 rx/ry 0.5°、rz 1.0°。放入 = 18c 前台面（竖插进 H03 槽，随 H03 组 +z 合上），锁住 = 18d（H05 组盖下，齿 + 压筋到位）。USB 改 15 cm 线（协调员 09-24 17:15，Radxa 在 hr43 搬后脑）"
+      dof_note: "无螺丝。40×30×9 的板竖放（9 沿 x、40 沿 y、30 沿 z），底边插进 H03 地板下的 1.5 壁浅槽（H03-F08 tub：内腔 x 53.8..63.8 × |y|≤21 × z 226..240，四周 0.5 隙，两条 0.8 托筋托底）→ −z 由托筋托住，±x 由 −x 挡边（顶到 238）与 +x 挡边（235.5）夹住，±y 由两侧挡边（235）夹住，绕三轴的转动由挡边 9..14 的贴合高度锁死；+z 由 Radxa 的 40 针排针带从上面压住（板顶 256.8 / 排针 258，留 1.2）—— 排针属元件 sbc_radxa_zero3w、不是打印件，所以 bearing_parts 只写 H03（H01 隔 2.0 不接触，但 Radxa 是拧在 H01 立柱上的，压紧链是 H03 槽 + H01 立柱 + Radxa）。拆板必须先拆 Radxa 四颗螺丝。注意槽底 224.5..226 被 H03-F09 的 5 条通风槽穿透（板下留风道）：从板包围盒中心往 −z 打的射线正好从通风口穿出去，所以六向射线那条 WARN 在这件上判不出接触，不代表悬空 —— 接触距离那条是 0.000 mm。"
+    connectors: "Type-C / PH2.0 座 / XT30 公（入口）/ XT30(2+2) 公（拓展口）"
+    cable: "PH 座 ← 一分二 S1 公壳（S1 在头里）；XT30 主输入（针）← 延长线的**母**头（XT30 公转母延长线 40 cm，过颈上行，harness HB03；hr39f 2026-09-23 取消开关，原写『开关来的 XT30 母单头线（30 cm，harness HB02）』）；XT30(2+2) 拓展口（针）→ UBEC-3A 输入的 XT30 **母**头（线 10 cm，卖家代焊；harness HB03）；Type-C ← 直角 Type-C 短线 → Radxa USB-C2（同在头里）"
+    cable_was_until_2026-09-23_hr38: "『……拓展口不用（UBEC 改由开关 WAGO 直接喂）……』—— **方向写反了**：09-22 定案是 UBEC 就从拓展口取 12 V，WAGO 一只不用（hr38_待办交接.md §2.1/§2.2，harness.yaml:HB02/HB03）。Agent B 数据冲突审计 C3"
+    keepout_ref: null
+    insert_dir: "Radxa 未装时从上（+z）放进浅槽，再装 Radxa（排针带压住板顶）；拆板先拆 Radxa 四颗螺丝"
+    insert_dir_2026-09-25_hr43d: "台面：板背面贴 1 mm 泡棉胶进 H08 胶坑、两条扎带捆紧 → H08 连板从 +x 沿 −x 推到 H01 三根旧立柱端面（H03/H04/H05 都不在）拧 F35 3×M2×8（步 18a，同 H07 口径）；插头（PH / XT30×2 / Type-C 弯头）在 18c-插线 从上方插；拆 = 拔插头 → 拆 H05 组 / H03 组后从 +x 退 F35"
+    consumables_2026-09-25_hr43d: ["1 mm 泡棉双面胶 36×26（tape_foam_1mm）", "扎带 ≤3 宽 ≤1.2 厚 ×2（沿 x 绕板 + H08 托面；长 ≥ 板 30 + 托面 2 + 板厚 9 … 绕一圈 ≈90，常见 100 mm 扎带够，assumed）"]
+    consumable_note_tape_foam_1mm_2026-09-25_hr43e: "hr43e：1 mm 泡棉双面胶（规格 assumed，未买）是耗材，不建 placed 实体 → 不进元件清单（原 components 条目 tape_foam_1mm 撤到这里）。用途（hr43d）：① 转接板贴 H08 胶坑 36×26（本条）② 麦克风台泡棉条 9.5×6.2 带 Ø4.4 孔 ③ UBEC 两条托条 0.8×12 ×2 ④ 喇叭肩泡棉环 Ø28/Ø24；合计 ≈1160 mm²、质量 ≈0.3 g（assumed，未买未称；原条目 claim none 本来就没进整机质量合计，撤掉后整机量不变）。B03 盖内压 XT30 对插头的 1–2 块泡棉另买厚块，只登记。tools/gate/negatives/_l7_fixture.py NOT_INSTALLED_IN_FIXTURE 同步删掉 tape_foam_1mm"
+    tape_foam_1mm_entry_was_until_2026_09_25_hr43e: "- id: \"tape_foam_1mm\" ｜ category: \"other\" ｜ model: \"1 mm 泡棉双面胶（转接板竖粘用，hr43c 协调员 14:55 ①；规格 assumed，未买）\" ｜ usage_2026-09-25_hr43d: \"hr43d：① 转接板贴 H08 胶坑 36×26；② 麦克风台泡棉条 9.5×6.2 带 Ø4.4 孔；③ UBEC 两条托条 0.8×12 ×2；④ 喇叭肩泡棉环 Ø28/Ø24；（B03 盖内压 XT30 对插头的 1–2 块泡棉另买厚块，只登记）—— 合计 ≈1160 mm²\" ｜ qty: 1 ｜ housed_by: [\"H08\", \"H03\", \"H05\"] ｜ housed_by_was_until_2026_09_25_hr43d: [\"H03\"] ｜ envelope_mm: {v: \"36×26×1.0（H03-F23 坑 y −22..14 × z 237.4..263.4，厚 1.0，坑深 0.5 → 露出 0.5）\", src: \"assumed\"} ｜ dims_measured: [] ｜ dims_assumed: [{v: \"泡棉厚 1.0；压缩后 ≈0.5（贴满坑时板背面离床面 0.5）\", src: \"assumed\"}] ｜ mass_g: {v: 0.3, src: \"assumed\", src_note: \"hr43d 估：四处合计 ≈1160 mm² × 1.0 厚 ≈1.2 cm³ × PE 泡棉 + 胶 ≈0.25 g/cm³ ≈ 0.3 g（未买未称）\"} ｜ mass_g_was_until_2026_09_25_hr43d: {v: null, src: null, unknown_class: \"not_selected\", unknown_reason: \"未买；< 1 g\"} ｜ claim: {by: \"none\", why: \"hr43d（协调员）：耗材，不在 placed/ 里建实体；质量按估值 assumed。_l7_fixture NOT_INSTALLED_IN_FIXTURE 已收（协调员 16:30）\"} ｜ mount: \"贴在 H03-F22 平床的 H03-F23 胶坑里，转接板背面贴上\" ｜ mount_2026-09-25_hr43d: \"见 usage_2026-09-25_hr43d（H03-F22/F23 已删，转接板改贴 H08 胶坑）\" ｜ fixation: {kind: seat, by: [\"H08\"], bearing_parts: [\"H08\"], dof_note: \"hr43d：耗材，夹在转接板与 H08 胶坑之间（另三处见 usage）；claim none，L3 不查接触\"} ｜ fixation_was_until_2026_09_25_hr43d: {kind: adhesive, by: [\"H03-F22\", \"H03-F23\"], bearing_parts: [\"H03\"], dof_note: \"双面胶粘；合壳后 H05-F06 顶压筋压板顶边当保险\"} ｜ connectors: null ｜ cable: null ｜ keepout_ref: null ｜ insert_dir: null ｜ insert_dir_unknown_class: \"not_modeled\" ｜ insert_dir_unknown_reason: \"胶带，无插入方向\" ｜ provenance: [\"hr43c 协调员 14:55 ①\", \"duckstructure/head.py:H03_ADP_BED\"]"
+    ports_orientation_2026-09-25_hr43d: "平放：L 边 −x（x 51.8）；A 边 +y：PH 口心 x 57.8、XT30(2+2) x 71.7；B 边 −y：Type-C x 59.9、XT30 入口 x 74.4（wiring_head.ADP / ADP_PORT）"
+    insert_dir_2026-09-24_hr41: "同 hr39c：台面竖插 H03-F14 槽，随 H03 组 18c 合上；hr41 起顶边由 H05-F09 齿 + H03-F19 立柱夹住，拆板 = 先拆 J01（F34）→ J03 → F33 → 抬 H05 组 → 拆 F22 → H03 组落下"
+    insert_dir_2026-09-23_hr39c: "板先竖着插进 H03-F14 槽（台面，H03 未合），随 H03 从下方 +z 合上；顶边进 H05-F06 两条压筋之间。拆：先拆 H03（F22），板随 H03 下来，不用拆 Radxa"
+    provenance:
+      - "inventory_v2.json:purchased[11]"
+      - "docs/design_2026-09-17_bearing_rebuild/电子件尺寸核实_2026-09-19.md §7"
+      - "docs/reference/s288/manual.txt:36-60"
+  - id: "cable_ph20_ext"
+    category: "cable"
+    model: "PH2.0 3P 公母延长线（舵机延长线，一端公壳一端母针头）≥250 mm ×1"
+    qty: 1
+    housed_by: []
+    housed_by_unknown_class: "not_modeled"
+    housed_by_unknown_reason: "线材，沿颈过线（HB09）；hr28 新增：S1（头里）母腿 ← 本线公壳，本线母端 ← S2（顶板口袋）公壳 —— 一分二腿只有 ~100，头→口袋走线 ≥150"
+    envelope_mm:
+      v: null
+      src: null
+      unknown_class: "not_selected"
+      unknown_reason: "长度 250/300 二选一，到货按实走线定"
+    dims_measured: []
+    dims_assumed: ["长 ≥250"]
+    length_decided_2026-09-25_hr44: {"v": 250, "decided_by": "用户 2026-09-25 23:05 定案（转接板 1 口 → 250 mm 公母延长线）", "check": "wires_v2 过颈 HB09_R 实走 214.8 → 余 35.2；若头内 S1 腿②段（78.8）也由延长线承担则需 293.6 > 250（hr44_线束报告 §5 按此写 300）→ 250 / 300 待用户定（harness.yaml:purchase_table_2026-09-25_hr44）", "envelope_note": "截面未给（wiring_body.CABLE_B ph_ext_3c 按 3.3 × 1.1 assumed 建模），envelope_mm 仍 not_selected"}
+    length_arrived_2026_09_30_hr54b: "用户手上的是 **300 mm**（PH2.0 3P 双头公母延长线；采购清单：云斯 30 cm ×5 条装）。hr44 走线按 250 定案（过颈 HB09_R 实走 214.8）→ 300 的多出来约 50 要盘（线束检查暂停中，未重算）"
+    mass_g:
+      v: 2.74
+      src: "measured"
+      src_note: "2026-09-30 夜用户称：PH2.0 3P 公母延长线 300 mm 一根 2.74 g"
+      was_until_2026_09_30_hr54b: "v null / not_selected：未选型"
+    mount: null
+    connectors: "PH2.0 3P 公壳 / PH2.0 3P 母针头"
+    cable: null
+    keepout_ref: null
+    insert_dir: null
+    insert_dir_unknown_class: "not_modeled"
+    insert_dir_unknown_reason: "线材"
+    provenance:
+      - "harness.yaml:HB01（hr28 S1→S2）"
+  - id: "cable_qt_dupont_m"
+    category: "cable"
+    model: "STEMMA QT/Qwiic JST-SH 1.0 4P → 4×2.54 杜邦公针，150 mm ×1（都会明武电子 item 681586602381『QT转公头杜邦线(150MM)』¥0.7；hr29）"
+    colors_measured_2026-09-30: "**这根线不是标准 Qwiic 配色**（主控板会话转；用户用万用表蜂鸣档对 IMU 板边丝印逐根量）：黄 = GND、蓝 = VIN、红 = SDA（三根实测），黑 = SCL（排除法，未单独量）。标准 Qwiic 是 黑 GND / 红 3.3 V / 蓝 SDA / 黄 SCL —— 这根完全错位；**接线一律按实测，不看颜色**"
+    replacement_plan_2026-09-30: "用户打算另买「QT 转杜邦母头」直出线（省掉中途公母对插的 4 个接点）：到货后颜色重新逐根量，不默认标准色。长度（09-30 晚按模型实走重算，hr53_work/a06）：按模型实走：躯干段 74.6 + 过脖子 218.5 + 头内 98.6..105.9 + 壳顶弯 ≈3 ≈ 395–402 mm（直线距离只有 ≈173，绕路是躯干穿缝 + 颈部给头转动留的下垂环）→ **买 50 cm**；40 cm 一根到底不够；多出约 10 cm 盘在原对插点那里（原方案两根线余线合计 ≈15 cm）；Radxa 端 14 号 GND 直插，17 / 3 / 5 号插一分二（母对二公）的公腿 —— 母头线正好配。长度原写『段 1 ≈80 + 段 2 ≈250–315，≈33–40 cm』是 hr29 老估算，作废"
+    qty: 1
+    housed_by: []
+    housed_by_unknown_class: "not_modeled"
+    housed_by_unknown_reason: "线材：IMU（T01 前壁前面）→ 贴墙上拐 → 墙-甲板缝（T01-F30）→ 中央槽 → 前壁缺口 → 顶板口袋/侧腔，折线 ≈80，余 70（harness HB05）"
+    envelope_mm:
+      v: "SH 壳 7.0×5.0×2.8（JST 手册 SHR-04V-S-B）；杜邦公针头 2.54×2.54×~14"
+      src: "datasheet"
+    dims_measured: []
+    dims_assumed: ["28 AWG，OD ≈1.0"]
+    mass_g:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "未称"
+    mount: null
+    connectors: "JST-SH 1.0 4P 母壳 / 4×杜邦公 1P"
+    cable: null
+    keepout_ref: null
+    insert_dir: null
+    insert_dir_unknown_class: "not_modeled"
+    insert_dir_unknown_reason: "线材"
+    provenance:
+      - "harness.yaml:HB05（hr29）"
+  - id: "cable_dupont_ff"
+    category: "cable"
+    model: "2.54 杜邦母对母 1P 彩排线 400 mm，撕 4 根用（购物车 2026-09-22：优信电子『40P彩排杜邦线 母对母_40CM_全铜』¥5.61；hr29 原推荐 泽杰 620001310593 ¥2.09 同规格）；一体定制替代：优信电子 item 714756854302 客服定『SH1.0-4P ↔ 4×杜邦母 1P，45 cm』"
+    qty: 1
+    housed_by: []
+    housed_by_unknown_class: "not_modeled"
+    housed_by_unknown_reason: "线材：顶板口袋/侧腔（公母对插）→ 颈后（与 PH 延长线/12 V/5 V 同束，HB09）→ 头腔 → H01 前立板顶角缺口（H01-F17）→ Radxa 3/4/5/6 脚；需 ≈250–315，余 85–150 折在头腔"
+    envelope_mm:
+      v: "杜邦母壳 2.54×2.54×14 ×4（错开逐个穿 4 mm 缝）"
+      src: "datasheet"
+    dims_measured:
+      - {v: "胶壳 2.54 × 2.8 × 14.0（2.8 的方向没说）", src: "measured", src_note: "用户 09-25 13:0x 实量（hr43c 简报）"}
+      - {v: "线 OD 1.4", src: "measured", src_note: "商品页外径 / 用户 09-25 给（hr43c 简报；wiring_head.CABLE dupont od 1.3 → 1.4）"}
+    dims_measured_was_until_2026_09_25_hr43c: []
+    dims_assumed: ["26–28 AWG，OD ≈1.2"]
+    claim: {by: "placed_prefix", pattern: "zz_gpio_dupont"}
+    envelope_solid: {shape: none, why: "hr43c：直插在 Radxa 排针上的 14 个杜邦壳（十字并集 2.54×2.8 两种朝向）+ 17 段出壳即弯的弯线管（OD 1.4 / UBEC 1.6，Rc 2.0/4.0）已由 placed zz_gpio_dupont（electronics.gpio_dupont_boxes）逐个建出，不再另声明单盒"}
+    usage_2026-09-25_hr43c: "排针直插（用户 09-25 定）：R2 针位 14 个壳 2/3/4/5/9/12/14/17/20/25/34/35/38/40；杜邦「一分二 母对二公」3 根（12 / 35 原有 2 根 + 17 号 3.3 V 麦 VDD 与 IMU V+ 合用新增 1 根，件同 12/35 那根）"
+    usage_2026-09-29_hr52: "hr52 ToF「v6-VL53L5CX 雷达」（harness.yaml:HB12_tof_i2c）：Radxa 排针 16 个壳 1/2/3/4/5/6/9/12/14/17/20/25/34/35/38/40（+ 1 号 ToF VIN 3.3 V、+ 6 号 ToF GND，两针原空）；一分二 5 根（+ 3 / 5 号：I²C3 SDA / SCL，两腿分 IMU 与 ToF）；ToF 4 根杜邦母对母 10 cm（assumed 规格，模型线长 66.3..68.6 + 壳顶弯段 3.1..4.6）；zz_gpio_dupont = 16 壳 + 21 段出壳弯线管（1 号朝 37°、2 号抬 1.4 偏 −y 10°、3 号两腿横排 y ±0.7、5 号两腿横排朝 −45°、6 号朝 +x；electronics.GPIO_DUP_* hr52 注），对全部 placed 件静态 0、到 H05 最近 0.36"
+    splitter_1to2_qty: {v: 5, src: "derived", src_note: "hr52：原 3（12 / 35 / 17）+ 3 / 5 号各 1（I²C3 SDA / SCL 分给 IMU 与 ToF「v6-VL53L5CX 雷达」，母对二公，同 17 号那根；harness.yaml:HB12_tof_i2c）"}
+    splitter_1to2_qty_was_until_2026_09_29_hr52: {v: 3, src: "derived", src_note: "hr43c R2：原 2（12 / 35）+ 17 号 1"}
+    splitter_1to2_qty_was_until_2026_09_25_hr43c: 2
+    per_wire_mass_measured_2026_09_30_hr54b: {ff_100mm_g: 0.507, ff_100mm_ten_total_g: 5.07, ff_100mm_was_until_2026_10_01_hr54e: 1.01, fm_400mm_g: 1.43, ff_400mm_g: 1.416, ff_400mm_ten_total_g: 14.16, fm_150mm_g: 0.57, ff_150mm_g: 0.54, recheck_2026_10_01_hr54e: "2026-10-01 凌晨用户复称：全铜 10 cm 母对母 **10 根 5.07 g → 0.507 g/根**（单根读数 0.51）；原报 1.01 正好是两根的量，作废。（当时曾按 10 cm 0.507 与 15 cm 0.54 推 40 cm ≈0.70 g/根、怀疑原数多一倍 —— **该推算不成立**，见下条）", recheck_2026_10_01_hr54f: "2026-10-01 凌晨用户复称：全铜 40 cm 母对母 **10 根 14.16 g → 1.416 g/根**，原报 1.41 成立。全铜这批：线身 ≈3.03 g/m、两头合计 ≈0.20 g；15 cm 那批（0.54 / 0.57）是另一种更细的线，不能拿来外推。40 cm 母对公 1.43 是单根读数，未 10 根复称，与母对母一致，可用", note_150mm: "用户同晚补报：15 cm 杜邦单根 公对母 0.57 / 母对母 0.54 g（另一批线，用户没说是全铜）。**待核**：10 cm 全铜 1.01 比 15 cm 0.54 重近一倍，按 10 cm → 40 cm 的差推线身 ≈1.33 g/m、两头合计 ≈0.88 g，而 15 cm 这批两头合计只有 ≈0.34 g —— 可能是两批线的壳 / 端子不同，也可能 10 cm / 40 cm 那次多带了一根；建议 10 根一起称核一次", note: "2026-09-30 夜用户称（40P 全铜彩排线撕下来的**单根**，含两头杜邦壳）：母对母 10 cm 1.01 / 母对公 40 cm 1.43 / 母对母 40 cm 1.41 g。本条 mass_g 仍不填：整鸭用几根、各多长随 HB04 / HB05 / HB08 / HB10 / HB12 定（IMU 要换 QT 转母头 50 cm 直出线），按根数 × 单根另算"}
+    mass_g:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "未称"
+    mount: null
+    fixation:
+      kind: captive
+      by: ["H05"]
+      bearing_parts: ["H05"]
+      dof_note: "hr43d（修 hr43c 全链 L3 fixation_declared 红：无结构化 fixation）：Radxa 排针直插的 14 个杜邦壳（占位 zz_gpio_dupont）—— 顶壳 H05（head_top_shell）内面离壳顶 / 弯线管顶 ≈1.0（hr43c 逐针余量 ≥ +1.03 @Rc 2.0；hr43d 功放 5 腿改朝 −x 后见 hr43d_改件报告），壳往 +z 拔出 1 mm 就顶到顶壳 → 装好后拔不出来（captive）；另在 H05 翻过来插好后沿 14 壳顶整排贴一条 Kapton / 泡棉胶带（装配步 18d′，assumed）"
+    consumables_2026-09-25_hr43d: ["Kapton（或 1 mm 泡棉）胶带条 ≈55×4，整排贴 14 个杜邦壳顶（assumed）"]
+    connectors: "4×杜邦母 1P / 4×杜邦母 1P"
+    cable: null
+    keepout_ref: null
+    insert_dir: null
+    insert_dir_unknown_class: "not_modeled"
+    insert_dir_unknown_reason: "线材"
+    provenance:
+      - "harness.yaml:HB05（hr29）"
+  - id: connector_xt30
+    category: connector
+    model: XT30 公转母延长线 ×1，18AWG，40 cm（下单核对：长度含不含插头、公母方向、是不是 XT30U）
+    model_was_until_2026-09-23_hr39f: XT30 公母 + 18AWG（qty『2 对』：电池侧 XT30U-M 公头 10 cm + 转接板侧 XT30U-F 母头 30 cm 两根单头线，中间接开关）
+    status_2026-09-23_hr39f: hr39f 2026-09-23 取消开关，改拔 XT30 断电：公头在电池顶前段插电池母头（对插头平放，顶盖 B03 下面），延长线从 T01 出线口翻过前壁顶、扎在前壁
+      2×Ø2.2 孔，进顶板口袋、过颈进头，母头插转接板 XT30 主输入（harness.yaml:HB02/HB03）。长度估算 260–300 → 买 40 cm（hr39_电池拔插代替开关.md §3.4）。还没下单
+    qty: 1
+    qty_was_until_2026-09-23_hr39f: 2 对
+    housed_by:
+    - T01
+    - B03
+    envelope_mm:
+      v: 合插20.1×10.2×5.2；平衡头11.4×5.8×6.4（假设）；沿y平放并叠置
+      src: assumed
+      src_note: XT30U公13.7/母12.4/插入6.0来自Amass V1.2；平衡头型号与实物摆放未测，合并占位不能等同整根延长线
+    dims_measured: []
+    dims_assumed:
+    - v: 6×… 未建模
+      src: assumed
+    mass_g:
+      v: 1.7
+      src: datasheet
+      src_note: 已有XT30公母插头本体约1.7g目录值（非线身）；本轮只采用一次partial_mass，不按组合包络体积再计重。
+      src_note_2026-09-23_hr39f: hr39f 起 qty = 1 根延长线（公、母插头各一只 = 一对插头本体），本值就是这根线两头插头的重量；数没改，仍是目录值，到货称
+      source_limitation_2026-09-09: '**取数方式必须说清楚：** 本值来自 2026-09-09 的网页检索结果摘要，**没有逐站打开原页面核对**（本机网络策略拦截了这些域名的直接抓取）。所以它的强度是『多家目录站的一致口径』，不是『某一份签字的规格书』。到货称重（bench.yaml:BN15）之前不要当实称重用。'
+      excludes: '**只含插头本体，不含线。** 本条 model 是『XT30 公母 + 18AWG』，但 18AWG 的长度在 data 里没有任何地方定义（harness.yaml:HB03_xt30_12v_main
+        也没给长度预算的实数），所以线的那部分算不了 —— 见下面 wire_mass_g。（hr39f 2026-09-23：线长已定 40 cm，但没到货、没称，线重仍未知）'
+      wire_mass_g:
+        v: null
+        src: null
+        unknown_class: not_measured
+        unknown_reason: hr39f：延长线 40 cm 18AWG（标的长度含不含插头下单核对），没到货、没称 → 线重不编数，到货称。电池侧那 55 mm 是 17AWG，属于 battery_3s 那条。旧口径『18AWG
+          主干长度未定』作废
+        bench_ref: bench.yaml:BN14
+      bench_ref: bench.yaml:BN15
+      why_this_cell_stays_red: 当前已建zz_xt30组合包络，但不是整根延长线和全部插头质量：1.7g仅旧插头目录口径，40cm线身/平衡头未称，质量清单仍不完整。
+    mount: 2×Ø2.2 扎带孔 @(-23.1,±9,134.9)
+    mount_note_2026-09-23_hr39f: hr39f 起扎的是延长线（从出线口翻过前壁顶后扎在这两个孔上），不再是母头；孔位不变（tools/sim/make_mjcf.py POINT_MASSES 按这两孔中点放
+      1.7 g）
+    connectors: XT30 公 ×1（插电池母头）+ XT30 母 ×1（插转接板主输入公针）
+    cable: 延长线本身 18AWG ×2 芯，40 cm；电池侧 17AWG 55 mm 放电线属于 battery_3s
+    cable_was_until_2026-09-23_hr39f: 17AWG(电池侧)/18AWG
+    keepout_ref: 出线口 |y|≤10 z137.9..147.9（hr38 放大后，duckstructure/trunk.py:43-44 = keepouts.yaml:KO18）
+    keepout_ref_was_until_2026-09-23_hr38: 『出线口 |y|≤7 z140.9..147.9』（hr38 第一批把出线口从 14×7 放大到 20×10，这条没跟；Agent B 审计
+      C10）
+    insert_dir: +z 提起对插区供手持拔插；盖下收纳反向落下
+    provenance:
+    - duck.py:595-597
+    - inventory_v2.json:purchased[12]
+    - docs/design_2026-09-17_bearing_rebuild/hr39_电池拔插代替开关.md §3.4（hr39f）
+    placed_envelope_2026-09-24_hr39f:
+      pattern: zz_xt30
+      body: trunk_base
+      bounds_world_mm:
+      - - -35.7
+        - -10.05
+        - 146.3
+      - - -25.5
+        - 10.05
+        - 157.3
+      includes:
+      - 电池母头
+      - 延长线公头
+      - 平衡头
+      excludes:
+      - 40cm线身
+      - 延长线另一端母头
+      - 胶带/弯曲线
+      mass_policy: 仅碰撞包络；不按体积×PETG密度计质量。已有connector_xt30 1.7g只计一次(partial_mass)，不代表全部实物质量。
+    assembly_limit: assembly step21的zz_xt30 +z只验证组合占位能提起；真实公母沿y分离/停放延长线、公头夹子和所有软线尚未建模，不据此宣称手指操作空间已通过。
+    fixation_note_2026-09-25_hr43d: "hr43d 加固（只登记，不改几何）：B03 盖内面加 1–2 块 1–2 mm 泡棉块压住电池顶的 XT30 对插头 + 平衡头（盖下 12–13 高、对插头 5.2 高；研究 §6.2）"
+  - id: "cable_ph20"
+    category: "cable"
+    model: "PH2.0 3P 壳-壳线 150 mm（舵机原配，每颗 1 根）"
+    qty: 15
+    purchase_2026-09-23_hr39c: "另买 PH2.0 3P 壳-壳双头同向 10 cm ×1（淘宝现成件）：S1 腿① → 嘴下口实走 66.2 mm（60 不够）。嘴舵机自己的原配线（200 扁线）用在 嘴上口 → 8 下口（101.2 mm）"
+    housed_by:
+      - "T01"
+      - "L01"
+      - "L03"
+      - "L04"
+      - "N01"
+      - "N03"
+      - "H01"
+    envelope_mm:
+      v: "PHR-3 壳 4.5 × 7.8 × 6.85；插到底外端与舵机厚段背面齐平，线再凸 ~2（keepouts.yaml:KO01）"
+      src: "measured"
+      src_note: "方向/齐平 2026-09-20 用户实物；壳体尺寸 JST ePH.pdf。旧『6×6×11 保守插头方块』作废"
+    dims_measured: ["插到底与 23 面齐平（09-20）"]
+    dims_assumed: ["线 OD / 最小弯曲半径未量（harness.yaml:HB01）"]
+    chain_mass_measured_2026-09-30_hr54: "用户 09-30 夜称：15 颗 S288 + 全部原装线接成串，合计 354.79 g。15 × 20.33（servo_s288 09-15 servo_alone_g，只称过第 1 颗）= 304.95 → 余 49.84 g 归原装线（15 根均分 ≈ 3.32 g/根，assumed 拆分：含各颗舵机个体差，不是单根实称）。mass_g 仍不填：等线拔下来单独称（一根或全部一起）。训练 MJCF（sim/duck_s288，09-17）里这项是 0 g（build_report.json:missing_mass_components 含 cable_ph20）"
+    short_10cm_mass_measured_2026_09_30_hr54b: "2026-09-30 夜用户称：PH2.0 3P 双头 10 cm 彩色排线 1.13 g/根。用途 = harness HB01：头里一分二 S1 的腿① → 这根线 → 嘴舵机（ID 14）下口（bus_jaw_ph，实走 81.4 / 买 100），整鸭只用 1 根（hr39c 新购项）"
+    mass_g:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "线规未标；14 根分布在 5 条链上跨 12 个关节，不是点质量（layer 侧按束分摊未实现）"
+      bench_ref:
+        - "bench.yaml:BN05"
+        - "bench.yaml:BN15"
+    mount: "多余长度缠在本颗舵机机身上（第一版胶带/扎带）"
+    connectors: "PH2.0 壳 ×2（两端同型）"
+    cable: "harness.yaml:HB01 —— 串联 5 条链，14 根用、1 根备"
+    keepout_ref: "KO01"
+    insert_dir: "沿舵机局部 −x 从背面插入（pocket 型载体装舵机前先插；window 型装好后从背板外插）"
+    provenance:
+      - "harness.yaml:HB01"
+      - "keepouts.yaml:KO01"
+  - id: "splitter_ph20_1to2"
+    id_was_until_2026_09_25_hr44reg: "bus_splitter"
+    id_note_2026-09-25_hr44reg: "hr44reg 简报任务 B『新增 splitter_ph20_1to2（×5）』= 本条（同一实物，改名不另建，避免 ×2 重复计数）；没有 claim（placed/ 里没有一分二实体）→ L3 world_placement / L7 component_body 照旧 unknown，与改名前 bus_splitter 同一状态"
+    category: "cable"
+    model: "PH2.0 3P 一公分二母（比地亚：公 = 壳、插座/上级母口；母 = 针头、接原配线的壳）"
+    qty: 5
+    qty_purchase: 6
+    qty_note_2026-09-25_hr44: "装 5 = S1..S5（wires_v2：S2–S5 有本体实体 splitter__S2..S5，S1 在头内无本体实体、head.bus_s1_leg1.ends『← S1 公壳』）；买 6 = 5 + 1 备件（memory 口径）"
+    qty_note_2026-09-23_hr39c: "hr38 头链加的 S6（8 上口 → 7 / 14）hr39c 取消：嘴两口都用、在头链中间。S1 在转接板 +y 边 PH 座旁（腿① → 转接块 → PH 10 cm → 嘴下口；腿② → 出头口 R → 延长线 → S2）"
+    housed_by: []
+    housed_by_unknown_class: "not_modeled"
+    housed_by_unknown_reason: "hr28：S1 在头里（转接板 PH 座旁，H03 口袋侧空间），S2 在顶板口袋 |y|≤10 那条，S3–S5 在电池仓两侧腔（T01 扎带环）"
+    housed_by_note_2026-09-25_hr44: "S1 H08（头里转接板 PH 座旁，assumed）/ S2 T01 口袋 / S3 T01 / S4 T01（+T02）/ S5 T01（+T03）（wires_v2 落位，hr44reg/p01v2 由 placed 推算最近件，derived）；housed_by 仍空：没有 placed 实体可认领，填了也不进 L3/L7"
+    envelope_mm:
+      v: "14×8×5"
+      src: "assumed"
+      src_note: "一分二本体 14×8×5（协调员 23:05 定案口径 = wires_meta body.splitter__S2..S5.size；wiring_body_v1.json junctions），用户买回实测；腿长 ≥100 见 dims_assumed"
+      was_until_2026_09_25_hr44reg: {"v": null, "src": null, "unknown_class": "not_measured", "unknown_reason": "腿长/针头壳尺寸未量（到货量）"}
+    dims_measured: []
+    dims_assumed: ["腿长 ≥100（商品页），公母口径约 80% 把握（比地亚命名反直觉），到货拿舵机试插", "本体 14×8×5（assumed，定案口径 23:05；用户买回实测）", "两腿各 ≥100 的走线余量见 harness.yaml:purchase_table_2026-09-25_hr44（wires_v2：S3→S5 腿 bus_S34_S5 实走 260.1 > 100 → 不够）"]
+    mass_g:
+      v: 1.848
+      src: "measured"
+      src_note: "2026-10-01 凌晨用户称：PH2.0 一公分二母（3P，10 cm）**5 根合计 9.24 g** → 平均 1.848 g/根（原估算 2.33，轻 21%）"
+      five_total_g_2026_10_01_hr54d: 9.24
+      src_note_was_until_2026_10_01_hr54d: "v 2.33 / assumed：估算（未称）：两腿 2×100 × 截面 3.63 mm²（wiring_head ph_leg_3c，assumed 26AWG 三芯）× 等效密度 2.20 g/cm³（铜占比 0.106：26AWG 0.1287 mm²×3；铜 8.96 / PVC 1.4）= 1.60 g + 本体 14×8×5 × 1.3 g/cm³（壳 + 端子折合，assumed）= 0.73 g；到货称后回填"
+      was_until_2026_09_25_hr44reg: {"v": null, "src": null, "unknown_class": "not_measured", "unknown_reason": "到货称"}
+    mount: null
+    fixation:
+      kind: zip_tie
+      by: ["T01", "T02", "T03", "H08"]
+      bearing_parts: ["T01", "T02", "T03", "H08"]
+      dof_note: "hr44（用户规矩：螺丝 > 平粘 + 扎带 > 夹）：本体平贴 + 扎带。wires_v2 落位（build #4 后零位精确布尔挪到体素全空位）：S2 躯干顶口袋（最近 T01 2.7 / T02 4.27）；S3 +y 侧腔下部（T01 3.0 / B01 5.1）；S4 +y 侧腔（T01 0.06 / T02 2.74）；S5 −y 侧腔（T01 0.5 / T03 2.24）—— 最近件 / 距离 mm 为 hr44reg/p01v2 由 placed 推算（derived）；离面 2–3 mm 的平贴时本体要落到面上，最终位置线束 agent 定。S1 在头里转接板 PH 座旁（H08 托板，assumed；头内不加几何，随束扎 + 胶带）。by 暂填承载件 id；扎带位 feature 已在 features.yaml（T01-FX_S2_T01 两孔 / T01-FX_S34_T01、T01-FX_S5_T01 扎带桥，线束 agent 登）→ feature_ids 由线束 agent 回填"
+      feature_ids: []
+      positions_ref: "harness.yaml:HB01_servo_bus.splitters_2026-09-25_hr44（components.yaml 不写元件世界坐标）"
+    connectors: "1× PH2.0 公壳 + 2× PH2.0 母针头"
+    cable: "harness.yaml:HB01_servo_bus.splitters_2026-09-25_hr44 / chains_2026-09-25_hr44 / trunk_2026-09-25_hr44（S1..S5 → 6 条链，23:05 定案）"
+    cable_was_until_2026_09_25_hr44reg: "harness.yaml:HB01 splitters（S1..S5 → 6 条链；09-21 颈俯仰只剩 1 口 → 单挂，头链另起）"
+    keepout_ref: null
+    insert_dir: null
+    insert_dir_unknown_class: "not_modeled"
+    insert_dir_unknown_reason: "线材无装配方向"
+    provenance:
+      - "harness.yaml:HB01（09-20）"
+      - "购物车：比地亚 PH2.0 一公分二母 ×2 → 09-20 改 4 → 09-21 需 5（购物车待改）"
+      - "hr44 wires_v1：wires_meta.json body.splitter__S2..S5（2026-09-25 22:52）/ duckstructure/data/wiring_body_v1.json junctions / hr44reg/p01_splitter_bearing_v2.json"
+  - id: "strap_velcro"
+    category: "other"
+    model: "魔术贴扎带 20×300"
+    qty: 2
+    housed_by:
+      - "T01"
+    envelope_mm:
+      v: "20 宽"
+      src: null
+      src_note: "清单未给来源等级"
+      unknown_class: "not_measured"
+      unknown_reason: "清单未给外形尺寸"
+    dims_measured: []
+    dims_assumed: []
+    mass_g:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "清单未给质量；第 7 层质量预算缺此项 → BLOCK"
+      refused_2026-09-09: "**拒填。** 魔术贴扎带只给了『20×300』（宽 20 mm、长 300 mm），没有厚度、没有材质、没有面密度，也没有商品页。而且本条 mount 自己写着『槽尺寸与 20 mm 宽带不匹配（未查）』—— 连要不要用这个规格都没确定。"
+      what_would_unblock: "选定具体扎带（连商品页）并把槽宽核对完；或者到货称重。"
+      bench_ref:
+        - "bench.yaml:BN09"
+        - "bench.yaml:BN15"
+    mount: "槽尺寸与 20 mm 宽带不匹配（未查）"
+    connectors: null
+    cable: null
+    keepout_ref: null
+    insert_dir: null
+    insert_dir_unknown_class: "not_modeled"
+    insert_dir_unknown_reason: "装配方向未定义；第 4 层无法生成扫掠路径"
+    provenance:
+      - "duck.py:594"
+      - "inventory_v2.json:purchased[15]"
+  - id: "gpio_rightangle_40p"
+    category: "connector"
+    model: "40P GPIO 直角转接（双排母座套 Radxa 排针，90° 双排公针横出）—— 嘉钦电子工厂店「GPIO转接板【双排弯针】」id 993538435240（**未买**，用户在选）+ 15 个平插杜邦母壳（线见 harness HB05/HB04/HB08/HB10）"
+    qty: 0
+    qty_was_until_2026_09_25_hr43c: 1
+    status_2026-09-25_hr43c: "退役：用户 09-25 定后脑不鼓包、40P 直角转接不买，排针改直插已买的 2.54 杜邦（cable_dupont_ff，占位 zz_gpio_dupont）；placed zz_adapter40 已撤（挪到 hr43_work/hr43c/placed_retired/），claim 前缀认不到任何件"
+    envelope_mm: {v: "51×21×12（商品页）", src: "assumed", src_note: "复审 #2 m4-④：补 {v,src} 结构"}
+    claim: {by: "placed_prefix", pattern: "zz_adapter40"}
+    envelope_solid: {shape: boxes, exact: false, src: "hr43 brief 超集（商品页 51×21×12 / 8.8 g，21 的方向判不出）：盒 A x −2..26 × y −28..24 × z 板顶 257.8..279.8（用户 09-24 17:20 定按 22 预留）；板边外 x 12..26 抬到 266.5 起（N03 横滚 −25° 扫到 265.4）；盒 B（15 个杜邦壳 x 26..40 + 线弯 40..44）z 266.5..274.5（喇叭后挡下沿 275.55 − 1.05）；扣掉 zz_sbc"}
+    dims_assumed: [{v: "51×21×12，8.8 g（商品页）；横针两排高度、针外伸没量；杜邦壳 2.54×2.54×14", src: "assumed"}]
+    purchase_constraints_2026-09-25_hr43: "到货/选型要满足（hr43 实测）：① 转接本体在板边（x 12）以外部分须在板面上 ≥ 8.7（z ≥ 266.5）；② 横针两排 + 杜邦壳落在板面上 8.7..16.7（z 266.5..274.5）；③ 套上后总高 ≤ 22（顶壳鼓包按 22 + 1.05 做）；超了改 electronics.ADP40_* 再出件"
+    mass_g: {v: 8.8, src: "assumed", src_note: "商品页标 8.8 g；未买未称"}
+    housed_by: ["H05"]
+    mount: "套在 Radxa 40 针排针上（摩擦），不另固定；+z 由顶壳 H05-F10 鼓包内面限位（盒 A 顶离内面 1.05）"
+    fixation_was_until_2026_09_25_hr43c: {kind: press_fit_on_header, by: ["H05-F10"], bearing_parts: ["H05"], dof_note: "排针摩擦 + 顶壳限位（隙 1.05）；未建模插拔力"}
+    fixation: {kind: retired, by: [], bearing_parts: [], dof_note: "hr43c 退役（H05-F10 鼓包已删）"}
+    insert_dir: [0, 0, 1]
+    provenance: ["docs/design_2026-09-17_bearing_rebuild/hr43_设计稿_Radxa后脑A.md 补记 17:20", "docs/design_2026-09-17_bearing_rebuild/物料记录_头部电子件.md", "duckstructure/electronics.py:ADP40_*"]
+  - id: "amp_max98357a"
+    category: "other"
+    model: "MAX98357A I²S 3W D 类功放模块，**已焊直排针**（7P 2.54，塑座在板底、针朝下）+ 2P 喇叭螺丝端子；hr43 = 信泰微电子 id 588659005983「BGA 封装已焊排针」紫板（**未买**，直排针版可买）"
+    arrived_2026-09-30: "用户手上已有（照片 2 张）：紫板 MAX98357A I2S Amp，7P 直排针已焊 —— 塑座在板底、长针朝下，元件面露针头；绿色 2P 螺丝端子在元件面、接线口朝端子边；两安装孔在端子边两角 —— 与登记口径（直排针版）一致"
+    bench_2026-09-30: "主控板会话台架实测：落点 Vin → 4（5 V）/ GND → 6 / BCLK → 12 / LRC → 35 / DIN → 40，GAIN / SD 悬空（设计口径 harness HB10：VIN 2 / GND 25 / DIN 40 / BCLK 12、LRC 35 走一分二）；Vin–GND 实测 5.15 V；放音时喇叭端子有输出、停止归零 → 功放与三根信号线接对。喇叭没响 = 喇叭线压在胶皮上，待用户买剥线钳后重接（HB11）"
+    qty: 1
+    claim: {by: "placed_prefix", pattern: "zz_amp"}
+    placed_note_2026-09-25_hr43: "hr43：直排针版（electronics.amp_boxes = amp_straight_scan.py BX 逐字 + BEND 4）中心 (56, 0, 263)，局部 x → 世界 y、局部 y → 世界 −x（端子边朝 −x）：板 x 46.45..65.55 × y ±8.85 × z 262.2..263.8，端子 x 46.45..53.45 顶 272.3，杜邦壳竖挂 x 61.8..64.5 × y ±8.9 × z 245.7..259.7 + 线弯到 241.7；托在 H07 两根 Ø4 立柱上（F36 2×M2×5）。孔距 12.6（用户定），孔位离顶边 2.55 / 孔径 Ø2.2 assumed；离喇叭 2.95、离颈转动件 7.65（hr43_work/sweep43.json）"
+    envelope_solid_2026-09-25_hr43: {shape: boxes, src: "amp_straight_scan.py BX：pcb 17.7×19.1×1.6（商品页尺寸图）、元件 1.5、端子 7.3×7.0×8.5（高 assumed）、板底焊点 1.0、塑座 2.5、杜邦壳 14、线弯 4", exact: false}
+    envelope_solid: {shape: none, why: "hr43e：层（l3_static._envelope_solid）只认单盒 ring|box|none，盒落位 = placed 实体 OBB 中心 + 轴。E′ 竖放的功放 = 板 17.7×19.1 + 端子朝 +x，塑座 / 杜邦壳 / 线弯只在排针边（局部 y −8.5..−5.8，世界 y 20.3..23）朝 −x 挂出 → OBB 17.8×19.1×30.6 的中心 (−16.8, 28.8, 235.8) 落在板背后空区（H09 竖板 / 两立柱按设计就在这里）。旧盒 20×32×10.6（hr38 以前 20×18 模块口径）放在这个中心：× H09 竖板+立柱 186.97、× H05 后上角 111.56、× H03 后下角 74.80 mm³（hr43d 记分卡；hr43e 0.5 mm 抽样 183.8 / 112.0 / 74.8，交区都在真元件没有料的角落）；真元件 placed zz_amp × 全部打印件 = 0（L3 part_vs_component_solid 0.000；hr43e 抽样 0 点）→ 登记口径问题，不是压进。多盒真包络见 envelope_boxes_2026-09-25_hr43e；层支持多盒前按 none（同 cable_dupont_ff hr43c 口径），到货量外形后改回盒 / 多盒"}
+    envelope_solid_was_until_2026_09_25_hr43e: {shape: box, size_mm: [20.0, 32.0, 10.6], exact: false,
+      src: "板 20×18×1.6 常见模块标称 assumed；直排针塑座 2.5 + 杜邦母壳 14 = 16.5 一侧；端子 6.5×7.6×8.5 KF128 通用 assumed；总叠高 26.6"}
+    envelope_boxes_2026-09-25_hr43e: "多盒（= electronics.AMP_S_BX + AMP_S_BEND，局部系 z = 板法线 / 元件面 +z、y = 端子边 +y）：pcb (±8.85, ±9.55, ±0.8)；comps (±7.65, ±8.35, 0.8..2.3)；pin_stubs_top (±8.9, −8.42..−5.88, 0.8..2.8)；term (±3.65, 2.55..9.55, 0.8..9.3)；term_solder_bot (±3.8, 2.55..9.55, −1.8..−0.8)；hdr_plastic (±8.9, −8.42..−5.88, −3.3..−0.8)；dupont_shells (±8.9, −8.5..−5.8, −17.3..−3.3)；wire_bend (±8.9, −8.5..−5.8, −21.3..−17.3)。pcb 17.7×19.1 商品页尺寸图，其余 assumed（端子高 / 元件高 / 杜邦壳 14 / 线弯 4）。位姿 AMP_S_C (−10.8, 28.8, 235.8)、局部 z → 世界 +x、y → +y、x → −z。hr43e 抽样（hr43_work/hr43e/e02_env_before.json）：多盒 × H01/H03/H05/H09 = 0"
+    placed_note_2026-09-23_hr38: "placed zz_amp（hr38 重定位）：H05 卡座 H05-F04，板 x −10..10 × y −9..9 × z 252.5..254.1（与 hr38_顶壳与扬声器.md 原位相同）；**弯排针在 −y 边**（针座 y −11.6..−9.0、z 254.1..256.6），杜邦母壳沿 −y 平躺伸到 y −23（z 254.1..257.14）；**螺丝端子挪到 +y 边**（x ±3.8、y 3.5..9、z 254.1..262.6）。整体包围盒 x −10..10 × y −23..9 × z 252.0..262.6。合壳后 H01 上桥（顶 249.5，隙 3.0）兜底。"
+    placed_note_2026-09-23_hr39c: "功放跟 H05 平移 electronics.T_AMP (−6.03, 0, 11.0)：板 x −16.03..3.97 × y ±9 × z 263.5..265.1（H05-F04）；⑤ +y 导轨开窗给喇叭线进端子"
+    housed_by: ["H09"]
+    housed_by_was_until_2026_09_25_hr43d: ["H07"]
+    housed_by_was_until_2026_09_25_hr43: ["H05", "H01"]
+    envelope_mm: {v: "17.7×19.1×1.6 板（商品页尺寸图 09-24）；直排针塑座 2.5 + 杜邦壳 14 + 线弯 4 朝下；端子 8.5 朝上（assumed）", src: "assumed"}
+    envelope_mm_was_until_2026_09_25_hr43: "20×18×1.6 板，含排针+杜邦壳与端子后叠高 26.6"
+    dims_measured:   # 2026-09-30 用户到货卡尺（用户自述「自己量的可能不准」）
+      - {v: "板 17.7（排针边）× 18.7（排针边 → 端子边）", src: "measured", src_note: "用户口述两条边都叫「焊了排针的边」，有歧义；按照片（7 针 LRC..VIN 占满一条边、两孔在端子边两角）+ 7P × 2.54 = 17.78 判 17.7 沿排针。反过来（18.7 沿排针）也放得下：hr53_work/a01_amp_measured_probe.json swapped 变体"}
+      - {v: "板厚 1.1", src: "measured"}
+      - {v: "排针总长 11.0 = 元件面针头露 2.2 + 板 1.1 + 板背 7.7（针尖 → 板背面，含塑座；塑座厚没单量）", src: "measured"}
+      - {v: "端子（绿色 2P）顶 → 板背面 9.8；用户另报 → 元件面 8.6（9.8 − 1.1 = 8.7，差 0.1，按 8.7）", src: "measured"}
+    dims_measured_was_until_2026_09_30_hr53: []
+    measured_check_2026-09-30_hr53: "只读核对（hr53_work/a01_amp_measured_probe.py / .json）：板背面贴 H09 两根立柱（世界 x −11.6，参考面固定）、两孔不动 → 实测件整体落在现登记包络里（板 18.7 < 19.1、厚 1.1 < 1.6、端子顶离板背 9.8 < 10.1、元件面针头离板背 3.3 < 3.6、板背针长 7.7 在杜邦壳 2.5..16.5 里），最近间隙不变或变大；排针行若随板短 0.4 往孔那边挪：线弯 × H05 3.05 → 2.86（18.7 若沿排针：2.42）。F36 M2×6 板 1.1 → 咬 4.9 < H09 通孔 5.0，孔后空 ≥ 8.5。→ 不改件、不改 electronics.AMP_S_BX（包络取实测 / 商品图较大者，仍是登记值）。**未量且卡脖子**：端子两个焊脚在板背面伸出多长 —— 正后方到 H09 竖板 +x 面只有 2.00（原登记 term_solder_bot 1.0 assumed）；照片上两个焊脚尖明显凸出，长度看不准。≥ 1.7 就要处理（H09 竖板挖浅槽，或剪脚）"
+    to_measure_2026-09-30_hr53: ["端子两焊脚在板背面伸出（针尖 → 板背面）", "两安装孔：孔心距（登记 12.6）/ 孔径（Ø2.2 assumed）/ 孔心 → 端子边（2.55 assumed）", "排针针心 → 排针边（2.4 assumed）", "塑座厚（2.5 assumed）", "称重（mass_g 空）"]
+    dims_assumed: [{v: "板 20×18×1.6；直排针塑座 2.5 + 杜邦母壳 14；端子 8.5 高；边条 1.2 无元件", src: "assumed"}]
+    mass_g: {v: 2.14, src: "measured", src_note: "2026-09-30 夜用户称：紫板 MAX98357A（已焊 7P 直排针 + 绿色 2P 螺丝端子，不含线）2.14 g", was_until_2026_09_30_hr54b: "v null / not_selected：未买；到货称（L7 质量预算）"}
+    mount: "H05 内面卡座（H05-F04）：两条沿 x 的导轨（y ±9.2，−y 1.5 固定 / +y 1.2 卡扣）+ **+y 两段肩**（内伸 1.2，x −9..−4.5 与 4.5..9，躲开端子脚） + 三个爪（−y x −10..−9.1 与 9.1..10、+y x 4.5..7.5；都躲开板底两处真焊点）+ −x 立筋 + +x 两条导轨末端的唇；**−y 导轨在 z 253.9..257.6 × x ±9.4 开窗**给弯针座与杜邦壳让路（打印朝向是 +x 朝下、层沿 −x 堆，开窗只是那几层没有导轨，不是桥接）。"
+    mount_2026-09-25_hr43d: "后脑 +y：板中心 (−10.8, 28.8, 235.8)，局部→世界 R [[0,0,1],[0,1,0],[−1,0,0]]（electronics.AMP_S_C/R），包络 x −32.1..−1.5 × y 19.25..38.35 × z 226.9..244.7；对 H05 3.1 / H03 3.2 / H01 3.45 / H02 3.47、N03 横滚扫掠 16.6；H09 功放支架（竖板 + 两立柱 + 脚板 F38 拧 H03）；端子接线口朝 +y（离壳 ≈6），杜邦 5 根壳尾朝 −x；喇叭线在 H03 台面工位先接"
+    mount_2026-09-25_hr43: "H07 功放托板：两根 Ø4 立柱顶（262.2）托板底，2×M2×5 自攻从板顶拧进（F36，咬入 3.4）；托板 3×M2×8 拧 H01 旧 Radxa 立柱端面（F35）"
+    fixation: 
+      kind: screws
+      by: ["F36_amp_to_H07", "H09-F02", "H09-F03"]
+      by_was_until_2026_09_25_hr43d: ["F36_amp_to_H07", "H07-F03", "H07-F04"]
+      bearing_parts: ["H09"]
+      bearing_parts_was_until_2026_09_25_hr43d: ["H07"]
+      dof_note_2026-09-25_hr43d: "hr43d（E′，研究 §5.2 候选 ①）：板竖放在后脑 +y（Radxa +y 端正下方），元件面朝 +x、杜邦壳挂板背朝 −x；H09 两根 Ø4 立柱沿 x 顶板背面（接触）+ 2×M2×5 自攻从元件面拧进（F36 组，头侧改 H09，孔位 / 孔径仍 assumed 到货核）；锁 ±x/±y/±z 平动与三个转动（螺丝 + 立柱面）；H09 再 2×M2×6 拧 H03 后部地板凸台（F38）"
+      by_was_until_2026_09_25_hr43: ["H05-F04"]
+      kind_was_until_2026_09_25_hr43: clip
+      dof_note_2026-09-25_hr43: "两根立柱顶面托板底（−z）+ 2 颗 M2 自攻（F36）锁 x/y 平动与三个转动、+z 由螺丝头压；板 +x 边离 H07 竖板 0.45、塑座/杜邦壳离纵梁 0.5（纵梁不碰板）"
+      dof_note: "无螺丝。+z 由 +y 两段肩（z 253.8 起，内伸 1.2 压板 +y 边的空边条，x −9..−4.5 与 4.5..9 躲开螺丝端子脚）；−z 由三个爪（顶 252.3：−y 两爪在板的两个 x 端 x −10..−9.1 / 9.1..10，+y 一爪 x 4.5..7.5 —— 都不压板底的两处通孔焊点）+ 合壳后 H01 上桥（249.5，隙 3.0）兜底；±y 由两条导轨内面 ±9.2；−x 由立筋底脚（船头顶点落在板边外 0.2）；+x 由两条导轨末端的唇（x 10.2..10.7）。装法：顶壳翻扣在台上，板从内侧推入导轨、压过 +y 卡扣爪；弯排针的杜邦母壳从 −y 导轨的窗口伸出去。"
+
+    connectors: "7P 2.54 直排针（LRC/BCLK/DIN/GAIN/SD/GND/VIN，**买已焊好的**，套杜邦母壳）；喇叭 2P 螺丝端子"
+    connectors_note_2026-09-23_hr38: "**整鸭不焊接**（用户不动烙铁）→ hr38_顶壳与扬声器.md §3 那个『买不焊排针版、7 根线焊焊盘』的方案作废；改买已焊直排针版，代价是叠高 16.5（针座 2.5 + 杜邦母壳 14）"
+    cable: "见 harness HB10（I²S + 5V/GND）/ HB11（→ 喇叭）"
+    keepout_ref: null
+    insert_dir: [0, 0, -1]
+    provenance: ["docs/design_2026-09-17_bearing_rebuild/hr38_顶壳与扬声器.md", "docs/design_2026-09-17_bearing_rebuild/记录.md 第 46 条（hr38 改买已焊直排针版并重新定位）"]
+  - id: "original_prints"
+    category: "other"
+    model: "原版件（CC BY-SA-NC）：**只剩软嘴 soft_mouth_top（TPU 95A）**"
+    model_was_until_2026-09-23_hr38: "top_head_shell PLA白、jaw PLA黄、jaw_soft/soft_mouth_top TPU、face_part(占位)"
+    superseded_note_2026-09-23_hr38: "三个刚性原版件已全部被派生件取代并进 placed/：face_part → H04 face_plate（hr37）、top_head_shell → H05 head_top_shell（hr38）、jaw → J01 jaw（hr38）。本条原来的 claim（placed_prefix orig_）在 placed/ 里已经一个实例都匹配不到 → 本轮删掉 claim，本条退化成「还没建模的 TPU 软嘴」一件。软嘴仍未建模（没有 placed 实体、没有装配步、没有称重）。"
+    qty: 1
+    qty_was_until_2026-09-23_hr38: 4（top_head_shell / jaw / 软嘴 TPU / face_part 占位）
+    envelope_solid:   # 2026-09-13 F-L3-3
+      shape: none
+      why: "原版件是 6 个冻结 sha256 的 STL 网格本身（frozen.yaml:original_stl_sha256），placed/orig_* 就是那份网格落到世界，不存在另一份 datasheet 包络可独立建"
+    housed_by:
+      - "H01"
+      - "H03"
+    envelope_mm:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "清单 dims_mm 为空：['头部']"
+    dims_measured: []
+    dims_assumed: []
+    mass_g:
+      v: "PLA≈49.8 / TPU≈27.1"
+      src: "assumed"
+      src_note: "打印清单估重（密度 1.27 g/cm^3 采用值）"
+      unknown_class: "not_applicable"
+      unknown_reason: "**故意不给标量。** 本条是 4 个不同的原版件（top_head_shell PLA / jaw PLA / jaw_soft 或 soft_mouth_top TPU / face_part 占位），质量各不相同、材料也不同（PLA 与 TPU 95A）。层（l7_mass.py:_mass_items）是**逐实体**取 mass_g 的：给一个标量会被 4 个实体各用一遍，等于把同一个数乘 4。所以这里保留原来的字符串（层取不出数字，会走 orig_est 分支按几何 × 密度自己算，只报 INFO，不冒充声明值）——那个行为是对的。"
+      refused_2026-09-09: "拒填标量。正确修法是把这条**拆成 4 条独立元件记录**（每件一条，各自 material / mass_g / housed_by），那是 components.yaml 的 schema 变更 + counts 变更，不在本次『补 mass_g』范围。"
+      per_item_reference:
+        note: "打印清单给的分材料合计，只作参考，不是逐件值：PLA 约 49.8 g（top_head_shell + jaw）、TPU 约 27.1 g（软嘴）。face_part 是占位、将来要被表情屏脸板替换，本身不算最终件。"
+        src: "V2_S288版发布产物/01_整鸭打印件/打印清单与参数.md"
+      current_layer_estimate_2026-09-09: "层按几何 × 1.27 g/cm³ 自己推的：orig_top_head_shell / orig_jaw / orig_face_part 三个实体（jaw_soft 在 placed/ 里没有独立实体，MJCF 的 jaw_soft 是 body 名不是件）。这三件合计已经计入 body jaw_soft 的 133.604 g 里。"
+      bench_ref: "bench.yaml:BN15"
+    mount: "原版接口"
+    connectors: null
+    cable: null
+    keepout_ref: null
+    insert_dir: null
+    insert_dir_unknown_class: "not_modeled"
+    insert_dir_unknown_reason: "装配方向未定义；第 4 层无法生成扫掠路径"
+    provenance:
+      - "inventory_v2.json:purchased[16]"
+  - id: "speaker"
+    category: "other"
+    model: "Ø28 mm 8Ω 超薄圆喇叭，带线（**2026-09-28 已到货**；用户买的是 8Ω，MAX98357A 4/8Ω 皆可，8Ω 最大约 1.8 W）"
+    model_was_until_2026-09-28_hr51: "Ø28 mm 4Ω 3W 超薄圆喇叭，带线（淘宝常见规格；**未买**）"
+    dims_measured_2026-09-28:   # 用户卡尺（主设计会话 22:xx 转记）
+      - {v: "直径 28.0", src: "measured"}
+      - {v: "总厚 5.0（含磁钢）= 设计上限，H05-F03 卡座能进、偏紧", src: "measured"}
+      - {v: "线：红黑两根多股细线（约 0.3 mm），末端裸、未上锡 → 剥 5 mm 捻紧对折进功放绿色 2P 螺丝端子（HB11），不需焊接", src: "measured"}
+    model_was_until_2026-09-23_hr38: "喇叭 30×20 + MAX98357A"
+    qty: 1
+    qty_was_until_2026-09-23_hr38: 0（原版 35×25×7 喇叭与 H01 相交 2.1 cm³ → hr37 之前一直不装）
+    claim: {by: "placed_prefix", pattern: "zz_speaker"}
+    envelope_solid: {shape: cylinder, d_mm: 28.0, h_mm: 5.0, exact: false,
+      src: "商品页标称 Ø28×5（含磁钢）**assumed**；背面焊片凸台 6×4×1.5 assumed；到货卡尺"}
+    placed_note_2026-09-23_hr38: "placed zz_speaker：H05 顶壳卡座（H05-F03）里，中心 (50, 2.5)，振膜朝 +z 对声孔阵列 H05-F02，z 264.5..269.5"
+    placed_note_2026-09-23_hr39c: "喇叭跟 H05 平移 head_top.T_SPK (5.18, 0.56, 12.25)：中心 (55.18, 3.06)，顶面贴肩 z 281.75（H05-F03）"
+    housed_by: ["H05"]
+    envelope_mm: {v: "Ø28×5", src: "assumed", src_note: "商品页标称，未买"}
+    dims_measured: []
+    dims_assumed: [{v: "Ø28 × 5", src: "assumed"}]
+    mass_g: {v: 6.8, src: "measured", src_note: "2026-09-30 夜用户称：Ø28 8 Ω 喇叭**带自带红黑线** 6.8 g（用户报到 0.1 g）", was_until_2026_09_30_hr54b: "v null / not_selected：未买；到货称（L7 质量预算）"}
+    mount: "H05 内面卡座：肩 + 三爪 + 两导轨 + 前后挡，无螺丝无胶"
+    fixation:
+      kind: clip
+      by: ["H05-F03"]
+      bearing_parts: ["H05"]
+      dof_note_2026-09-25_hr43d: "hr43d 加固（研究 §6.2 / agent_brief_hr43d 第 5 条）：肩面（±y 翻边）抬 0.5（head_top.SPK_FOAM_RAISE）放 1 mm 泡棉环（Ø28/Ø24，tape_foam_1mm 裁，压到 ≈0.7，喇叭被压在爪上 = 预压 + 前腔密封）；外缘与导轨之间 2–3 点胶（登记，胶种 assumed）。喇叭被泡棉压下 0.2 后背面焊片凸台离转接板 1.55（模型位 1.75）"
+      dof_note: "无螺丝。+z 由肩（z 269.5 平面，内伸 2.2 压喇叭外缘）；−z 由三爪（顶 264.3，−y 两爪伸 1.0 固定、+y 一爪伸 0.8 卡扣）；±y 由两导轨（内面 2.5±14.2，与圆缘在 x=50 相切）；−x 后挡船头顶点 x 35.8、+x 前挡面 x 64.2。装法：顶壳翻扣，喇叭斜着把 −y 缘塞进两固定爪下，再压 +y 缘过卡扣爪（+y 导轨 1.2 厚挠 0.8，σ≈40 MPa < PETG 屈服 ≈50，一次性扣入）。六向 8 mm 内有料：+x 10 / −x 12 / +y 91 / −y 155 / +z 934 / −z 3 mm³（全是 H05）"
+    connectors: null
+    cable: "自带两根线（长度商品页标 ≈100，assumed）→ 功放螺丝端子（harness HB11）"
+    keepout_ref: null
+    insert_dir: [0, 0, -1]
+    insert_dir_note: "世界 −z（顶壳翻扣在台上时从上往下斜插进卡座）"
+    provenance: ["docs/design_2026-09-17_bearing_rebuild/hr38_顶壳与扬声器.md"]
+    lead_len_mm: {v: 100, src: "assumed", src_note: "hr43d：喇叭自带线 ≈100（研究 §5.2，**未实量**）；焊片 → 功放端子（后脑 +y）走线长见 harness HB11 hr43d_route（routes43d）"}
+    consumables_2026-09-25_hr43d: ["1 mm 泡棉环 Ø28/Ø24（tape_foam_1mm 裁）", "外缘点胶 2–3 点（胶种未定，assumed）"]
+  - id: "filament"
+    category: "other"
+    model: "PLA 1kg 白 + PLA 黄 250g + TPU95A 250g"
+    qty: 1
+    housed_by: []
+    housed_by_unknown_class: "not_modeled"
+    housed_by_unknown_reason: "整鸭 CAD 里没有该件的安装位（['专用件 PLA 270.2 g / TPU 15.3 g（1.27 g/cm³ 假设）']）"
+    envelope_mm:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "清单 dims_mm 为空：['专用件 PLA 270.2 g / TPU 15.3 g（1.27 g/cm³ 假设）']"
+    dims_measured: []
+    dims_assumed:
+      - v: "密度 1.27"
+        src: "assumed"
+    mass_g:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "清单未给质量；第 7 层质量预算缺此项 → BLOCK"
+      unknown_class_corrected_2026-09-09: "not_applicable（旧值 not_measured 保留在上面）。"
+      refused_2026-09-09: "**拒填，而且这条根本不该要求有质量。** 『filament』是**耗材采购行**（PLA 1kg 白 + PLA 黄 250 g + TPU95A 250 g），不是装到鸭子身上的零件 —— 它的『质量』是货架上料盘的重量。硬要填就会往整机质量里加 1.5 kg。"
+      material_budget_not_component_mass: "它想表达的量是『要买多少料』：专用件 PLA 270.2 g / TPU 15.3 g，加原版件后 PLA 约 320.1 g / TPU 约 42.3 g（打印清单与参数.md）。**这是采购量，不是整机质量**，而且是按实心 × 1.27 算的上界（见 tolerances.yaml:load.density_by_material.infill_upper_bound_note）。"
+      gate_schema_note: "和 speaker 同一类问题：采购清单行混在元件库里，被 L7 当成有质量的实体要。正确修法是把耗材/工具类条目移出 components[]，或给 components[] 加一个 `is_installed_part: false` 标志让 L7 跳过。不在本次数据改动范围。"
+    mount: null
+    connectors: null
+    cable: null
+    keepout_ref: null
+    insert_dir: null
+    insert_dir_unknown_class: "not_modeled"
+    insert_dir_unknown_reason: "装配方向未定义；第 4 层无法生成扫掠路径"
+    provenance:
+      - "duck.py:946"
+      - "inventory_v2.json:purchased[18]"
+  - id: bearing_6703zz
+    category: bearing
+    dims_measured: []
+    dims_assumed: []
+    mass_g:
+      v: 3.87
+      src: measured
+      src_note: "2026-09-30 夜用户称：6703ZZCM 每个 3.87 g（目录值 4.2，轻 7.9%）"
+      src_note_was_until_2026_09_30_hr54c: 6703ZZ 17×23×4 深沟球轴承（铬钢、双面金属防尘盖）标准件目录净重 0.004 kg（en.tradebearings.com 6703zz 条目）/ 4.2 g ±0.1（VXB 6703ZZ
+        商品页）。2026-09-17 查。**是标准件目录重量，不是我们要买那一批的实称重**；到货称重后替换（unknown_class 改 measured）。
+      sanity_check_2026-09-17: 实心环 π/4 × (23² − 17²) × 4 = 753.98 mm³ × 7.85 g/cm³ = 5.92 g；目录值 4.2 g = 实心率 71%，与
+        6704 的 72.7%（上面那条）同一量级，两法互证。
+      was_until_2026-09-17:
+        v: null
+        unknown_class: not_measured
+        unknown_reason: 待所购轴承称重；不以实心钢环质量冒充轴承质量
+    provenance:
+    - tools/cad/assembly_audit.py:bearing_specs
+    - docs/design_2026-09-17_bearing_rebuild/记录.md
+    model: 6703ZZ 17×23×4
+    fixation:
+      kind: seat
+      by:
+        - "L01-BR01"
+        - "L01-BR02"
+        - "L10-BR01"
+        - "L10-BR02"
+        - "L10-BR03"
+        - "L02-BR01"
+        - "L03-BR01"
+        - "L03-BR02"
+        - "L13-BR01"
+        - "L13-BR02"
+        - "L13-BR03"
+        - "L02-BR02"
+      bearing_parts: ["L01", "L02", "L03", "L10", "L13"]
+      dof_note: "4 颗 = 髋横滚 ×2 + 髋俯仰 ×2（09-17 轴承恢复轮次新增的件，特征都在 *-BR0x 里）。髋横滚：外圈坐 L01 座 Ø23.15（L01-BR01，对 Ø23 外圈 +0.15 名义间隙）、轴向靠 L01 Ø25.55 唇（L01-BR02）；内圈套 L10 轴套轴颈 Ø16.85（L10-BR01，对 Ø17 内圈 −0.15），被 L10 Ø18.2 唇（L10-BR02）与 L02 Ø18.2 唇（L02-BR01）两侧夹住；L10 自身被法兰 6 颗（L10-BR03 6×Ø2.4 过孔，F04_hiproll_flange）压在舵机法兰与 L02 盘之间。髋俯仰同构：L03 座（L03-BR01 + L03-BR02 唇）+ L13 轴套（L13-BR01 轴颈 / L13-BR02 唇 / L13-BR03 6 过孔，F06_hippitch_flange）+ L02 另一侧唇（L02-BR02）。每颗：2 个径向平动 + 2 个倾覆转动由座/轴颈锁死，轴向平动由两侧唇锁死，绕关节轴转动是工作自由度。"
+    qty: 4
+    housed_by:
+    - L01
+    - L02
+    - L10
+    - L03
+    - L13
+    claim:
+      by: envelope_ring
+    envelope_mm:
+      v: 17×23×4
+      src: assumed
+      src_note: 标准外廓采购要求；具体厂家尚未核定
+    envelope_solid:
+      shape: ring
+      bore_mm: 17.0
+      od_mm: 23.0
+      t_mm: 4.0
+      src: nominal standard procurement dimensions
+    current_design_ref: docs/design_2026-09-17_bearing_rebuild/记录.md
+    contact_face_verification:
+      v: null
+      src: null
+      unknown_class: not_measured
+      unknown_reason: 所选厂家内外圈及防尘盖端面边界、预紧和阻力未测
+consumables:
+  - id: "zip_tie_2p5"
+    category: "consumable"
+    model: "尼龙扎带 2.5 × 100（宽 2.5 × 厚 1.1 × 长 100，assumed）"
+    registered_as: "耗材（hr44reg 2026-09-25）：不建 placed 实体 → 不进 components 列表（hr43e tape_foam_1mm 先例：没有 placed 实体的元件条目在 L3 world_placement / L7 component_body 必红）；harness.yaml / assembly.yaml / 线束 agent 的扎带位 feature 按本 id 引用"
+    envelope_mm: {"v": "2.5×1.1×100", "src": "assumed", "src_note": "简报口径 2.5×1.1×100；duckstructure/wiring_head.HR44_TIE 按 2.5 宽 × 1.0 厚（assumed）建扎带环 —— 扎带位孔 Ø2.6、扎带桥隧道 3.2×1.5 按厚 1.1 取大"}
+    mass_g: {"v": 0.31, "src": "assumed", "src_note": "PA66 1.14 g/cm³ × 2.5×1.1×100 = 275 mm³（不含锁头），每根；未称"}
+    qty: {"v": null, "unknown_class": "not_final", "basis": "≈30（hr44_线束报告 §5）= 头内扎束 tie__ 10 道 + 几何固定点 11（颈 8 桥 / 躯干 2 桥 + 1 两孔，features FX_*）+ 腿绕件 6 道（hr44/p47_leg_ties.json）+ 一分二 S1–S5 + 既有（转接板 2 道 H08、XT30 延长线前壁 1 道、UBEC 细扎带）；腿绕粗段可能要 150 长（assumed）"}
+    purchase: "已有（duckstructure/wiring_head.HR44_TIE：『尼龙扎带 2.5 × 100（采购清单:75 已有）』）"
+    used_by: ["harness.yaml:HB01_servo_bus.splitters_2026-09-25_hr44[].fixation", "assembly.yaml:step18/step19.harness_steps_2026-09-25_hr44reg", "components.yaml:splitter_ph20_1to2.fixation"]
+    provenance: ["agent_brief_hr44reg.md 任务 B", "duckstructure/wiring_head.py:HR44_TIE"]
+  - id: "spiral_wrap_d4"
+    category: "consumable"
+    model: "PE 螺旋缠绕管，内径 Ø4，壁 0.35（assumed）"
+    registered_as: "耗材（同 zip_tie_2p5）"
+    envelope_mm: {"v": "内径 4 × 壁 0.35", "src": "assumed", "src_note": "duckstructure/wiring_body.WRAP『螺旋缠绕管（PE，内径按束径选 Ø4 / Ø6）壁厚 0.35』；过颈束束芯 = od − 0.7 = 4.56（HB09_R）/ 5.26（HB09_L）> Ø4 标称 → Ø4 还是 Ø6 待定"}
+    length_need_mm: {"v": 474.5, "src": "derived", "src_note": "过颈两束 HB09_R 214.8 + HB09_L 219.7（wires_meta，以 wires_meta 为准）+ 两头余量 20×2（assumed）"}
+    mass_g: {"v": 2.16, "src": "assumed", "src_note": "PE 0.95 g/cm³ × 环截面 π/4·(4.7² − 4²) × 需要长度（满覆盖上界；螺旋有缝实际更轻）"}
+    purchase: "未见采购记录 → 要买（harness.yaml:purchase_table_2026-09-25_hr44；hr44_线束报告 §5 写 PE Ø6 × 0.5 m，assumed，可选 —— id 按简报保留 d4，Ø4 / Ø6 待定）"
+    used_by: ["harness.yaml:HB09_cross_neck.branches_2026-09-25_hr44（束径含缠绕管壁 2×0.35）"]
+    provenance: ["agent_brief_hr44reg.md 任务 B", "duckstructure/wiring_body.py:WRAP / bundle_od"]
+deliberately_absent:
+  - id: "imu_trunk_imu_to_dxl_v2"
+    comparison: "A1"
+    was: "躯干 IMU imu_to_dxl v2（LSM6DSV16X），挂 Dynamixel 总线 ID 200，策略唯一姿态源"
+    replaced_by: "imu_icm42688（直连主控 I²C；09-17 起主控是 Radxa ZERO 3W，hr29 起板子是 Adafruit 4438；装 T01 前壁）"
+    reason: "S288 是一线制 6 Mbps CRC32 私有协议，Dynamixel 总线 IMU 板挂不上去（comparison A1 判 ✅必须换）"
+    do_not_restore: true
+    carried_constraint: "site 位姿必须仍与 MJCF 一致，见 frozen.yaml:imu_pose；安装外参必须显式声明，见 relations.yaml:C1_imu_extrinsic"
+    provenance:
+      - "comparison_original_vs_v2.md:A1"
+      - "inventory_original.json:components[1]"
+      - "MJCF:109"
+  - id: "bearing_22x16x4_x11_and_15x10x3_x3"
+    comparison: "A2"
+    was: "原版 Ø22×16×4 ×11 + Ø15×10×3 ×3（每关节舵机对侧一颗；髋偏航在输出侧；头横滚两端各一颗）"
+    replaced_by: "只留 6704ZZ ×4（髋横滚/膝）+ 6700ZZ ×2（踝）"
+    replaced_by_updated_2026-09-17: "6704ZZ ×2（只剩膝）+ 6700ZZ ×2（踝）+ 6702ZZ ×2（髋偏航，09-12 加）+ 22×16×4 ×1（头横滚 B，09-12 恢复）。髋横滚法兰侧 6704 ×2 于 09-17 取消（docs/reports/髋横滚轴承取消_2026-09-17.md）；上一行是 comparison A2 原文，保留不改。"
+    reason: "少掉的位置改由 S288 自带输出轴承与 PLA 滑动配合（头横滚 A/B）承担。⚠ 原版用 XL330 时仍额外加轴承，说明作者不信任舵机自身轴承承受悬臂载荷"
+    actually_dropped: "2026-09-17 r5：相对原版少6处运动关节的外加轴承——hip_roll×2 / hip_pitch×2 / head_yaw×1 / head_roll(A)×1；另嘴的15×10×3×1不做。仍有轴承的位置：hip_yaw×2改用6702、knee×2改用6704、ankle×2改用6700、head_roll(B)×1恢复22×16×4，共7颗；按位置没有我们有而原版无的新增点。髋横滚旧6704互撞，取消旧位置不等于无需副支撑，后惰轮叉架仍是未放行候选。原版此处已有22×16×4，不由网格位置推断只受推力。颈/头俯仰原版没有外加轴承，使用舵机惰轮；之前comparison A2漏列head_yaw的差异见D-FROZEN-03。本轮证据见docs/design_2026-09-17_support/记录与设计结论.md。"
+    size_caveat: "我们的 6704ZZ 是 20×27×4，原版那颗是 16×22×4；型号名相同但不是同一颗件 —— 见 components.yaml:discrepancies.D-COMP-01。09-17 起 6704 只在膝，髋横滚不再有任何轴承。"
+    do_not_restore: false
+    carried_constraint: "第 7 层要单独算这些关节的悬臂载荷；bench.yaml:BN08 有松旷/磨损/疲劳项"
+    provenance:
+      - "comparison_original_vs_v2.md:A2"
+      - "inventory_original.json:components[14]"
+      - "inventory_original.json:components[15]"
+  - id: "battery_contact_pcb_banana"
+    comparison: "A5"
+    was: "banana_pcb_locker 压条 + 暗示的 'banana' 电池触点 PCB"
+    replaced_by: "电池直接 XT30 出线（connector_xt30）"
+    reason: "我们的电池是带线短剑款，不需要触点板"
+    do_not_restore: true
+    carried_constraint: null
+    provenance:
+      - "comparison_original_vs_v2.md:A5"
+      - "inventory_original.json:components[12]"
+  - id: "battery_np_f550"
+    comparison: "A6"
+    was: "NP-F550 2S（MJCF dummy 名 np_f970 是错的，尺寸 38.6×20.6×70.8）"
+    replaced_by: "battery_3s（3S 1100 mAh 短剑款 72×25×18 / 66 g）"
+    reason: "S288 要 12.6 V，2S 不够。电池仓已按 3S 尺寸冻结（frozen.yaml:battery_bay_26）"
+    do_not_restore: true
+    carried_constraint: "电池仓 26 项常量冻结，换电池 = 解冻流程"
+    provenance:
+      - "comparison_original_vs_v2.md:A6"
+      - "inventory_original.json:components[11]"
+  - id: "sbc_radxa_zero_3w"
+    comparison: "A7"
+    was: "Radxa Zero 3W（MJCF dummy 还是 Pi Zero 2W 外形）"
+    replaced_by: "sbc_radxa_zero3w"
+    reason: "用户 09-09 拍板换香橙派 → **2026-09-17 又换回 Radxa ZERO 3W**（现役条目 sbc_radxa_zero3w，09-22 已下单）；本条只是原版 MJCF dummy 的历史对照，不表示 Radxa 被弃"
+    do_not_restore: true
+    carried_constraint: "H01 立柱孔距 58×23 —— 2026-09-19 按 Radxa 机械图核对一致（电子件尺寸核实 §1），到货复核"
+    provenance:
+      - "comparison_original_vs_v2.md:A7"
+      - "inventory_original.json:components[8]"
+  - id: "hat_rpi_robot_hat"
+    comparison: "A8"
+    was: "Pollen RPI Robot HAT：5 V 稳压 + 舵机总线电路 + TLV320AIC3104 codec + 麦 + 功放"
+    replaced_by: "拆成分立件：buck_12v_5v、bus_adapter、mic_inmp441；codec 和功放没有"
+    reason: "功能上够用（不做音频输出）"
+    do_not_restore: false
+    carried_constraint: "⚠ HAT 同时是头内电子件的机械基准（HAT 平面 x≈60，Radxa 平面 x≈68，间距仅 8.5 mm）；我们没有等价基准板 → 见 components.deliberately_added:C4_head_datum_plate"
+    provenance:
+      - "comparison_original_vs_v2.md:A8"
+      - "inventory_original.json:components[9]"
+  - id: "tof_head_vl53l5cx_l8cx"
+    comparison: "A9"
+    was: "ToF VL53L5CX 8×8（HAT I2C3 0x29，15 Hz，FOV 45°×45°）"
+    replaced_by: null
+    reason: "只服务 tofd / theremin 演示，与行走策略无关。要加再说，别顺手补"
+    restored_2026-09-29_hr52: "用户 09-29 定补回（不是顺手补）：现役条目 tof_vl53l5cx（通用 VL53L5CX 板「VL53L5X V2」，左脸 H04 贴面 + H10 压条）；本条只作原版对照，do_not_restore 原值不改"
+    do_not_restore: true
+    carried_constraint: null
+    provenance:
+      - "comparison_original_vs_v2.md:A9"
+      - "inventory_original.json:components[4]"
+  - id: "speaker_head"
+    comparison: "A10"
+    was: "扬声器 35×25×7，头后上部"
+    replaced_by: null
+    reason: "同 A9；且原喇叭占位与 H01 相交 2.1 cm^3。加了要开声孔 → 会动头壳"
+    do_not_restore: true
+    carried_constraint: null
+    provenance:
+      - "comparison_original_vs_v2.md:A10"
+      - "inventory_original.json:components[6]"
+      - "inventory_v2.json:purchased[17]"
+  - id: "imu_head_bmi088"
+    comparison: "A11"
+    was: "头部 IMU BMI088（HAT 板载）"
+    replaced_by: null
+    reason: "原版自己就是 dormant，策略不读。**不要因为 MJCF 里有 head_imu site 就去装一颗**"
+    do_not_restore: true
+    carried_constraint: null
+    provenance:
+      - "comparison_original_vs_v2.md:A11"
+      - "inventory_original.json:components[2]"
+      - "MJCF:255-256"
+  - id: "camera_head_imx219_m12_vertical"
+    comparison: "A12"
+    was: "IMX219 + M12 镜头，竖幅安装（转 90°）"
+    replaced_by: "camera_csi（占位方块，型号未选）"
+    reason: "待选型。两个坑：① MJCF <camera> 元素朝向与 site 相反，是导出占位，光轴以 site 为准（+x 向前）；② 原版是竖装"
+    do_not_restore: false
+    carried_constraint: "选型前接口预算冻结，见 frozen.yaml:C6_interface_budgets"
+    provenance:
+      - "comparison_original_vs_v2.md:A12"
+      - "inventory_original.json:components[3]"
+      - "MJCF:250-252"
+  - id: "mouth_servo_id34_and_15mm_bearing"
+    comparison: "A14"
+    was: "嘴关节舵机 id34 + 对侧 Ø15 轴承"
+    replaced_by: null
+    reason: "策略不含嘴关节。采购 15 颗只装 14 颗，第 15 颗当备用"
+    do_not_restore: true
+    carried_constraint: "fasteners/assembly 里不得出现嘴关节螺丝与装配步"
+    provenance:
+      - "comparison_original_vs_v2.md:A14"
+      - "inventory_original.json:components[24]"
+      - "duck.py:1067"
+  - id: "gamepad_xbox_ble"
+    comparison: "A15"
+    was: "Xbox 手柄（BLE）"
+    replaced_by: null
+    reason: "后期再说；不装机"
+    do_not_restore: false
+    carried_constraint: null
+    provenance:
+      - "comparison_original_vs_v2.md:A15"
+      - "inventory_original.json:components[22]"
+  - id: "odm_only_items"
+    comparison: "A16"
+    was: "foot_contact / antenna / flash_light / 眼睛 LED / BMS / UBEC / 脚底开关"
+    replaced_by: null
+    reason: "**这些在当前锁定的两个上游 commit 里根本不存在**，是 Open Duck Mini v2（另一只更大的鸭）的东西。别去 microduck 里找"
+    do_not_restore: true
+    carried_constraint: null
+    provenance:
+      - "comparison_original_vs_v2.md:A16"
+      - "inventory_original.json:components[17]"
+      - "inventory_original.json:components[18]"
+      - "inventory_original.json:components[19]"
+      - "inventory_original.json:components[21]"
+      - "inventory_original.json:components[13]"
+  - id: "switch_rocker"
+    comparison: null
+    comparison_note: "不是 comparison A 段条目：我们自己加过、hr39f 2026-09-23 退役的元件，从 components 挪到这里留沿革（退役前的完整条目见 docs/design_2026-09-17_bearing_rebuild/hr39f_work/yaml_before/components.yaml）"
+    was: "船型开关 KCD1-101 ×1：整鸭唯一总开关，串在电池 XT30 与转接板 XT30 主输入之间一刀断 12 V；hr17 起装在 T02 壳顶 collar 平板 19×13 孔（duckstructure/tail.py SWITCH_*，特征 T02-F06），placed 实体 zz_switch（claim placed_prefix zz_switch）"
+    replaced_by: "拔电池 XT30 断电：开顶盖 B03，把电池顶前段的对插头（电池母头 ↔ connector_xt30 延长线公头）提出来拔开（harness.yaml:HB02/HB03）"
+    reason: "hr39f 2026-09-23 取消开关，改拔 XT30 断电（用户定，docs/design_2026-09-17_bearing_rebuild/hr39_电池拔插代替开关.md）。开关整套删除：zz_switch、T02 开关孔和 collar、10 cm 公头线、30 cm 母头线、WAGO、插簧线"
+    do_not_restore: true
+    carried_constraint: "不用时一定要拔 XT30：关机后 UBEC、转接板和舵机还在耗电，1100 mAh 会被放空，3S 过放就坏（hr39 §7）"
+    provenance:
+      - "docs/design_2026-09-17_bearing_rebuild/hr39f_work/yaml_before/components.yaml:switch_rocker"
+      - "docs/design_2026-09-17_bearing_rebuild/hr39_电池拔插代替开关.md §5.1"
+  - id: "connector_wago_221_412"
+    comparison: null
+    comparison_note: "同 switch_rocker：不是 comparison 条目，hr39f 2026-09-23 从 components 挪到这里留沿革"
+    was: "WAGO 221-412 两位免焊端子 ×5（购物车 2026-09-20）：开关线 3 只在 +y 侧腔、UBEC 线 2 只在 −y 侧腔；hr37 探测两个侧腔都塞不下，没有 placed 实体"
+    replaced_by: "不需要：12 V 主干只剩 1 根 XT30 公转母延长线（两头 XT30 直插，0 焊点）；UBEC 12 V 从转接板 XT30 扩展口取（harness.yaml:HB04）"
+    reason: "hr38（2026-09-22）已定一只不用（购物车 5→0，harness.yaml:HB03.wago_dropped_2026-09-22），本条 qty 一直没跟；hr39f 2026-09-23 取消开关，改拔 XT30 断电，本条从 components 退役"
+    do_not_restore: true
+    carried_constraint: null
+    provenance:
+      - "docs/design_2026-09-17_bearing_rebuild/hr39f_work/yaml_before/components.yaml:connector_wago_221_412"
+      - "harness.yaml:HB03.wago_dropped_2026-09-22"
+deliberately_added:
+  - id: "display_lcd_and_face_panel"
+    comparison: "B7"
+    what: "1.9\" 表情屏 + 脸板（原版既没有屏也没有 LED）"
+    reason: "我们要的功能；原版 roadmap 明说'软件可控 LED 在这套硬件上不存在'"
+    risk: "净增头部质量与线束；02_小车打印件/13_face_panel.stl 与相邻件接口未核对（直接用会撞顶壳 8.914 mm^3）"
+    components_ref:
+      - "display_lcd"
+    provenance:
+      - "comparison_original_vs_v2.md:B7"
+      - "inventory_v2.json:purchased[7]"
+  - id: "xt30_power_chain"
+    comparison: "B8"
+    what: "XT30 供电链 + 降压 + PD 诱骗板（原版直接插相机电池）"
+    reason: "3S 短剑款需要自建 12 V 链路"
+    risk: "65 W GaN 只有 12 V/3 A = 36 W，够单舵机测试台不够整鸭（15 颗保持姿态 4.5~7.5 A）→ bench.yaml:BN02"
+    components_ref:
+      - "connector_xt30"
+      - "buck_12v_5v"
+      - "bus_adapter"
+    provenance:
+      - "comparison_original_vs_v2.md:B8"
+      - "inventory_v2.json:purchased[10]"
+      - "inventory_v2.json:purchased[12]"
+  - id: "C4_head_datum_plate"
+    comparison: "C4"
+    what: "头内电子件机械基准板（尚未设计的新件；HAT 拆分后缺的等价基准）"
+    reason: "C4：原版 HAT 是头内电子件的机械基准，我们拆成分立件后头内布局是散着放的；选型定了必须补一块转接/固定板"
+    risk: "HAT 与 Radxa 间距只有 8.5 mm，说明头内空间比看上去紧"
+    status: "planned_not_designed"
+    envelope_mm:
+      v: null
+      src: null
+      unknown_class: "not_selected"
+      unknown_reason: "基准板未设计；选型前无法给外形"
+    mass_g:
+      v: null
+      src: null
+      unknown_class: "not_selected"
+      unknown_reason: "未设计"
+    housed_by:
+      - "H01"
+    components_ref:
+      - "sbc_radxa_zero3w"
+      - "camera_csi"
+      - "display_lcd"
+      - "mic_inmp441"
+      - "sensor_small_boards"
+    provenance:
+      - "comparison_original_vs_v2.md:C4"
+      - "comparison_original_vs_v2.md:A8"
+      - "inventory_original.json:components[9]"
+discrepancies:
+  - id: "D-COMP-01"
+    what: "'6704ZZ' / '6700ZZ' 这两个型号名在两份 inventory 里指的**不是同一颗轴承**"
+    a: "inventory_original.json:components[14] 写 \"'Seeed bearing' 22×16×4（内 16 / 外 22 / 厚 4；**对应标准 6704ZZ**）\"；components[15] 写 \"Ø15×10×3（**对应 6700ZZ**）\""
+    b: "inventory_v2.json:purchased[1] 写 \"6704ZZ **20×27×4**\"（座 Ø27.15 / 毂 Ø19.85）；purchased[2] 写 \"6700ZZ **10×15×4**\"（座 Ø15.1 / 轴 Ø9.95，轴向 x -21.4..-17.4 = 4.0 厚）"
+    why_it_matters: "① 标准 6704ZZ 就是 20×27×4，原版那颗 16×22×4 **不是 6704**，原版清单的型号映射是错的；② 因此 comparison A2 说的'只留 6704×4 + 6700×2'听起来像沿用原版，实际上我们的髋横滚/膝轴承比原版**大了一圈**（外径 22→27、内径 16→20；09-17 起髋横滚 6704 已取消、只剩膝，取消原因之一正是这一圈：OD 27 在真实姿态里左右互撞，见 docs/reports/髋横滚轴承取消_2026-09-17.md），座孔壁厚与件的截面都不能拿原版的经验类比；③ 我们的 6700 是 4 mm 厚，原版那颗是 3 mm —— 轴向堆叠差 1 mm"
+    resolution: "以 inventory_v2 的尺寸为准（那是我们真要买的件）；原版侧一律按 16×22×4 / 15×10×3 的**实际尺寸**引用，别用型号名。2026-09-12 起我们也真的用了一颗 16×22×4（头横滚 B 端，bearing_22x16x4）和两颗 6702ZZ 15×21×4（髋偏航，与原版那颗也不是同一颗）"
+    provenance:
+      - "inventory_original.json:components[14]"
+      - "inventory_original.json:components[15]"
+      - "inventory_v2.json:purchased[1]"
+      - "inventory_v2.json:purchased[2]"
+      - "comparison_original_vs_v2.md:A2"
+  - id: "D-COMP-02"
+    what: "主控板脚印：65×30 还是 65×32"
+    a: "inventory_original.json:components[8] —— dummy 65×30×1.6，且注明 Radxa Zero 3W 官方 65×30（与 Pi Zero 同）"
+    b: "inventory_v2.json:assumed_values[12] / duck.py:33 —— P['brd'] = (65, 32)"
+    why_it_matters: "H01 前立板与立柱是按 65×32 让的空间，比实际板宽 2 mm；孔距 (58,23) 两边一致，所以只影响包络不影响孔位"
+    resolution: "到货量 Orange Pi Zero 3W 实物再定；在那之前 65×32 记 assumed"
+    resolved_2026-09-17: "主控换回 Radxa ZERO 3W（官网 65×30），a 侧正确；P['brd']=(65,32) 只是让空间的包络、偏保守 2 mm，孔距 (58,23) 正确 → H01 立柱不动。差异结案，包络值下次改 head.py 时顺手改 65×30。"
+    provenance:
+      - "inventory_original.json:components[8]"
+      - "duck.py:33"
+      - "inventory_v2.json:assumed_values[12]"
+  - id: "D-COMP-03"
+    what: "摄像头视锥禁入体绑的出瞳点，和 MJCF head_camera site 不是同一个点"
+    a: "inventory_original.json:sites[3] head_camera 世界 (81.4, −0.09, 251.11)，光轴 = site +x；comparison A12 说'光轴以 site 为准'"
+    b: "inventory_v2.json:keepouts[14] —— 视锥 80°×60° @ (89, 0, 264)，且注明'绑定该出瞳'"
+    why_it_matters: "两点差 (+7.6, +0.09, +12.9) mm，FOV 也从原版推断的 ≈62° HFOV 变成 80°×60°。如果最终相机要坐在 MJCF site 上（策略/kinematics 的 HeadFk 用的就是 site），现在这个视锥禁入体的锚点高了 13 mm"
+    resolution: "选型时二选一：要么把相机放到 site 上并重算视锥，要么显式声明新的相机外参并同步 kinematics —— 见 frozen.yaml:C6_interface_budgets"
+    provenance:
+      - "inventory_original.json:sites[3]"
+      - "inventory_v2.json:keepouts[14]"
+      - "comparison_original_vs_v2.md:A12"
+      - "keepouts.yaml:KO15"

@@ -1,0 +1,442 @@
+# 本文件由 docs/gate/inventory_v2.json + inventory_original.json + comparison_original_vs_v2.md 机械转换而来。
+# 字段约定见 tools/gate/data/README.md：
+#   · 每条记录必须有 provenance（duck.py:行 / s288.py:行 / ankle_split.py:行 / mechanical_audit.json:键 /
+#     inventory_original.json:路径 / inventory_v2.json:路径 / MJCF:行 / comparison_original_vs_v2.md:编号）
+#   · 数值字段统一写成 {v: <值>, src: measured|datasheet|assumed}
+#   · 搬不过来的值写 v: null，并在同条记录里给 unknown_class + unknown_reason
+# 单位：mm / mm^3 / g / N / degC，除非字段名另有后缀。不四舍五入。
+# bench.yaml —— 实机验证清单。**只放离线算不出来的**（预紧变形与摩擦、多舵机峰值电流与压降、温升、
+# 掉线/重上电、线束疲劳、热管理、传感器可用性、耐久与接地、B01 拉脱/跌落、压装力、TPU 摩擦、舵机实测额定）。
+# 判据数字现在就写死；value_status: proposed 表示这个数是本文件提出的、还没有人签字确认。
+# 到货后逐项把 checked 改成 true 并填 result；checked=false 的项不阻塞 Gate 的 8 层，但阻塞'可以装机'这个结论。
+
+schema_version: 1
+counts:
+  items: 20
+  checked: 0
+  proposed_values: 20
+  counts_corrected_2026-09-09: 14 → 15：新增 BN15（逐件称重回填 mass_g / 有效密度）。它是 tolerances.yaml:load.density_by_material.infill_upper_bound_note.effective_g_cm3
+    和 components.yaml 里 5 条 budget_g / overturn_if 的落地项。
+  counts_corrected_2026-09-17: 17 → 18：新增 BN18（S288 带侧向弯矩的摩擦；与 BN08 的刚度、回差、磨损及连续输出能力共同评估，不能只用摩擦放行）。
+  counts_corrected_2026-09-10: 15 → 17：新增 BN16（S288 管脚顺序实测，**上电前必须做完**，两版官方手册管脚表相反）与 BN17（S288 扭矩-转速曲线，选型风险文第 4
+    节列为『新增、最重要』且此前 15 条里一条都没有）。
+  blocking_before_power_on:
+  - BN16
+  blocking_before_power_on_note: BN16 不是普通的『到货后逐项做』——它是**其余所有上电项（BN02/BN03/BN04/BN13/BN17…）的前置**。管脚接反 15 颗一次全烧，且没有任何软件手段能在上电前发现。
+not_in_gate_because: "README 第 2 节结尾明确列出：预紧变形与摩擦、多舵机峰值电流与压降、温升、掉线/重上电行为、线束疲劳、热管理、传感器实际可用性、耐久。离线能算的（几何、质量、静扭矩、扫掠）一律不进本文件。"
+items:
+  - id: "BN01"
+    title: "螺丝预紧变形与摩擦（S288 **塑料自攻** + PLA 坐面）"
+    title_was_until_2026-09-10: "『S288 金属螺纹 + PLA 坐面』——**口径错**。S288 是塑料齿轮 + 塑料壳（宇树 2026-09-08 官方参数表，用户实物确认），壳上没有任何金属内螺纹；M2 内螺纹是 J288 的规定。理由与后果见 tolerances.yaml:engagement_by_joint_type.s288_plastic_self_tap.why_replaced_s288_metal_thread。"
+    why_not_offline: "预紧扭矩→塑料塑性塌陷→有效咬入衰减，是材料时间相关行为，几何算不出来。**塑料自攻还多一层**：牙是螺丝自己攻出来的，每拆一次都可能不对牙、把牙削平 —— 这个衰减既不是几何量也不是弹性量。"
+    criterion:
+      - "装配扭矩 0.20 N·m 拧到位后，PLA 坐面塌陷 ≤0.10 mm"
+      - "**测出塑料自攻的可接受咬入下限**（不是拿一个已有阈值去比）：同一颗螺丝在舵机塑料壳的 Ø1.7 光孔里重复拆装 5 次，每次记录拧入扭矩峰值与轴向拔出力，给出『拔出力衰减到初次的 70% 时对应的咬入』"
+      - "拧紧后 24 h 静置，扭矩衰减 ≤30%"
+      - "两种牙型各拧一颗做对比：PT 型（挤压式三角牙）vs 尖头切削自攻 —— 回答 tolerances.yaml:engagement_by_joint_type.s288_plastic_self_tap.thread_form_guidance.falsified_by"
+      - "记录『同一个孔拧到第几次开始明显滑牙』→ 回填 fasteners.yaml 各组 max_reinsertions（现在 27 组全是 null）"
+    criterion_changed_2026-09-10: "原第 2 条 criterion 是『同一颗螺丝重复拆装 5 次后，咬入仍 ≥1.8 mm（tolerances.yaml:engagement.s288_metal_thread 下限）』。两处错：① 1.8 是**金属内螺纹**的下限，对塑料自攻无效（S288 是塑料齿轮塑料壳）；② 那个路径 `engagement.s288_metal_thread` 在 tolerances.yaml 里**根本解析不到**（实际路径是 engagement_by_joint_type.*）—— 也就是说这条 criterion 引用的阈值从来就取不到，它是一句取不到数的话。现在塑料自攻桶的 range_mm 两端都是 null（unknown_class: not_measured），本条的角色从『拿阈值验收』变成**『生产这个阈值』**。"
+    backfill_to:
+      - "tolerances.yaml:engagement_by_joint_type.s288_plastic_self_tap.range_mm.min（null → 实测下限，并删掉 unknown_class）"
+      - "tolerances.yaml:engagement_by_joint_type.s288_plastic_self_tap.thread_form_guidance（候选 → 结论）"
+      - "fasteners.yaml:<27 组>.max_reinsertions（null → 实测次数）"
+      - "fasteners.yaml:<19 组>.screw_type.thread_form.v（null → 牙型）"
+    blocks_what: "在 range_mm 两端都是 null 的时候，第 5 层对这 19 组 128 颗的 `engagement` 判 unknown（= 红）—— **实跑核实过：19/19 全红，红的理由原样打的就是 s288_plastic_self_tap.unknown_reason**（gate.py --layers 5 记分卡 L5/F01…F18+F11b）。注意这 19 组**只有 `engagement` 这一条**；`engagement_declared` / `engagement_derived` / `engagement_per_hole` 各 9 条全部落在 pla_self_tap 那 8 组上，s288 组一条都没有（同样是实跑数出来的，不是推的）。**这些红是数据缺失造成的，不是件做错了** —— 修件修不掉它们，只有本条能。"
+    value_status: "proposed"
+    checked: false
+    result: null
+    depends_on_arrival:
+      - "S288 到货"
+    provenance:
+      - "tools/gate/README.md 第 2 节 不进 Gate 清单"
+      - "tolerances.yaml:engagement_by_joint_type.s288_plastic_self_tap"
+      - "docs/reference/s288/给宇树客服的问题清单_2026-09-10.md:47（第 5 问：牙型 / 拧入扭矩上限 / 可反复拆装次数，未回）"
+      - "V2_S288版发布产物/04_电机到货测试/S288实测尺寸记录.md:56（塑料齿轮、塑料壳）"
+  - id: "BN02"
+    title: "多舵机峰值电流与母线压降"
+    regen_note_2026-09-17: "宇树文档页（About_J288-S288『制动工况下的母线过压风险』）：快速换向/位置阶跃/急减速时电机把机械能回馈母线，电源吸收不了母线就抬升，且手册没给 S288 的过压触发值、不能依赖保护。我们是 3S 电池直通 XT30(2+2)——**电池 + 保护板必须允许接收回馈电流**（battery_3s 的 BMS/保护板规格待查；纯裸 3S 无保护板则天然能吸收）。本项测试时同时录母线电压**上冲**（不只是压降）：14 颗同时急停 / roulade 翻身回放，示波器或转接板回报电压看峰值 ≤12.6 V。超了 → 母线并电解电容（按回馈能量选）或轨迹限幅。"
+    why_not_offline: "取决于实际负载、电池内阻、线径与接头电阻，纯几何模型给不出"
+    criterion:
+      - "整鸭 14 颗保持站立姿态 30 s：母线电流 ≤7.5 A（清单估 4.5~7.5 A）"
+      - "峰值瞬间母线电压不低于 11.1 V（3S × 3.7 V），即从 12.6 V 起压降 ≤1.5 V"
+      - "XT30 + 18AWG 主干接头温升 ≤20 K"
+      - "65 W GaN（12 V/3 A = 36 W）明确**只用于单舵机测试台**，整鸭必须用电池 —— 到货复核这条不被违反"
+    value_status: "proposed"
+    checked: false
+    result: null
+    depends_on_arrival:
+      - "S288 到货"
+      - "电池到货"
+    provenance:
+      - "comparison_original_vs_v2.md:B8"
+      - "inventory_v2.json:purchased[3]"
+      - "harness.yaml:HB03_xt30_12v_main"
+  - id: "BN03"
+    title: "温升（舵机 + 载体 PLA）"
+    why_not_offline: "热是时间积分量，与占空比和散热路径耦合"
+    criterion:
+      - "连续行走 10 min：S288 外壳表面 ≤60 °C"
+      - "与舵机接触的 PLA 载体面 ≤50 °C（PLA Tg≈60 °C，留 10 K 余量）"
+      - "温升期间任一关节的重复定位误差变化 ≤1°"
+    value_status: "proposed"
+    checked: false
+    result: null
+    depends_on_arrival:
+      - "S288 到货"
+    provenance:
+      - "tools/gate/README.md 第 2 节 不进 Gate 清单"
+  - id: "BN04"
+    title: "掉线 / 重上电行为（6 Mbps 单总线 14 节点）"
+    why_not_offline: "总线时序、CRC 错误率、上电枚举顺序都是运行时行为"
+    criterion:
+      - "连续跑 1 h：CRC 错误率 ≤1e-5，无节点掉线"
+      - "人为拔插一段 PH2.0 后重连：≤200 ms 内自恢复，无需重启主控"
+      - "断电重上电：14/14 ID 全部可枚举，且 ID 分配与文档一致"
+      - "掉线时控制器必须进安全态（不允许保持最后一帧力矩）"
+    value_status: "proposed"
+    checked: false
+    result: null
+    depends_on_arrival:
+      - "S288 到货"
+      - "bus_adapter 到货"
+    provenance:
+      - "inventory_v2.json:purchased[0]"
+      - "inventory_v2.json:unknowns[5]"
+      - "harness.yaml:HB01_servo_bus"
+  - id: "BN05"
+    title: "线束疲劳（尤其头偏航 ±170°）"
+    why_not_offline: "疲劳是循环次数的函数，离线只能算静态包络"
+    criterion:
+      - "head_yaw 在 ±170° 全行程往复 5000 次后：PH2.0 线不断、导通电阻变化 ≤10%、绝缘无破损"
+      - "neck_pitch + head_pitch 组合往复 5000 次后同上"
+      - "全程线束不被任何打印件夹住（拆开目视 + 手感无卡滞）"
+    value_status: "proposed"
+    checked: false
+    result: null
+    depends_on_arrival:
+      - "线束方案定稿"
+    provenance:
+      - "frozen.yaml:joint_axes"
+      - "harness.yaml:HB09_cross_neck"
+      - "inventory_v2.json:keepouts[18]"
+  - id: "BN06"
+    title: "热管理（主控 Radxa ZERO 3W 在合上的头壳里）"
+    title_was_until_2026-09-22: "热管理（香橙派 Zero 3W 在合上的头壳里）—— 主控 2026-09-17 已由 Orange Pi Zero 3W 改为 Radxa ZERO 3W（components.yaml:sbc_radxa_zero3w.decision_2026-09-17，09-22 已下单）"
+    why_not_offline: "头壳内自然对流无法离线建模；原版文档提到 'blocked vent' 暗示需要通风口"
+    criterion:
+      - "头壳合上、满载推理 10 min：SoC 温度 ≤85 °C"
+      - "不因降频掉到 <1.0 GHz"
+      - "若超标 → 必须在顶壳开通风口，那会改 top_head_shell（冻结件）→ 触发解冻流程"
+    value_status: "proposed"
+    checked: false
+    result: null
+    depends_on_arrival:
+      - "Radxa ZERO 3W 到货（09-22 已下单）"
+    provenance:
+      - "inventory_v2.json:purchased[4]"
+      - "inventory_original.json:components[8].keepout"
+  - id: "BN07"
+    title: "传感器实际可用性：IMU Adafruit 4438（LSM6DSOX）与 MJCF site 对齐"
+    title_was_until_2026-09-22: "传感器实际可用性：IMU ICM-42688 与 MJCF site 对齐 —— IMU 已于 hr29 定型为 Adafruit 4438 LSM6DSOX STEMMA QT，ICM-42688 作废（docs/README.md 顶部横幅 09-21/22）"
+    why_not_offline: "安装外参、零偏、噪声只能在实物上测；这是 comparison C1 的实机一半"
+    criterion:
+      - "静止 60 s：陀螺零偏漂移 ≤0.5 °/s"
+      - "把整鸭绕三个轴各转 90°，驱动输出的姿态与 MJCF site imu 期望值夹角 ≤3°（验证 DEFAULT_MOUNT 等效旋转写对了）"
+      - "行走时 IMU 输出无因舵机 PWM 引起的可见尖峰（>5 °/s 的非物理跳变）"
+    value_status: "proposed"
+    checked: false
+    result: null
+    depends_on_arrival:
+      - "Adafruit 4438（LSM6DSOX）到货"
+      - "驱动写完"
+    provenance:
+      - "relations.yaml:C1_imu_extrinsic"
+      - "frozen.yaml:imu_pose"
+      - "comparison_original_vs_v2.md:A1"
+  - id: "BN08"
+    title: "耐久与接地：6 处未恢复滚动支承的运动关节及已恢复支承的松旷/磨损"
+    why_not_offline: "comparison A2/C2 的实机一半：悬臂载荷下 S288 自带输出轴承与 PLA 滑配的长期表现"
+    criterion:
+      - "行走 30 min 的初筛必须包含髋横滚×2（09-17 r5 取消6704后新增）、髋俯仰×2、头偏航×1、头横滚 A 端×1 共6处；在固定测量臂长/加载力下记录径向旷量，旧拟议增量≤0.2 mm只作初筛，不构成完整寿命承诺。嘴不做，不计入测试关节。髋偏航×2、膝×2、踝×2、头横滚B还要检查轴承松动。"
+      - "S288 输出轴无可感轴向窜动（手感 + 千分表 ≤0.1 mm）"
+      - "头横滚 A 滑配面及 B 端 N04 轴颈/内圈界面无可见磨屑或爬动；记录正反向启动/运转力矩及冷机/热机差。原拟议变化≤30%仅作初筛，需同时满足任务的最低可控力矩预算。"
+      - "任一关节超标 → 阻止放行，重设支撑/配合/紧固或补滚动轴承，再完整复测；不能未经空间验证直接装回已互撞的髋横滚6704。"
+      - "按 docs/训练计划_2026-09-17.md 覆盖行走、站立、起坐、拾取、左右踢球、翻滚及动作切换；同时记录跟踪误差、回差、供电压降、实测/可追溯电流与温度。缺少实机结果不能声明完整功能正常。"
+      - "不得以电机堵转/峰值扭矩替代连续可用扭矩，不得以727.7 g占位模型或静态280/394 Nmm代替落地冲击和实际头部载荷。"
+    corrected_2026-09-09: "原文写髋偏航/髋俯仰/颈/头俯仰，与 comparison A2 改正后的名单不符。原版 11 颗 Ø22 的位置是 髋偏航×2 髋横滚×2 髋俯仰×2 膝×2 头偏航×1 头横滚×2 —— 颈俯仰与头俯仰一颗都没有。审查 Codex01（体系审查_Codex01.md:122）发现。"
+    value_status: "proposed"
+    checked: false
+    result: null
+    depends_on_arrival:
+      - "整鸭装完"
+    provenance:
+      - "comparison_original_vs_v2.md:A2"
+      - "comparison_original_vs_v2.md:C2"
+      - "relations.yaml:C2_missing_bearing_load"
+  - id: "BN09"
+    title: "B01 电池门拉脱"
+    why_not_offline: "1 颗 M2×6 进 PLA 2.7 mm（<2×d）+ 2 卡珠 + 绑带的组合强度，只能拉"
+    criterion:
+      - "沿 -x 施加 20 N 拉力保持 10 s：B01 不脱出、螺丝不拔丝、卡珠不塑变"
+      - "沿 -x 施加 40 N：允许卡珠脱开，但螺丝必须仍在（不允许门整体飞出）"
+      - "拆装 20 次后卡珠咬合深度衰减 ≤30%"
+    value_status: "proposed"
+    checked: false
+    result: null
+    depends_on_arrival:
+      - "B01 打印完"
+    provenance:
+      - "comparison_original_vs_v2.md:B5"
+      - "fasteners.yaml:F21_B01_to_T01_front"
+      - "fasteners.yaml:F28_snap_B01"
+  - id: "BN10"
+    title: "跌落"
+    why_not_offline: "冲击载荷分布与打印件层间强度耦合，离线算不了"
+    criterion:
+      - "从 300 mm 高度自由跌落到硬木面，姿态各异共 3 次："
+      - "  · 电池不脱仓、B01 不开"
+      - "  · 17 个打印件无断裂、无层间开裂"
+      - "  · 跌落后所有关节仍能全行程运动，旷量增量 ≤0.2 mm"
+    value_status: "proposed"
+    checked: false
+    result: null
+    depends_on_arrival:
+      - "整鸭装完"
+    provenance:
+      - "comparison_original_vs_v2.md:B5"
+      - "tools/gate/README.md 第 2 节 不进 Gate 清单"
+  - id: "BN11"
+    title: "轴承压装力（6704 进 Ø27.15 PLA 座）"
+    scope_2026-09-17: "只剩膝 L03 座（L03-F04）×2；髋横滚 L01 座 09-17 取消（docs/reports/髋横滚轴承取消_2026-09-17.md），压装件数 4→2。"
+    why_not_offline: "压装力取决于打印收缩与层纹，公差表算不出；且 TC01 未打"
+    criterion:
+      - "压入力落在 30~200 N（低于 30 N 说明是间隙配合，高于 200 N 会撑裂 2.5 mm 壁）"
+      - "压入后外圈相对座不转动：施加 0.05 N·m 切向力矩外圈不动"
+      - "压入后座孔外壁无裂纹（目视 + 透光）"
+    value_status: "proposed"
+    checked: false
+    result: null
+    depends_on_arrival:
+      - "TC01 打完"
+      - "6704 到货"
+    provenance:
+      - "duck.py:30"
+      - "tolerances.yaml:fits.pla.bearing_outer_seat_6704"
+      - "relations.yaml:R01"
+  - id: "BN12"
+    title: "TPU 鞋底 L06 摩擦与耐磨"
+    why_not_offline: "摩擦系数与磨损率是材料-表面对的实测量"
+    criterion:
+      - "干燥硬木面静摩擦系数 ≥0.6（MJCF collision geom 用的是 friction 1.0，实测低于 0.6 要回写模型）"
+      - "行走 30 min 后鞋底厚度损失 ≤0.3 mm"
+      - "鞋底固定螺丝（4×M2×8/脚）行走后不松脱"
+    value_status: "proposed"
+    checked: false
+    result: null
+    depends_on_arrival:
+      - "L06 打印完"
+      - "TPU 工艺标定完"
+    provenance:
+      - "inventory_original.json:printed_parts_original[13]"
+      - "fasteners.yaml:F23_sole_to_foot"
+  - id: "BN13"
+    title: "S288 单舵机标定与堵转扭矩（测试台 TB01–TB03）"
+    why_not_offline: "手册额定是标称值；第 7 层的'关节静扭矩 < 额定 × 系数'需要真实额定"
+    criterion:
+      - "实测堵转扭矩 ≥ 手册额定的 90%（12.6 V 下）"
+      - "零位/舵盘相位标定：6 孔相位与 tolerances.yaml:fits.horn.clock_phase 声明值之差 ≤5°"
+      - "把实测堵转扭矩回填到 tolerances.yaml:load.servo_rated_torque_Nm（新字段，单位 N·m）；static_torque_margin 是无量纲比值（关节静扭矩 ÷ 额定 × 系数），由它派生，不能直接回填扭矩"
+    value_status: "proposed"
+    checked: false
+    result: null
+    partial_result_2026-09-16: "判据①已测：真实输出上限 **0.66 N·m**（吊 960 g 抬臂，停在离垂直 46.9°，两次一致；母线 12.0→11.5 V，非 12.6 V），≥0.54 满足；已回填 tolerances.yaml:load.servo_rated_torque_Nm.measured_stall_torque_Nm（含 caveats）。同日手扶堵转舵机回报 0.996 是固件指令上限、非实际出力，作废。判据②舵盘相位未测（09-15 只验了分度圆 Ø10.5 六孔对齐）。checked 保持 false 直到②做完。"
+    depends_on_arrival:
+      - "S288 到货"
+    provenance:
+      - "comparison_original_vs_v2.md:B10"
+      - "tolerances.yaml:fits.horn.clock_phase"
+    deliberately_added: "B10 —— S288 单舵机测试台 TB01–TB03（已出件）"
+    target_field_created_2026-09-09: "本条 criterion 指定的回填目标 tolerances.yaml:load.servo_rated_torque_Nm 之前不存在，2026-09-09 已建出来：stall_torque_Nm = 0.6（datasheet，客服参数表）/ continuous_torque_Nm = null（**完全没有数据**）/ measured_stall_torque_Nm = null（本条的回填位）/ derating_factor = null。层现在读的是它的镜像 load.servo_output_bearing.rated_stall_torque_Nm。"
+    blocks_what: "在 measured_stall_torque_Nm 与 continuous_torque_Nm 都还是 null 的时候：① tolerances.yaml:load.servo_output_bearing.static_torque_margin 无法确定（14 个关节的 L7/joint:* 因此判不了，全红）；② tolerances.yaml:load.head_added_mass_budget_g 的 509.8 g 只是 margin=1 的上界，摄像头/屏/麦/小板的选型不能拿它做决策。"
+  - id: "BN14"
+    title: "电池 55 mm 放电线能否走出出线口并插上 XT30 母头"
+    why_not_offline: "线的实际刚度与弯折半径决定能不能塞进 5.1 mm 净空，纸面算不了"
+    criterion:
+      - "电池装到位后，两根 17AWG 能从出线口（hr38 2026-09-22 放大后：|y|≤10, z 137.9..147.9）翻到顶板上方并插上前壁的 XT30 接头"
+      - "同一头引出的平衡线（≈80 mm，设计按可用 60 mm 留）能沿仓顶中间通道 |y|<6 往后、从 B01 门顶新开的缺口（|y|≤6，门顶 z 148）伸出门外（hr38_待办交接.md §2.5 / §3.1 ③）"
+      - "线的实际弯折半径 ≥3×OD = 8.4 mm（OD 2.8 采用值，到货复量）"
+      - "壳合上后线不被压到（拆开目视无压痕）"
+    value_status: "proposed"
+    checked: false
+    result: null
+    depends_on_arrival:
+      - "电池到货"
+    provenance:
+      - "duck.py:42-43"
+      - "duck.py:595-597"
+      - "harness.yaml:HB02_battery_discharge"
+  - id: "BN15"
+    title: "逐件称重：17 个打印件 + 全部元件 → 回填 mass_g 与有效密度"
+    why_not_offline: "打印件的实际重量取决于填充率、壁数、走线宽度和实际挤出量 —— 几何只能给『实心体积 × 材料密度』这个**上界**（本项目的 G-code 是 analysis_only，连切片耗材量都没有）。元件的重量除非有商品页，否则也只能称。第 7 层的每 body 漂移、静扭矩、重心投影、头部质量预算，四个判据全部建在这些数上。"
+    criterion:
+      - "17 个打印件逐件称重（精度 0.1 g），回填 tolerances.yaml:load.density_by_material.*.effective_g_cm3 = 实测件重 ÷ 该件实心体积；PLA 与 TPU 95A **分别**给，不共用一个数"
+      - "实测有效密度必须 ≤ 实心料密度（PLA 1.24 / TPU 95A 1.22 g/cm³）。超了说明体积或称重错了，先查再回填"
+      - "元件逐件称重回填 components.yaml:mass_g，来源等级从 datasheet/assumed 升到 measured：6704ZZ（目录 5.9 g）、6700ZZ（目录 1.9 g）、Radxa ZERO 3W（现值 14 g 是借 Orange Pi Zero 3W 规格的**占位**，Radxa 官方没列重量，见 components.yaml:sbc_radxa_zero3w.mass_g.src_note）、S288（参数表 19.5 g，14 颗抽称 3 颗）、电池（标称 66 g）、XT30 对（目录 1.7 g）。**与现值差 >15% 的，推翻现值并在该条写 corrected 说明**"
+      - "现在 mass_g 还是 null 的 11 类（IMU、摄像头、屏、麦、小板 ×2、降压、总线转接、PH2.0 线 ×20、绑带）：选型定稿后按商品页记 datasheet，到货后称重记 measured"
+      - "PH2.0 线束单独按束称（20 根 15 cm），不是当点质量填一个数 —— 要能分摊到它跨过的 body 上"
+      - "回填完重跑 `gate.py --layers 7`：整机合计与 MJCF 的 −55.882 g 差值、以及 15 个 body 的漂移，必须重新对照 tolerances.yaml:load.mass_drift_vs_mjcf 判一次"
+    value_status: "proposed"
+    checked: false
+    result: null
+    depends_on_arrival:
+      - "17 个打印件打完"
+      - "S288 到货"
+      - "电池 / 轴承 / Radxa ZERO 3W 到货"
+      - "头部电子件选型定稿"
+    unblocks:
+      - "tolerances.yaml:load.density_by_material.infill_upper_bound_note.effective_g_cm3"
+      - "components.yaml:bearing_6704zz.mass_g（datasheet → measured）"
+      - "components.yaml:bearing_6700zz.mass_g（datasheet → measured）"
+      - "components.yaml:sbc_radxa_zero3w.mass_g（datasheet → measured）"
+      - "components.yaml:connector_xt30.mass_g（datasheet → measured）"
+      - "components.yaml 里 11 条 mass_g = null 的元件"
+      - "components.yaml:camera_csi/display_lcd/mic_inmp441/sensor_small_boards 的 budget_g（proposed → 真实重量）"
+    does_not_unblock: "**不解决 static_torque_margin。** 那个系数要的是 S288 的可持续扭矩，是 BN13 + BN03 的事，称重给不了。"
+    provenance:
+      - "tools/gate/README.md 第 2 节 L7（17 件体积×密度 + 元件实重）"
+      - "V2_S288版发布产物/01_整鸭打印件/打印清单与参数.md（『重量是单件实心体积×1.27g/cm³的统一假设，非切片实际耗材』）"
+      - "docs/six_checks_2026-09-08/policy/第6项_离线验证报告.md:102（『最终需称各装配link、测质心并加入电子/紧固件』）"
+      - "tolerances.yaml:load.density_by_material"
+  - id: "BN16"
+    title: "S288 管脚顺序实测（万用表量官方转接板）—— **上电之前必须做完**"
+    why_not_offline: "两份宇树官方手册第三节的管脚表是**反的**（A 版 ① SIGNAL ② GND ③ VCC / B 版 ① SIGNAL ② VCC ③ GND），宇树客服未答。纸面上无法判定哪一版对；接反 = VCC 灌进 GND，15 颗菊花链一次全烧。这不是『离线算不出来』，是**离线只有两个互相矛盾的答案**。"
+    blocking_before_power_on: true
+    blocking_note: "**注意这里的『阻塞』不是阻塞 Gate 的 8 层**（本文件头写得很清楚：checked=false 的项不阻塞 8 层）。本条阻塞的是**通电这个物理动作**。**本条是 bench.yaml 里唯一一条『不做完不许上电』的项。** BN01–BN15 里任何一条只要通电就已经违反本条的前置条件（BN13 堵转、BN02 母线电流、BN03 温升、BN04 掉线都要上电）。做本条**不需要给舵机上电**：万用表通断/二极管档量的是转接板上的铜，不是舵机。"
+    procedure:
+      - "1. 官方单总线串口转 USB 板**不插电、不插舵机**。万用表打通断档。"
+      - "2. 找到板上的 XT30（手册第四节：XT30 主输入 + XT30(2+2) 拓展）。XT30 的正负极在连接器本体上有丝印/形状区分，先认准。"
+      - "3. 量 XT30 负极 ↔ PH2.0 3P 座的 ①/②/③ 三个脚，**哪个脚导通哪个就是 GND**。"
+      - "4. 量 XT30 正极 ↔ ①/②/③，导通的那个是 VCC。（如果板上串了保护器件不直通，改用二极管档或量到最近的电解电容负极/正极。）"
+      - "5. 剩下那个脚就是 SIGNAL —— 但**要验证**，不能靠排除法：它应该经限流电阻通到 USB 转串口芯片（CH343）的 TX/RX，对地既不通也不通正。"
+      - "6. 三个脚都确认后，**再拿一颗舵机的原装线**量：舵机端 ① 对应转接板端的哪一脚，确认线是直通不是交叉。"
+      - "7. 拍照记录 PH2.0 座的**缺口方向**与 ①脚位置（PH2.0 座有防呆缺口，① 的定义取决于从哪面看，这一步不拍照后面会重新搞混）。"
+    criterion:
+      - "在官方转接板上量到 ①/②/③ 三个脚各自是 SIGNAL / VCC / GND 中的哪一个，三个都有明确结论（不许有一个靠排除法）"
+      - "结论与 A 版、B 版手册中的**恰好一版**吻合；若两版都对不上，停下来别上电，先问宇树"
+      - "舵机原装线两端直通（① 对 ①、② 对 ②、③ 对 ③），不是交叉线"
+      - "PH2.0 座缺口方向与 ①脚位置有照片存档"
+    backfill_to:
+      - "components.yaml:servo_s288.pinout（v: null → {pin1,pin2,pin3}，src: measured）"
+      - "harness.yaml:HB01_servo_bus.pin_order（v: null → 端序表，src: measured）"
+    value_status: "proposed"
+    checked: false
+    result: null
+    depends_on_arrival:
+      - "S288 到货（已到）"
+      - "官方单总线串口转 USB 转接板到货（已到）"
+      - "万用表（**本仓库没有记录用户有没有**，这是本条唯一未确认的前置）"
+    can_be_done_today: true
+    can_be_done_today_note: "不需要电源、不需要负载、不需要打印件、不需要给舵机上电 —— 只需要转接板（已到）+ 一颗舵机的原装线（已到）+ **一支万用表**。万用表在不在用户手上，本仓库没有记录，这是本条唯一的未知前置。"
+    what_it_does_not_answer: "**只回答『哪个脚是什么』，不回答『12 V 够不够』『能挂几颗』。** 供电是 BN02 / 客服问题清单第 4 问，通信是 BN04 / 第 6 问。"
+    provenance:
+      - "docs/reference/s288/manual.txt:33-39（A 版管脚表）"
+      - "docs/reference/s288/给宇树客服的问题清单_2026-09-10.md:12-20（第 1 问，按卡住程度排第一）"
+      - "docs/reference/s288/manual.txt:41-48（第四节 单总线串口转 USB 板接口说明，XT30 + XT30(2+2)）"
+      - "V2_S288版发布产物/04_电机到货测试/s288_probe.py:135（脚本自己把线序列为排查项）"
+      - "components.yaml:servo_s288.pinout"
+  - id: "BN17"
+    title: "S288 扭矩-转速曲线（几个转速点各测能输出的扭矩）"
+    why_not_offline: "**堵转扭矩是零转速下的值，走路要的扭矩是在有转速时要的。** 无刷电机的可输出扭矩随转速下降，下降的斜率取决于反电动势常数、母线电压和驱动器的电流环上限 —— 这三样我们一个都没有可信数据（0.6 N·m 与 0.32 A × 0.554 N·m/A = 0.177 N·m 互相矛盾，见 tolerances.yaml:load.servo_rated_torque_Nm.continuous_torque_Nm.do_not_derive_from）。只有堵转值答不了『0.396 N·m 在行走转速下拿不拿得到』这个问题。"
+    why_this_is_the_most_important_one: "docs/gate/选型风险_颈部S288_2026-09-09.md 第 4 节把它列成三个试验里『**新增、最重要**』的一条，理由原文：『走路要的 0.396 N·m 是在有转速时要的。只有堵转值答不了这个问题』。BN13（堵转）+ BN03（温升）合起来也只给出曲线的**两个端点**：转速 0 处一个点、某一个固定负载下的热极限一个点，中间整条曲线是空的 —— 而行走恰好全程落在中间。"
+    procedure:
+      - "1. 用已打好的测试台 TB01–TB03 + 官方转接板 + 12.6 V 电源（65 W GaN 只够单舵机，见 BN02 第 4 条）。"
+      - "2. 舵机跑**速度模式**（或位置模式给足够大的位置差让它跑到限速），在若干目标转速点上各稳住。建议点：空载转速的 10% / 25% / 40% / 55% / 70% / 85%（空载 16.5 rad/s @12 V 是参数表值，先自己实测一遍空载转速做归一化，不要直接信 16.5）。"
+      - "3. 每个转速点用**可调负载**加扭矩，直到转速掉出该点 ±5%，记下此刻的输出扭矩与母线电流。负载可以用磁滞制动器；没有的话用测试台的臂 + 电子秤做准静态点测（每点重复 3 次取中位数）。"
+      - "4. 全程记录：目标转速、实际转速、输出扭矩、母线电流、母线电压、外壳温度、持续时间。"
+      - "5. 每点之间让舵机**降到室温 +5 K 以内**再测下一点，否则测的是热衰减不是扭矩-转速。"
+      - "6. 至少跑两颗舵机（15 颗里抽 2 颗），确认曲线不是单颗个体差异。"
+    criterion:
+      - "得到 ≥6 个 (转速, 可输出扭矩, 母线电流) 数据点，覆盖 0 到空载转速的 85%，每点重复 3 次、中位数与极差都记录"
+      - "**行走工况点必须被曲线覆盖并达标**：在 forward 回放峰值需要的 0.396 N·m 处，曲线给出的可用转速 ≥ 该关节在回放里的实际角速度。角速度取自 docs/six_checks_2026-09-08/policy/forward.npz（观测切片 20:34 就是关节角速度，单位 rad/s，见同目录 第6项_离线验证报告.md:28）。达不到 = S288 走不了这套步态，这是**选型**结论不是标定结论。**caveat**：那条回放是 XL330 基线策略跑出来的（同报告 :63），2026-09-09 已决定重训 —— 重训后的角速度会变，所以这条判据的『需求侧』本身会动；在新策略出来之前用它只能得到『按旧步态够不够』这个下限结论"
+      - "曲线在低速段外推回零转速，应与 BN13 的实测堵转扭矩在 ±15% 内吻合；差太多说明两次试验里至少有一次的臂长/标定错了"
+      - "同时回答『0.32 A 是母线还是相电流』：任一点的实测母线电流若显著 >0.32 A，则 0.32 A 不是母线额定"
+      - "两颗抽测样品在同一转速点的扭矩差 ≤15%"
+    backfill_to:
+      - "tolerances.yaml:load.servo_rated_torque_Nm.torque_speed_curve（本轮新建的空位，v: null）"
+      - "重训用的 MJCF actuator forcerange / BAM 拟合的先验（docs/reference/s288/给宇树客服的问题清单_2026-09-10.md『回来之后要做的事』表里，『扭矩-转速曲线』一行的落点就是这两个）"
+    value_status: "proposed"
+    checked: false
+    result: null
+    depends_on_arrival:
+      - "S288 到货（已到）"
+      - "官方转接板到货（已到）"
+      - "12 V 电源（已到）"
+      - "测试台 TB01–TB03 打印件（已打）"
+      - "BN16 管脚实测做完（**未做 → 本条不许开始**）"
+    can_be_done_today: true
+    can_be_done_today_note: "用户手上已经有电机 + 转接板 + 电源 + 打印好的测试台，**唯一的前置是 BN16**（管脚没确认之前不许上电）。加载方式若一时没有磁滞制动器，先用测试台臂 + 电子秤做准静态点测，点少一些也比只有堵转值强。"
+    relation_to_BN13_and_BN03: "BN13 给曲线的零转速端点（并校验 0.6 N·m 是否虚标）；BN03 给某一个负载下的热极限；**BN17 给中间那条线**。三条都做完，tolerances.yaml:load.servo_rated_torque_Nm 才算有数据。任何一条单独做完都不足以解开 L7 那 14 个 joint:*.torque_criteria 红格。"
+    does_not_unblock: "**不解决 continuous_torque_Nm。** 扭矩-转速曲线是『瞬时能出多少』，可持续扭矩是『长时间不过热能出多少』，后者是 BN03 的事。两个数不许互相代替（tolerances.yaml:load.servo_rated_torque_Nm.stall_torque_Nm.not_sustainable 已经写过同样的话）。"
+    provenance:
+      - "docs/gate/选型风险_颈部S288_2026-09-09.md 第 4 节表格第 2 行（『新增，最重要』）"
+      - "docs/gate/选型风险_颈部S288_2026-09-09.md:73-76,104-110（0.396 N·m 的来源与两种电流解释）"
+      - "docs/reference/s288/给宇树客服的问题清单_2026-09-10.md:34（第 3 问『有没有 S288 的扭矩-转速曲线或效率曲线』，未回）"
+      - "docs/six_checks_2026-09-08/policy/第6项_离线验证报告.md:63（『持续扭矩、温升和负载下扭矩-转速曲线均未知』）"
+      - "tolerances.yaml:load.servo_rated_torque_Nm"
+  - id: "BN18"
+    title: "S288 带侧向弯矩的库仑摩擦（髋横滚取消副轴承后，输出轴单独承受弯矩时摩擦是否随负载上升）"
+    added: "2026-09-17"
+    why_not_offline: "裸舵机 BAM m1 的 friction_base 不能直接当作装配后关节的摩擦，也不给出S288径向额定。侧向弯矩、装配预紧、温度、方向和速度都可能改变起动/运行摩擦；拟合未改善不等于该效应不存在。当前727.7 g质量模型给出髋横滚静态280.0/脚边394.3 N·mm（docs/design_2026-09-17_support/loadcheck.log），是含采用值的设计工况，不是台架许可载荷，不覆盖冲击；测试前依据实际载荷与可追溯额定制定加载范围。"
+    procedure:
+      - "1. 先定义并记录夹具载荷路径、力臂、固定方式、防坠、传感器校准及停止条件。把侧向弯矩加载与驱动轴切向力矩测量解耦；从低载开始。未经许可范围核验，不按模型的最大弯矩直接加重，也不自动通电。"
+      - "2. 同一颗舵机做裸机、当前单侧支撑、候选副支撑的配对测试，控制预紧、温度、转速与供电；独立测量驱动力矩，记录正反向缓慢加矩刚开始运动的起动值及匀速值。停下后的静止角只提供静摩擦平衡条件，不得把 m·g·L·sin(theta_stop) 直接等同库仑摩擦参数。"
+      - "3. 每个已批准载荷/方向重复并记录原始数据、离散度和不确定度；两颗抽测只能筛查差异，不能代表15颗寿命或额定。同步BN08固定力臂的挠度/回差测量。"
+      - "4. 拟合时保留独立验证轨迹，并把侧向载荷、起动与运行摩擦区分。若只有指令电流而无电流-扭矩校准，不把它当作实测力矩。将测量与任务所需低速跟踪、连续输出及温升预算对比。"
+      - "撤销旧方案：960 g置于96 mm摆臂可产生0.904 N·m重力驱动矩，在58°约0.767 N·m，已高于现有0.66 N·m峰值测量；不能只按偏出平面的侧弯矩设计该自由落测试。"
+    criterion:
+      - "旧0.08/0.12 N·m分档没有任务或连续能力依据，撤销为放行阈值；DR覆盖一个参数并不证明真实关节可靠。缺少有效实测、任务跟踪预算或连续输出曲线时保持未验证。"
+      - "以每个任务的速度/加速度/外载荷及冷、热状态评估：连续可用力矩须覆盖重力、惯性与保守摩擦；低速换向误差、温升、BN08回差/磨损均须达标，数值门槛由任务与可追溯能力给出，未建立不得填通过。"
+      - "若数据支持参数变更，同步所有实际训练变体及BAM文件并复验；bam_params_sync绿色只证明其声明范围的参数一致，不证明完整功能。若刚度、回差、摩擦或耐久超出任务预算，则重设支撑/配合/预紧并重训，不直接装回已互撞的旧6704位置。"
+    backfill_to:
+      - "V2_S288版发布产物/04_电机到货测试/params/s288/m1.json:friction_base（同步包内 s288_m1.json，L6 _simmodel/bam_params_sync 核三处一致）"
+      - "tolerances.yaml:load.servo_output_bearing（rated_radial_N 仍 null；本条只给摩擦-弯矩斜率，不给额定）"
+    value_status: "proposed"
+    checked: false
+    result: null
+    depends_on_arrival: ["S288（已到）", "测试台 TB01–TB03（已打）", "BN16 管脚实测做完"]
+    blocking_before: "sim2real 上实机前必须做完；不挡仿真训练开始"
+    can_be_done_today: true
+  - id: BN19
+    title: B03顶盖/B01后门卡合、跌落及实物抽插
+    why_not_offline: PETG弹性、打印公差、疲劳、线束/胶带以及实际保持力离线无法证明
+    criterion:
+    - 用行李秤记录盖抗掀力、门后拉力、仅卡珠门保持力；在任务所需载荷门槛尚未确认前只记录，不填通过
+    - 装电池背朝下30cm硬地跌落10次、趴/仰起立20次、走路10分钟：盖/门不能松脱，不能掉电
+    - 盖面高出原壳≤0.2mm；插头与平衡头/胶带/余线收好不顶盖
+    - 实物电池带拉环和贴顶两头：抽出/推入各10次，不刮线、不卡，拉环不脱；量实际宽/厚/放电线与平衡头三围
+    - 前舌名义0.25mm下挠必须检查PETG裂纹、永久变形及重复滑装保持力；记录材料/层向/温度，不借PLA桶放行
+    value_status: proposed
+    checked: false
+    result: null
+    backfill_to:
+    - fasteners.yaml:F31_B03_front_detents/F32_B03_rear_barb
+    - components.yaml:battery_3s/connector_xt30
+    provenance:
+    - hr39_电池拔插代替开关.md §6
+    - hr39f_work/接续_2026-09-24.md
+  - id: BN20
+    title: XT30手持拔插与100次循环
+    why_not_offline: 手指空间、拔力和触点磨损离线不能判
+    criterion:
+    - 只握插头壳拔插，记录成人/目标操作者能否操作与峰值拔力
+    - 插拔100次后检查松动/接触压降/发热，无异常才继续；官方规格书1000次与官网100次口径不一致，保留出处
+    - 拔开后延长线公头能停放在电池抽出通道外，不被电池拖拽/夹住
+    value_status: proposed
+    checked: false
+    result: null
+    backfill_to:
+    - fasteners.yaml:F31_B03_front_detents/F32_B03_rear_barb
+    - components.yaml:battery_3s/connector_xt30
+    provenance:
+    - hr39_电池拔插代替开关.md §6
+    - hr39f_work/接续_2026-09-24.md

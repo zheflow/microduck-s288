@@ -1,0 +1,1142 @@
+# 本文件由 docs/gate/inventory_v2.json + inventory_original.json + comparison_original_vs_v2.md 机械转换而来。
+# 字段约定见 tools/gate/data/README.md：
+#   · 每条记录必须有 provenance（duck.py:行 / s288.py:行 / ankle_split.py:行 / mechanical_audit.json:键 /
+#     inventory_original.json:路径 / inventory_v2.json:路径 / MJCF:行 / comparison_original_vs_v2.md:编号）
+#   · 数值字段统一写成 {v: <值>, src: measured|datasheet|assumed}
+#   · 搬不过来的值写 v: null，并在同条记录里给 unknown_class + unknown_reason
+# 单位：mm / mm^3 / g / N / degC，除非字段名另有后缀。不四舍五入。
+# frozen.yaml —— 不许动的：关节轴线、SHELL_BOSS（壳柱）、H01 立柱、6 个原版 STL、躯干 IMU 位姿。
+# 改这里 = 策略/上游/已验证接口作废，必须走解冻流程（人签字 + 说明重训与否）。
+# **2026-09-22 用户解冻：电池仓 + 出线口**（见 battery_bay_26.unfrozen_2026-09-22）。26 项条目保留作沿革与 L3 探针基准，但
+# battery_bay_cuts() / build_battery_door() 的函数体不再是「不许动」—— 本轮已改（trunk.py 出线口放大、让位槽加宽、门顶平衡线缺口）。
+# 用户同时澄清：冻结不是铁板一块，遇到冻结项若判断改了更好就提出来商量。
+
+schema_version: 1
+policy: "本文件是**唯一**允许出现世界坐标硬编码的地方。别的 YAML 要坐标一律 ref 到这里。"
+counts:
+  joint_axes: 15
+  battery_bay_items: 26
+  original_stl_sha256: 6
+  kinematics_sha256: 2
+joint_axes:
+  - name: "left_hip_yaw"
+    exists_as_mjcf_joint: true
+    mjcf_body: "yaw2roll"
+    servo_id: 20
+    range_deg:
+      - -25.0
+      - 30.0
+    target_range_deg:
+      v: [-25.0, 30.0]
+      date: "2026-09-16"
+      reason: "2026-09-16 能力包络推导（tools/gate/derive_target_ranges.py；用户 2026-09-16 定：能力与原版一致，转角可不同）：能力包络：7 个 in-scope mode 的实际角并集（镜像并集（left_hip_yaw↔right_hip_yaw，sign -1）） [-26.4, 31.1] 各留 3° 边，夹到上游 range [-25.0, 30.0]。碰撞落在本区间内 = BLOCK（件的问题）；区间外但仍在上游 range 内 = WARN（工作空间比原版窄，但原版任务用不到）。in-scope modes：alpha_walking, alpha_stand, alpha_sitstand, alpha_ground_pick, ball_kick_left, ball_kick_right, roulade"
+      src: "derived 2026-09-16：docs/workspace_2026-09-09/policy_envelope.json（key all.actual_deg，各 mode 实际角 alpha_ground_pick [-2.2,23.3]；alpha_sitstand [-11.2,9.8]；alpha_stand [-8.7,30.7]；alpha_walking [-18.6,10.1]；ball_kick_left [-19.2,0.7]；ball_kick_right [-7.5,1.1]；roulade [-13.9,31.1]），左右镜像求并± 3° → 夹到上游 range；上游出处见 src_note"
+      src_note: "控制端目标区间：第 6 层判碰撞『在目标区间内 = BLOCK（件的问题）／全部在区间外但仍在上游扫描域内 = WARN（工作空间问题，控制端限位）』只认本字段。缺省 = 上游 MJCF 同名 <joint range>（弧度→度，1 位小数）；人为收窄（不等于上游值）必须另带 date + reason，否则第 6 层判 unknown；**不许**取生成的 sim/duck_s288/robot_walk_s288.xml（那是第 6 层收窄后的产物）"
+    home_rad: 0.0
+    axis_world_zero_pose:
+      - 0
+      - 0
+      - -1
+    in_policy: true
+    built_in_v2: true
+    sign_convention: "MJCF 关节轴 (0 0 1) 于 body 系；世界轴向见 axis_world_zero_pose（左右腿符号相反，home 姿态左右取反）。robotd 全部弧度、躯干系右手；软限位 0.9×range（训练），实机只夹到舵机行程"
+    provenance:
+      - "MJCF:113"
+      - "inventory_original.json:joints[0]"
+  - name: "left_hip_roll"
+    exists_as_mjcf_joint: true
+    mjcf_body: "hip_l"
+    servo_id: 21
+    range_deg:
+      - -22.0
+      - 22.0
+    target_range_deg:
+      v: [-22.0, 22.0]
+      date: "2026-09-16"
+      reason: "2026-09-16 能力包络推导（tools/gate/derive_target_ranges.py；用户 2026-09-16 定：能力与原版一致，转角可不同）：能力包络：7 个 in-scope mode 的实际角并集（镜像并集（left_hip_roll↔right_hip_roll，sign -1）） [-23.8, 26.2] 各留 3° 边，夹到上游 range [-22.0, 22.0]。碰撞落在本区间内 = BLOCK（件的问题）；区间外但仍在上游 range 内 = WARN（工作空间比原版窄，但原版任务用不到）。in-scope modes：alpha_walking, alpha_stand, alpha_sitstand, alpha_ground_pick, ball_kick_left, ball_kick_right, roulade"
+      src: "derived 2026-09-16：docs/workspace_2026-09-09/policy_envelope.json（key all.actual_deg，各 mode 实际角 alpha_ground_pick [-5.6,9.1]；alpha_sitstand [-15.6,11.4]；alpha_stand [-23.8,25.7]；alpha_walking [-9.0,5.1]；ball_kick_left [-6.4,13.8]；ball_kick_right [-5.5,9.9]；roulade [-22.9,24.6]），左右镜像求并± 3° → 夹到上游 range；上游出处见 src_note"
+      src_note: "控制端目标区间：第 6 层判碰撞『在目标区间内 = BLOCK（件的问题）／全部在区间外但仍在上游扫描域内 = WARN（工作空间问题，控制端限位）』只认本字段。缺省 = 上游 MJCF 同名 <joint range>（弧度→度，1 位小数）；人为收窄（不等于上游值）必须另带 date + reason，否则第 6 层判 unknown；**不许**取生成的 sim/duck_s288/robot_walk_s288.xml（那是第 6 层收窄后的产物）"
+    home_rad: -0.0873
+    axis_world_zero_pose:
+      - 1
+      - 0
+      - 0
+    in_policy: true
+    built_in_v2: true
+    sign_convention: "MJCF 关节轴 (0 0 1) 于 body 系；世界轴向见 axis_world_zero_pose（左右腿符号相反，home 姿态左右取反）。robotd 全部弧度、躯干系右手；软限位 0.9×range（训练），实机只夹到舵机行程"
+    provenance:
+      - "MJCF:126"
+      - "inventory_original.json:joints[1]"
+  - name: "left_hip_pitch"
+    exists_as_mjcf_joint: true
+    mjcf_body: "upper_leg_left"
+    servo_id: 22
+    range_deg:
+      - -90.0
+      - 90.0
+    target_range_deg:
+      v: [-90.0, 66.9]
+      date: "2026-09-16"
+      reason: "2026-09-16 能力包络推导（tools/gate/derive_target_ranges.py；用户 2026-09-16 定：能力与原版一致，转角可不同）：能力包络：7 个 in-scope mode 的实际角并集（镜像并集（left_hip_pitch↔right_hip_pitch，sign -1）） [-93.8, 63.8] 各留 3° 边，夹到上游 range [-90.0, 90.0]。碰撞落在本区间内 = BLOCK（件的问题）；区间外但仍在上游 range 内 = WARN（工作空间比原版窄，但原版任务用不到）。in-scope modes：alpha_walking, alpha_stand, alpha_sitstand, alpha_ground_pick, ball_kick_left, ball_kick_right, roulade"
+      src: "derived 2026-09-16：docs/workspace_2026-09-09/policy_envelope.json（key all.actual_deg，各 mode 实际角 alpha_ground_pick [-80.7,-21.2]；alpha_sitstand [-45.3,-17.3]；alpha_stand [-65.1,45.3]；alpha_walking [-40.8,-3.5]；ball_kick_left [-50.5,-25.1]；ball_kick_right [-25.7,-14.6]；roulade [-92.4,63.8]），左右镜像求并± 3° → 夹到上游 range；上游出处见 src_note"
+      src_note: "控制端目标区间：第 6 层判碰撞『在目标区间内 = BLOCK（件的问题）／全部在区间外但仍在上游扫描域内 = WARN（工作空间问题，控制端限位）』只认本字段。缺省 = 上游 MJCF 同名 <joint range>（弧度→度，1 位小数）；人为收窄（不等于上游值）必须另带 date + reason，否则第 6 层判 unknown；**不许**取生成的 sim/duck_s288/robot_walk_s288.xml（那是第 6 层收窄后的产物）"
+    home_rad: -0.4579
+    axis_world_zero_pose:
+      - 0
+      - 1
+      - 0
+    in_policy: true
+    built_in_v2: true
+    sign_convention: "MJCF 关节轴 (0 0 1) 于 body 系；世界轴向见 axis_world_zero_pose（左右腿符号相反，home 姿态左右取反）。robotd 全部弧度、躯干系右手；软限位 0.9×range（训练），实机只夹到舵机行程"
+    provenance:
+      - "MJCF:135"
+      - "inventory_original.json:joints[2]"
+  - name: "left_knee"
+    exists_as_mjcf_joint: true
+    mjcf_body: "leg"
+    servo_id: 23
+    range_deg:
+      - -90.0
+      - 90.0
+    target_range_deg:
+      v: [-47.5, 86.2]
+      date: "2026-09-16"
+      reason: "2026-09-16 能力包络推导（tools/gate/derive_target_ranges.py；用户 2026-09-16 定：能力与原版一致，转角可不同）：能力包络：7 个 in-scope mode 的实际角并集（镜像并集（left_knee↔right_knee，sign -1）） [-44.4, 83.1] 各留 3° 边，夹到上游 range [-90.0, 90.0]。碰撞落在本区间内 = BLOCK（件的问题）；区间外但仍在上游 range 内 = WARN（工作空间比原版窄，但原版任务用不到）。in-scope modes：alpha_walking, alpha_stand, alpha_sitstand, alpha_ground_pick, ball_kick_left, ball_kick_right, roulade"
+      src: "derived 2026-09-16：docs/workspace_2026-09-09/policy_envelope.json（key all.actual_deg，各 mode 实际角 alpha_ground_pick [-1.6,61.7]；alpha_sitstand [-8.3,75.1]；alpha_stand [-32.2,36.5]；alpha_walking [-26.1,30.5]；ball_kick_left [-8.6,18.9]；ball_kick_right [-15.1,10.3]；roulade [-30.6,73.1]），左右镜像求并± 3° → 夹到上游 range；上游出处见 src_note"
+      src_note: "旧值（上游默认，2026-09-15 收窄前）v=[-90.0, 90.0]，出处：upstream/microduck_rl/src/mjlab_microduck/robot/microduck/robot_walk.xml:150 <joint name='left_knee' range='-1.570796326795012 1.570796326794781'>（弧度→度，保留 1 位小数）。控制端目标区间：第 6 层判碰撞『在目标区间内 = BLOCK（件的问题）／全部在区间外但仍在上游扫描域内 = WARN（工作空间问题，控制端限位）』只认本字段。缺省 = 上游 MJCF 同名 <joint range>（弧度→度，1 位小数）；人为收窄（不等于上游值）必须另带 date + reason，否则第 6 层判 unknown；**不许**取生成的 sim/duck_s288/robot_walk_s288.xml（那是第 6 层收窄后的产物）"
+    home_rad: -0.0049
+    axis_world_zero_pose:
+      - 0
+      - -1
+      - 0
+    in_policy: true
+    built_in_v2: true
+    sign_convention: "MJCF 关节轴 (0 0 1) 于 body 系；世界轴向见 axis_world_zero_pose（左右腿符号相反，home 姿态左右取反）。robotd 全部弧度、躯干系右手；软限位 0.9×range（训练），实机只夹到舵机行程"
+    provenance:
+      - "MJCF:150"
+      - "inventory_original.json:joints[3]"
+  - name: "left_ankle"
+    exists_as_mjcf_joint: true
+    mjcf_body: "ankle_left"
+    servo_id: 24
+    range_deg:
+      - -90.0
+      - 90.0
+    target_range_deg:
+      v: [-31.2, 90.0]
+      date: "2026-09-16"
+      reason: "2026-09-16 能力包络推导（tools/gate/derive_target_ranges.py；用户 2026-09-16 定：能力与原版一致，转角可不同）：能力包络：7 个 in-scope mode 的实际角并集（镜像并集（left_ankle↔right_ankle，sign -1）） [-28.2, 95.4] 各留 3° 边，夹到上游 range [-90.0, 90.0]。碰撞落在本区间内 = BLOCK（件的问题）；区间外但仍在上游 range 内 = WARN（工作空间比原版窄，但原版任务用不到）。in-scope modes：alpha_walking, alpha_stand, alpha_sitstand, alpha_ground_pick, ball_kick_left, ball_kick_right, roulade"
+      src: "derived 2026-09-16：docs/workspace_2026-09-09/policy_envelope.json（key all.actual_deg，各 mode 实际角 alpha_ground_pick [20.7,81.5]；alpha_sitstand [3.3,45.7]；alpha_stand [-28.2,66.6]；alpha_walking [5.1,30.9]；ball_kick_left [20.0,27.9]；ball_kick_right [9.1,26.9]；roulade [-7.9,77.9]），左右镜像求并± 3° → 夹到上游 range；上游出处见 src_note"
+      src_note: "旧值（上游默认，2026-09-15 收窄前）v=[-90.0, 90.0]，出处：upstream/microduck_rl/src/mjlab_microduck/robot/microduck/robot_walk.xml:160 <joint name='left_ankle' range='-1.5707963267949019 1.5707963267948912'>（弧度→度，保留 1 位小数）。控制端目标区间：第 6 层判碰撞『在目标区间内 = BLOCK（件的问题）／全部在区间外但仍在上游扫描域内 = WARN（工作空间问题，控制端限位）』只认本字段。缺省 = 上游 MJCF 同名 <joint range>（弧度→度，1 位小数）；人为收窄（不等于上游值）必须另带 date + reason，否则第 6 层判 unknown；**不许**取生成的 sim/duck_s288/robot_walk_s288.xml（那是第 6 层收窄后的产物）"
+    home_rad: 0.453
+    axis_world_zero_pose:
+      - 0
+      - 1
+      - 0
+    in_policy: true
+    built_in_v2: true
+    sign_convention: "MJCF 关节轴 (0 0 1) 于 body 系；世界轴向见 axis_world_zero_pose（左右腿符号相反，home 姿态左右取反）。robotd 全部弧度、躯干系右手；软限位 0.9×range（训练），实机只夹到舵机行程"
+    provenance:
+      - "MJCF:160"
+      - "inventory_original.json:joints[4]"
+  - name: "neck_pitch"
+    exists_as_mjcf_joint: true
+    mjcf_body: "neck"
+    servo_id: 30
+    range_deg:
+      - -90.0
+      - 60.0
+    target_range_deg:
+      v: [-90.0, 60.0]
+      date: "2026-09-16"
+      reason: "2026-09-16 能力包络推导（tools/gate/derive_target_ranges.py；用户 2026-09-16 定：能力与原版一致，转角可不同）：能力包络：7 个 in-scope mode 的实际角并集 [-93.5, 64.0] 各留 3° 边，夹到上游 range [-90.0, 60.0]。碰撞落在本区间内 = BLOCK（件的问题）；区间外但仍在上游 range 内 = WARN（工作空间比原版窄，但原版任务用不到）。in-scope modes：alpha_walking, alpha_stand, alpha_sitstand, alpha_ground_pick, ball_kick_left, ball_kick_right, roulade"
+      src: "derived 2026-09-16：docs/workspace_2026-09-09/policy_envelope.json（key all.actual_deg，各 mode 实际角 alpha_ground_pick [-90.4,21.4]；alpha_sitstand [-93.5,60.1]；alpha_stand [-91.9,60.7]；alpha_walking [-46.9,60.8]；ball_kick_left [12.8,26.8]；ball_kick_right [11.8,23.2]；roulade [-93.1,64.0]），左右镜像求并± 3° → 夹到上游 range；上游出处见 src_note"
+      src_note: "旧值（上游默认，2026-09-15 收窄前）v=[-90.0, 60.0]，出处：upstream/microduck_rl/src/mjlab_microduck/robot/microduck/robot_walk.xml:181 <joint name='neck_pitch' range='-1.5707963267948966 1.0471975511965976'>（弧度→度，保留 1 位小数）。控制端目标区间：第 6 层判碰撞『在目标区间内 = BLOCK（件的问题）／全部在区间外但仍在上游扫描域内 = WARN（工作空间问题，控制端限位）』只认本字段。缺省 = 上游 MJCF 同名 <joint range>（弧度→度，1 位小数）；人为收窄（不等于上游值）必须另带 date + reason，否则第 6 层判 unknown；**不许**取生成的 sim/duck_s288/robot_walk_s288.xml（那是第 6 层收窄后的产物）"
+    home_rad: 0.3491
+    axis_world_zero_pose:
+      - 0
+      - -1
+      - 0
+    in_policy: true
+    built_in_v2: true
+    sign_convention: "MJCF 关节轴 (0 0 1) 于 body 系；世界轴向见 axis_world_zero_pose（左右腿符号相反，home 姿态左右取反）。robotd 全部弧度、躯干系右手；软限位 0.9×range（训练），实机只夹到舵机行程"
+    provenance:
+      - "MJCF:181"
+      - "inventory_original.json:joints[5]"
+  - name: "head_pitch"
+    exists_as_mjcf_joint: true
+    mjcf_body: "neck_pitch"
+    servo_id: 31
+    range_deg:
+      - -90.0
+      - 90.0
+    target_range_deg:
+      v: [-50.0, 90.0]
+      date: "2026-09-24"
+      reason: "2026-09-23 用户批准；hr39c 低头 −52.0° 碰身体；hr39f 复核 −52.25° 首碰（hr40_接续结论_2026-09-24.md「低头专项」：−50° 距 B03 2.187 mm）。下限从能力包络推导值 −54.2 收窄到 −50：策略实际最低 −49.06°（hr39c 交接 #2），−50 以下为控制端限位（全量链写进 MJCF / 真实姿态重采样复核，hr41 未跑）。hr41 按任务写入，下面 was 字段是 2026-09-16 推导值原文"
+      v_was_until_2026_09_24_hr41: [-54.2, 90.0]
+      date_was_until_2026_09_24_hr41: "2026-09-16"
+      reason_was_until_2026_09_24_hr41: "2026-09-16 能力包络推导（tools/gate/derive_target_ranges.py；用户 2026-09-16 定：能力与原版一致，转角可不同）：能力包络：7 个 in-scope mode 的实际角并集 [-51.2, 96.6] 各留 3° 边，夹到上游 range [-90.0, 90.0]。碰撞落在本区间内 = BLOCK（件的问题）；区间外但仍在上游 range 内 = WARN（工作空间比原版窄，但原版任务用不到）。in-scope modes：alpha_walking, alpha_stand, alpha_sitstand, alpha_ground_pick, ball_kick_left, ball_kick_right, roulade"
+      src: "derived 2026-09-16：docs/workspace_2026-09-09/policy_envelope.json（key all.actual_deg，各 mode 实际角 alpha_ground_pick [-26.2,25.2]；alpha_sitstand [-41.2,63.1]；alpha_stand [-48.7,92.8]；alpha_walking [-49.1,86.8]；ball_kick_left [19.2,28.5]；ball_kick_right [19.8,25.4]；roulade [-51.2,96.6]），左右镜像求并± 3° → 夹到上游 range；上游出处见 src_note"
+      src_note: "旧值（上游默认，2026-09-15 收窄前）v=[-90.0, 90.0]，出处：upstream/microduck_rl/src/mjlab_microduck/robot/microduck/robot_walk.xml:194 <joint name='head_pitch' range='-1.5707963267948974 1.5707963267948957'>（弧度→度，保留 1 位小数）。控制端目标区间：第 6 层判碰撞『在目标区间内 = BLOCK（件的问题）／全部在区间外但仍在上游扫描域内 = WARN（工作空间问题，控制端限位）』只认本字段。缺省 = 上游 MJCF 同名 <joint range>（弧度→度，1 位小数）；人为收窄（不等于上游值）必须另带 date + reason，否则第 6 层判 unknown；**不许**取生成的 sim/duck_s288/robot_walk_s288.xml（那是第 6 层收窄后的产物）"
+    home_rad: 0.3491
+    axis_world_zero_pose:
+      - 0
+      - 1
+      - 0
+    in_policy: true
+    built_in_v2: true
+    sign_convention: "MJCF 关节轴 (0 0 1) 于 body 系；世界轴向见 axis_world_zero_pose（左右腿符号相反，home 姿态左右取反）。robotd 全部弧度、躯干系右手；软限位 0.9×range（训练），实机只夹到舵机行程"
+    provenance:
+      - "MJCF:194"
+      - "inventory_original.json:joints[6]"
+  - name: "head_yaw"
+    exists_as_mjcf_joint: true
+    mjcf_body: "yaw_roll_motion"
+    servo_id: 32
+    range_deg:
+      - -170.0
+      - 170.0
+    target_range_deg:
+      v: [-116.4, 95.4]
+      date: "2026-09-16"
+      reason: "2026-09-16 能力包络推导（tools/gate/derive_target_ranges.py；用户 2026-09-16 定：能力与原版一致，转角可不同）：能力包络：7 个 in-scope mode 的实际角并集 [-113.3, 92.3] 各留 3° 边，夹到上游 range [-170.0, 170.0]。碰撞落在本区间内 = BLOCK（件的问题）；区间外但仍在上游 range 内 = WARN（工作空间比原版窄，但原版任务用不到）。in-scope modes：alpha_walking, alpha_stand, alpha_sitstand, alpha_ground_pick, ball_kick_left, ball_kick_right, roulade"
+      src: "derived 2026-09-16：docs/workspace_2026-09-09/policy_envelope.json（key all.actual_deg，各 mode 实际角 alpha_ground_pick [-4.2,0.7]；alpha_sitstand [-46.1,66.5]；alpha_stand [-94.6,82.2]；alpha_walking [-94.0,92.3]；ball_kick_left [-4.8,16.0]；ball_kick_right [-37.7,-0.5]；roulade [-113.3,23.3]），左右镜像求并± 3° → 夹到上游 range；上游出处见 src_note"
+      src_note: "控制端目标区间：第 6 层判碰撞『在目标区间内 = BLOCK（件的问题）／全部在区间外但仍在上游扫描域内 = WARN（工作空间问题，控制端限位）』只认本字段。缺省 = 上游 MJCF 同名 <joint range>（弧度→度，1 位小数）；人为收窄（不等于上游值）必须另带 date + reason，否则第 6 层判 unknown；**不许**取生成的 sim/duck_s288/robot_walk_s288.xml（那是第 6 层收窄后的产物）"
+    home_rad: 0.0
+    axis_world_zero_pose:
+      - 0
+      - 0
+      - 1
+    in_policy: true
+    built_in_v2: true
+    sign_convention: "MJCF 关节轴 (0 0 1) 于 body 系；世界轴向见 axis_world_zero_pose（左右腿符号相反，home 姿态左右取反）。robotd 全部弧度、躯干系右手；软限位 0.9×range（训练），实机只夹到舵机行程"
+    provenance:
+      - "MJCF:203"
+      - "inventory_original.json:joints[7]"
+  - name: "head_roll"
+    exists_as_mjcf_joint: true
+    mjcf_body: "jaw_soft"
+    servo_id: 33
+    range_deg:
+      - -25.0
+      - 25.0
+    target_range_deg:
+      v: [-25.0, 25.0]
+      date: "2026-09-16"
+      reason: "2026-09-16 能力包络推导（tools/gate/derive_target_ranges.py；用户 2026-09-16 定：能力与原版一致，转角可不同）：能力包络：7 个 in-scope mode 的实际角并集 [-28.2, 26.2] 各留 3° 边，夹到上游 range [-25.0, 25.0]。碰撞落在本区间内 = BLOCK（件的问题）；区间外但仍在上游 range 内 = WARN（工作空间比原版窄，但原版任务用不到）。in-scope modes：alpha_walking, alpha_stand, alpha_sitstand, alpha_ground_pick, ball_kick_left, ball_kick_right, roulade"
+      src: "derived 2026-09-16：docs/workspace_2026-09-09/policy_envelope.json（key all.actual_deg，各 mode 实际角 alpha_ground_pick [-0.7,2.4]；alpha_sitstand [-15.6,17.8]；alpha_stand [-28.2,24.6]；alpha_walking [-23.3,21.2]；ball_kick_left [-2.3,3.9]；ball_kick_right [-0.4,4.6]；roulade [-27.2,26.2]），左右镜像求并± 3° → 夹到上游 range；上游出处见 src_note"
+      src_note: "控制端目标区间：第 6 层判碰撞『在目标区间内 = BLOCK（件的问题）／全部在区间外但仍在上游扫描域内 = WARN（工作空间问题，控制端限位）』只认本字段。缺省 = 上游 MJCF 同名 <joint range>（弧度→度，1 位小数）；人为收窄（不等于上游值）必须另带 date + reason，否则第 6 层判 unknown；**不许**取生成的 sim/duck_s288/robot_walk_s288.xml（那是第 6 层收窄后的产物）"
+    home_rad: 0.0
+    axis_world_zero_pose:
+      - -1
+      - 0
+      - 0
+    in_policy: true
+    built_in_v2: true
+    sign_convention: "MJCF 关节轴 (0 0 1) 于 body 系；世界轴向见 axis_world_zero_pose（左右腿符号相反，home 姿态左右取反）。robotd 全部弧度、躯干系右手；软限位 0.9×range（训练），实机只夹到舵机行程"
+    provenance:
+      - "MJCF:216"
+      - "inventory_original.json:joints[8]"
+  - name: "right_hip_yaw"
+    exists_as_mjcf_joint: true
+    mjcf_body: "bearing_roll"
+    servo_id: 10
+    range_deg:
+      - -30.0
+      - 25.0
+    target_range_deg:
+      v: [-30.0, 25.0]
+      date: "2026-09-16"
+      reason: "2026-09-16 能力包络推导（tools/gate/derive_target_ranges.py；用户 2026-09-16 定：能力与原版一致，转角可不同）：能力包络：7 个 in-scope mode 的实际角并集（镜像并集（left_hip_yaw↔right_hip_yaw，sign -1）） [-31.1, 26.4] 各留 3° 边，夹到上游 range [-30.0, 25.0]。碰撞落在本区间内 = BLOCK（件的问题）；区间外但仍在上游 range 内 = WARN（工作空间比原版窄，但原版任务用不到）。in-scope modes：alpha_walking, alpha_stand, alpha_sitstand, alpha_ground_pick, ball_kick_left, ball_kick_right, roulade"
+      src: "derived 2026-09-16：docs/workspace_2026-09-09/policy_envelope.json（key all.actual_deg，各 mode 实际角 alpha_ground_pick [-13.9,-0.2]；alpha_sitstand [-4.4,13.7]；alpha_stand [-17.6,24.5]；alpha_walking [-9.6,17.6]；ball_kick_left [-0.3,26.4]；ball_kick_right [-2.8,5.1]；roulade [-30.1,17.9]），左右镜像求并± 3° → 夹到上游 range；上游出处见 src_note"
+      src_note: "控制端目标区间：第 6 层判碰撞『在目标区间内 = BLOCK（件的问题）／全部在区间外但仍在上游扫描域内 = WARN（工作空间问题，控制端限位）』只认本字段。缺省 = 上游 MJCF 同名 <joint range>（弧度→度，1 位小数）；人为收窄（不等于上游值）必须另带 date + reason，否则第 6 层判 unknown；**不许**取生成的 sim/duck_s288/robot_walk_s288.xml（那是第 6 层收窄后的产物）"
+    home_rad: 0.0
+    axis_world_zero_pose:
+      - 0
+      - 0
+      - -1
+    in_policy: true
+    built_in_v2: true
+    sign_convention: "MJCF 关节轴 (0 0 1) 于 body 系；世界轴向见 axis_world_zero_pose（左右腿符号相反，home 姿态左右取反）。robotd 全部弧度、躯干系右手；软限位 0.9×range（训练），实机只夹到舵机行程"
+    provenance:
+      - "MJCF:266"
+      - "inventory_original.json:joints[9]"
+  - name: "right_hip_roll"
+    exists_as_mjcf_joint: true
+    mjcf_body: "hip_l_2"
+    servo_id: 11
+    range_deg:
+      - -22.0
+      - 22.0
+    target_range_deg:
+      v: [-22.0, 22.0]
+      date: "2026-09-16"
+      reason: "2026-09-16 能力包络推导（tools/gate/derive_target_ranges.py；用户 2026-09-16 定：能力与原版一致，转角可不同）：能力包络：7 个 in-scope mode 的实际角并集（镜像并集（left_hip_roll↔right_hip_roll，sign -1）） [-26.2, 23.8] 各留 3° 边，夹到上游 range [-22.0, 22.0]。碰撞落在本区间内 = BLOCK（件的问题）；区间外但仍在上游 range 内 = WARN（工作空间比原版窄，但原版任务用不到）。in-scope modes：alpha_walking, alpha_stand, alpha_sitstand, alpha_ground_pick, ball_kick_left, ball_kick_right, roulade"
+      src: "derived 2026-09-16：docs/workspace_2026-09-09/policy_envelope.json（key all.actual_deg，各 mode 实际角 alpha_ground_pick [-5.8,6.2]；alpha_sitstand [-11.9,16.2]；alpha_stand [-24.1,22.4]；alpha_walking [-9.6,11.3]；ball_kick_left [-5.9,5.7]；ball_kick_right [-10.8,11.2]；roulade [-26.2,8.3]），左右镜像求并± 3° → 夹到上游 range；上游出处见 src_note"
+      src_note: "控制端目标区间：第 6 层判碰撞『在目标区间内 = BLOCK（件的问题）／全部在区间外但仍在上游扫描域内 = WARN（工作空间问题，控制端限位）』只认本字段。缺省 = 上游 MJCF 同名 <joint range>（弧度→度，1 位小数）；人为收窄（不等于上游值）必须另带 date + reason，否则第 6 层判 unknown；**不许**取生成的 sim/duck_s288/robot_walk_s288.xml（那是第 6 层收窄后的产物）"
+    home_rad: 0.0873
+    axis_world_zero_pose:
+      - 1
+      - 0
+      - 0
+    in_policy: true
+    built_in_v2: true
+    sign_convention: "MJCF 关节轴 (0 0 1) 于 body 系；世界轴向见 axis_world_zero_pose（左右腿符号相反，home 姿态左右取反）。robotd 全部弧度、躯干系右手；软限位 0.9×range（训练），实机只夹到舵机行程"
+    provenance:
+      - "MJCF:279"
+      - "inventory_original.json:joints[10]"
+  - name: "right_hip_pitch"
+    exists_as_mjcf_joint: true
+    mjcf_body: "upper_leg_right"
+    servo_id: 12
+    range_deg:
+      - -90.0
+      - 90.0
+    target_range_deg:
+      v: [-66.9, 90.0]
+      date: "2026-09-16"
+      reason: "2026-09-16 能力包络推导（tools/gate/derive_target_ranges.py；用户 2026-09-16 定：能力与原版一致，转角可不同）：能力包络：7 个 in-scope mode 的实际角并集（镜像并集（left_hip_pitch↔right_hip_pitch，sign -1）） [-63.8, 93.8] 各留 3° 边，夹到上游 range [-90.0, 90.0]。碰撞落在本区间内 = BLOCK（件的问题）；区间外但仍在上游 range 内 = WARN（工作空间比原版窄，但原版任务用不到）。in-scope modes：alpha_walking, alpha_stand, alpha_sitstand, alpha_ground_pick, ball_kick_left, ball_kick_right, roulade"
+      src: "derived 2026-09-16：docs/workspace_2026-09-09/policy_envelope.json（key all.actual_deg，各 mode 实际角 alpha_ground_pick [22.3,81.7]；alpha_sitstand [6.0,32.3]；alpha_stand [-4.0,75.5]；alpha_walking [0.9,53.2]；ball_kick_left [14.1,25.3]；ball_kick_right [21.8,48.2]；roulade [-12.5,93.8]），左右镜像求并± 3° → 夹到上游 range；上游出处见 src_note"
+      src_note: "控制端目标区间：第 6 层判碰撞『在目标区间内 = BLOCK（件的问题）／全部在区间外但仍在上游扫描域内 = WARN（工作空间问题，控制端限位）』只认本字段。缺省 = 上游 MJCF 同名 <joint range>（弧度→度，1 位小数）；人为收窄（不等于上游值）必须另带 date + reason，否则第 6 层判 unknown；**不许**取生成的 sim/duck_s288/robot_walk_s288.xml（那是第 6 层收窄后的产物）"
+    home_rad: 0.4579
+    axis_world_zero_pose:
+      - 0
+      - -1
+      - 0
+    in_policy: true
+    built_in_v2: true
+    sign_convention: "MJCF 关节轴 (0 0 1) 于 body 系；世界轴向见 axis_world_zero_pose（左右腿符号相反，home 姿态左右取反）。robotd 全部弧度、躯干系右手；软限位 0.9×range（训练），实机只夹到舵机行程"
+    provenance:
+      - "MJCF:288"
+      - "inventory_original.json:joints[11]"
+  - name: "right_knee"
+    exists_as_mjcf_joint: true
+    mjcf_body: "leg_2"
+    servo_id: 13
+    range_deg:
+      - -90.0
+      - 90.0
+    target_range_deg:
+      v: [-86.2, 47.5]
+      date: "2026-09-16"
+      reason: "2026-09-16 能力包络推导（tools/gate/derive_target_ranges.py；用户 2026-09-16 定：能力与原版一致，转角可不同）：能力包络：7 个 in-scope mode 的实际角并集（镜像并集（left_knee↔right_knee，sign -1）） [-83.1, 44.4] 各留 3° 边，夹到上游 range [-90.0, 90.0]。碰撞落在本区间内 = BLOCK（件的问题）；区间外但仍在上游 range 内 = WARN（工作空间比原版窄，但原版任务用不到）。in-scope modes：alpha_walking, alpha_stand, alpha_sitstand, alpha_ground_pick, ball_kick_left, ball_kick_right, roulade"
+      src: "derived 2026-09-16：docs/workspace_2026-09-09/policy_envelope.json（key all.actual_deg，各 mode 实际角 alpha_ground_pick [-60.4,1.8]；alpha_sitstand [-79.6,9.3]；alpha_stand [-83.1,15.3]；alpha_walking [-27.7,28.8]；ball_kick_left [-13.2,11.4]；ball_kick_right [-26.1,5.8]；roulade [-66.3,44.4]），左右镜像求并± 3° → 夹到上游 range；上游出处见 src_note"
+      src_note: "旧值（上游默认，2026-09-15 收窄前）v=[-90.0, 90.0]，出处：upstream/microduck_rl/src/mjlab_microduck/robot/microduck/robot_walk.xml:303 <joint name='right_knee' range='-1.570796326794932 1.570796326794861'>（弧度→度，保留 1 位小数）。控制端目标区间：第 6 层判碰撞『在目标区间内 = BLOCK（件的问题）／全部在区间外但仍在上游扫描域内 = WARN（工作空间问题，控制端限位）』只认本字段。缺省 = 上游 MJCF 同名 <joint range>（弧度→度，1 位小数）；人为收窄（不等于上游值）必须另带 date + reason，否则第 6 层判 unknown；**不许**取生成的 sim/duck_s288/robot_walk_s288.xml（那是第 6 层收窄后的产物）"
+    home_rad: 0.0049
+    axis_world_zero_pose:
+      - 0
+      - 1
+      - 0
+    in_policy: true
+    built_in_v2: true
+    sign_convention: "MJCF 关节轴 (0 0 1) 于 body 系；世界轴向见 axis_world_zero_pose（左右腿符号相反，home 姿态左右取反）。robotd 全部弧度、躯干系右手；软限位 0.9×range（训练），实机只夹到舵机行程"
+    provenance:
+      - "MJCF:303"
+      - "inventory_original.json:joints[12]"
+  - name: "right_ankle"
+    exists_as_mjcf_joint: true
+    mjcf_body: "ankle_right"
+    servo_id: 14
+    range_deg:
+      - -90.0
+      - 90.0
+    target_range_deg:
+      v: [-90.0, 31.2]
+      date: "2026-09-16"
+      reason: "2026-09-16 能力包络推导（tools/gate/derive_target_ranges.py；用户 2026-09-16 定：能力与原版一致，转角可不同）：能力包络：7 个 in-scope mode 的实际角并集（镜像并集（left_ankle↔right_ankle，sign -1）） [-95.4, 28.2] 各留 3° 边，夹到上游 range [-90.0, 90.0]。碰撞落在本区间内 = BLOCK（件的问题）；区间外但仍在上游 range 内 = WARN（工作空间比原版窄，但原版任务用不到）。in-scope modes：alpha_walking, alpha_stand, alpha_sitstand, alpha_ground_pick, ball_kick_left, ball_kick_right, roulade"
+      src: "derived 2026-09-16：docs/workspace_2026-09-09/policy_envelope.json（key all.actual_deg，各 mode 实际角 alpha_ground_pick [-82.0,-21.2]；alpha_sitstand [-34.8,-4.5]；alpha_stand [-95.4,-18.4]；alpha_walking [-33.4,-3.6]；ball_kick_left [-26.6,-11.5]；ball_kick_right [-40.9,-21.8]；roulade [-69.7,4.0]），左右镜像求并± 3° → 夹到上游 range；上游出处见 src_note"
+      src_note: "旧值（上游默认，2026-09-15 收窄前）v=[-90.0, 90.0]，出处：upstream/microduck_rl/src/mjlab_microduck/robot/microduck/robot_walk.xml:313 <joint name='right_ankle' range='-1.5707963267949054 1.5707963267948877'>（弧度→度，保留 1 位小数）。控制端目标区间：第 6 层判碰撞『在目标区间内 = BLOCK（件的问题）／全部在区间外但仍在上游扫描域内 = WARN（工作空间问题，控制端限位）』只认本字段。缺省 = 上游 MJCF 同名 <joint range>（弧度→度，1 位小数）；人为收窄（不等于上游值）必须另带 date + reason，否则第 6 层判 unknown；**不许**取生成的 sim/duck_s288/robot_walk_s288.xml（那是第 6 层收窄后的产物）"
+    home_rad: -0.453
+    axis_world_zero_pose:
+      - 0
+      - -1
+      - 0
+    in_policy: true
+    built_in_v2: true
+    sign_convention: "MJCF 关节轴 (0 0 1) 于 body 系；世界轴向见 axis_world_zero_pose（左右腿符号相反，home 姿态左右取反）。robotd 全部弧度、躯干系右手；软限位 0.9×range（训练），实机只夹到舵机行程"
+    provenance:
+      - "MJCF:313"
+      - "inventory_original.json:joints[13]"
+  - name: "mouth"
+    exists_as_mjcf_joint: false
+    mjcf_body: "jaw_soft(未建模为关节)"
+    servo_id: 34
+    range_deg:
+      - -5.0
+      - 30.0
+    target_range_deg:
+      v: null
+      unknown_class: "not_applicable"
+      unknown_reason: "不是 MJCF joint（上游 robot_walk.xml 无同名 <joint range>），第 6 层不扫本关节，无目标区间可言"
+      src_note: "控制端目标区间：第 6 层判碰撞『在目标区间内 = BLOCK（件的问题）／全部在区间外但仍在上游扫描域内 = WARN（工作空间问题，控制端限位）』只认本字段。缺省 = 上游 MJCF 同名 <joint range>（弧度→度，1 位小数）；人为收窄（不等于上游值）必须另带 date + reason，否则第 6 层判 unknown；**不许**取生成的 sim/duck_s288/robot_walk_s288.xml（那是第 6 层收窄后的产物）"
+    home_rad: 0.0
+    axis_world_zero_pose:
+      - 0
+      - 1
+      - 0
+    in_policy: false
+    built_in_v2: false
+    sign_convention: "0=闭(−5°)…1=开(+30°) 由 mouth_target 映射；不在策略里"
+    provenance:
+      - "upstream/microduck/duck-control/src/model.rs:57-74（**不是 MJCF joint**：robot_walk.xml 里嘴没有 joint 元素，只有 geom；轴线只能由舵机与 Ø15 轴承同轴推得）"
+      - "inventory_original.json:joints[14]"
+capability_envelope:
+  pose_steps_source:
+    path: "tools/gate/out/policy_steps_2026-09-16/policy_steps.npz"
+    sha256: "14ab179745eb426f997cf8e2b2eb7f7164f12c2896e3540f89a74df8967e3594"
+    provenance: "09-17 独立复核：用户指定的原版7任务逐步记录，14轴、41337 prefall样本；更换来源必须显式更新本声明并重跑，不许由summary自选来源。"
+  # 2026-09-16 用户定：**能力必须与原版一致；转角/CAD/大小可以不同**。所以 joint_axes[].target_range_deg 不再按我们的件
+  # 能转多少来填（09-15 那次按件收窄到 62/62/44.5 = 判据迁就件，失去约束力），而是从原版策略**实际用到**的关节角推导：
+  #   target_range_deg.v = clip( ∪_{mode∈modes_in_scope} key[mode][joint] ± margin_deg , 上游 MJCF range )
+  # 数字只来自 source 文件 + 上游 XML，由 derived_by 脚本写入；改件不改判据，换包络文件（重训后重导）再跑一次脚本。
+  # 第 6 层：碰撞落在 target 内 = BLOCK（件的问题，能力受损）；落在 target 外但仍在上游 range 内 = WARN（工作空间比原版窄，
+  # 原版任务用不到）；另判 _capability/*：每个 in-scope mode 的包络 ± margin ⊆ 本层量出的无碰撞区间。
+  source: "docs/workspace_2026-09-09/policy_envelope.json"
+  source_note: "原版策略（XL330 动力学、原版 XML）逐 mode 跑出来的关节角统计；policy_envelope[mode][joint].all.actual_deg = 实际走到的 min/max。09-09 生成，不含 S288 数据"
+  key: "all.actual_deg"
+  modes_in_scope:
+    - alpha_walking
+    - alpha_stand
+    - alpha_sitstand
+    - alpha_ground_pick
+    - ball_kick_left
+    - ball_kick_right
+    - roulade
+  modes_out_of_scope:
+    roller: "轮滑脚硬件选配（换轮子脚），默认不在能力清单；用户要就加进 modes_in_scope"
+    roller_crouch: "同上"
+  margin_deg: 3.0
+  margin_note: "包络两端各留 3°：与 09-15 收窄时的安全边口径一致；重训策略可能走得略远，边不够就重训后重导包络再推导"
+  # 左右腿是镜像件（同一 build 函数 + mirror），关节符号左右相反（joint_axes[].home_rad / range_deg 左右取负；上游 mdp.py
+  # 注释"mirrored L/R sign conventions"）。原版策略左右并不对称（起立主要用右腿：right_knee 到 −83.1、left_knee 只到 75.1），
+  # 但"能力"不分左右——原版用右腿能做的动作，我们的鸭子用左腿做也算同一能力，且镜像件只能对称地切。
+  # 所以先把左右包络按符号镜像求并，再各留边、夹上游 range。
+  mirror_symmetric: true
+  mirror_pairs:
+    - [left_hip_yaw, right_hip_yaw, -1]
+    - [left_hip_roll, right_hip_roll, -1]
+    - [left_hip_pitch, right_hip_pitch, -1]
+    - [left_knee, right_knee, -1]
+    - [left_ankle, right_ankle, -1]
+  mirror_note: "sign=-1：右 = −左。证据：frozen.yaml joint_axes[].home_rad（hip_roll ∓0.0873、hip_pitch ∓0.4579、knee ∓0.0049、ankle ±0.453）与 range_deg（hip_yaw 左 [-25,30] 右 [-30,25]）"
+  derived_by: "tools/gate/derive_target_ranges.py"
+  date: "2026-09-16"
+  decided_by: "用户 2026-09-16：『转角、CAD、大小什么的都可以不一样，反正都要重新训练了，但是能力一定要一样』"
+joint_axes_rule:
+  source: "duck_kin.py 直接读 upstream/microduck_rl/.../robot_walk.xml，不在 duck.py 里抄一份"
+  rule: "关节轴线动了策略作废；SERVO_SHIFT 只允许沿舵机自身轴线平移，不允许改变轴线位置或方向"
+  cutter_vs_mjcf_warning: "所有让位切刀按 LEGACY 角度范围切（髋俯仰 ±62 / 膝 -62..92 / 踝 -92..62 / 头俯仰·颈 ±45 / 颈摆 -92.5..62.5），而检查按 MJCF 全程跑 → 349 条碰撞。第 6 层必须按 MJCF 范围跑，不许按切刀范围跑。（2026-09-16 行程恢复：踝刀 ±62 → 反向 -92..62、颈摆 -60..45 → -92.5..62.5；旧值 ±37 / ±62 / -60..45 见 CHANGELOG）"
+  gate_rule_2026-09-13: "第 6 层仍按上游 MJCF 全程扫描（候选域），但碰撞按 joint_axes[].target_range_deg 分档：目标区间内 BLOCK、区间外 WARN（工作空间问题）；target_range_deg 缺省 = 上游值，人为收窄要带 date+reason。上一句『按 MJCF 范围跑』指扫描域，不是放行依据（审计 F-L6-3）"
+  provenance:
+    - "duck.py:105"
+    - "inventory_v2.json:frozen_items[0]"
+    - "inventory_v2.json:unknowns[15]"
+battery_bay_26:
+  count_note: 23 个常量名 + 3 个函数 = 26 项（verify_frozen names）
+  door_plate_retired:
+    date: '2026-09-28'
+    decided_by: 用户 2026-09-22 解冻电池仓+门；hr48 用户点头的门改动（外面 −46.8→−48.8，内面开电池槽到 −45.4，lib.DOOR_ADD
+      / DOOR_SLOT_*）
+    probes:
+    - DOOR_T
+    - BX0
+    - DOOR_YLO
+    regression_now: L2 features.yaml:B01-F01 thickness_mm 3.4 / bbox_mm x −48.8..−43.8
+  unfrozen_2026-09-22: '**用户 2026-09-22 解冻『电池仓 + 出线口』**（原话：口不用留那么紧；电池只要不晃就行，可上方加挡板或靠两侧摩擦）。依据 docs/design_2026-09-17_bearing_rebuild/hr38_待办交接.md
+    §2.7。已据此改过的（duckstructure/trunk.py，hr38 第一批）：① 出线口 |y|≤7 × z 140.9..147.9 → |y|≤10 × z 137.9..147.9；② XT30 让位槽
+    |y|≤3.5 → |y|≤6（z 124.9..137.9）；③ B01 门顶新开平衡线缺口，刀 |y|≤6 × z 143..149（门顶 148，穿透门厚 3.0）。**没改**：BAT_CLR=0.6 与 BX0/BX1/BZ0/BZ1/BAT_Y
+    全部原样（放到 0.8 会连带 L04 让位刀重算 → 需用户点头）。仍冻结的是：关节轴线 / 壳柱 SHELL_BOSS / H01 立柱。本条 items 里的 3 个函数体（battery_bay() / battery_bay_cuts()
+    / build_battery_door()）因此**不再是 AST 冻结项**，保留作沿革'
+  measured_on:
+    bay: T01
+    door: B01
+  baseline_volume_mm3:
+    v: 13467.57531197949
+    src: measured
+    src_note: trunk ∩ (x<-20, z<148) 体积
+    refilled_2026-09-28_hr50: 按 cad/duck_s288/mechanical_audit.json:battery_frozen_region_mm3 回填（2026-09-28 13:26）；was 13501.69006542814；下面 stale_2026-09-22 注保留作沿革
+    stale_2026-09-22: '**这个数已经对不上当前件**：hr37 build 的 cad/duck_s288/mechanical_audit.json:battery_frozen_region_mm3
+      = 13815.177603304151；而 hr38 出线口放大（trunk.py 2026-09-22 23:26 改，晚于 21:16 那次 build）还会再减一块 —— 也就是说现在既不是 13501.69
+      也不是 13815.18。**本轮不回填**（审计任务禁止跑 build），等 hr38 整链重建后按新 mechanical_audit.json 回填，并把 keepouts.yaml:KO12.checked_by
+      里的同一个数一起改'
+    provenance:
+    - mechanical_audit.json:battery_frozen_region_mm3
+  items:
+  - name: BAT_CLR
+    value:
+      v: 0.6
+      src: assumed
+      src_note: 冻结常量：数值本身是设计决定，不是实测
+    meaning: 电池四周单边间隙
+    provenance:
+    - duck.py:37-56
+    - duck.py:581-597
+    - duck.py:604-613
+    - inventory_v2.json:frozen_items[3]
+  - name: BX0
+    value:
+      v: -43.8
+      src: assumed
+      src_note: 冻结常量：数值本身是设计决定，不是实测
+    meaning: 仓后界 x
+    provenance:
+    - duck.py:37-56
+    - duck.py:581-597
+    - duck.py:604-613
+    - inventory_v2.json:frozen_items[3]
+  - name: BX1
+    value:
+      v: -24.6
+      src: assumed
+      src_note: 冻结常量：数值本身是设计决定，不是实测
+    meaning: 仓前界 x
+    provenance:
+    - duck.py:37-56
+    - duck.py:581-597
+    - duck.py:604-613
+    - inventory_v2.json:frozen_items[3]
+  - name: BZ0
+    value:
+      v: 73.7
+      src: assumed
+      src_note: 冻结常量：数值本身是设计决定，不是实测
+    meaning: 仓底 z
+    provenance:
+    - duck.py:37-56
+    - duck.py:581-597
+    - duck.py:604-613
+    - inventory_v2.json:frozen_items[3]
+  - name: BZ1
+    value:
+      v: 146.9
+      src: assumed
+      src_note: 冻结常量：数值本身是设计决定，不是实测
+    meaning: 仓顶 z
+    provenance:
+    - duck.py:37-56
+    - duck.py:581-597
+    - duck.py:604-613
+    - inventory_v2.json:frozen_items[3]
+  - name: BAT_Y
+    value:
+      v: 13.1
+      src: assumed
+      src_note: 冻结常量：数值本身是设计决定，不是实测
+    meaning: 仓半宽 |y|
+    provenance:
+    - duck.py:37-56
+    - duck.py:581-597
+    - duck.py:604-613
+    - inventory_v2.json:frozen_items[3]
+  - name: RAIL_Y
+    value:
+      v: 15.0
+      src: assumed
+      src_note: 冻结常量：数值本身是设计决定，不是实测
+    meaning: 侧导轨外沿 |y|
+    provenance:
+    - duck.py:37-56
+    - duck.py:581-597
+    - duck.py:604-613
+    - inventory_v2.json:frozen_items[3]
+  - name: RAIL_Z0
+    value:
+      v: 100.0
+      src: assumed
+      src_note: 冻结常量：数值本身是设计决定，不是实测
+    meaning: 导轨起始 z（z<100 腿会扫到）
+    provenance:
+    - duck.py:37-56
+    - duck.py:581-597
+    - duck.py:604-613
+    - inventory_v2.json:frozen_items[3]
+  - name: DOOR_T
+    value:
+      v: 3.0
+      src: assumed
+      src_note: 冻结常量：数值本身是设计决定，不是实测
+    meaning: 门板厚
+    provenance:
+    - duck.py:37-56
+    - duck.py:581-597
+    - duck.py:604-613
+    - inventory_v2.json:frozen_items[3]
+  - name: DOOR_Z1
+    value:
+      v: 112.0
+      src: assumed
+      src_note: 冻结常量：数值本身是设计决定，不是实测
+    meaning: （定义未使用 —— 死常量，仍在冻结名单里）
+    provenance:
+    - duck.py:37-56
+    - duck.py:581-597
+    - duck.py:604-613
+    - inventory_v2.json:frozen_items[3]
+  - name: DOOR_YLO
+    value:
+      v: 8.0
+      src: assumed
+      src_note: 冻结常量：数值本身是设计决定，不是实测
+    meaning: 门下段半宽
+    provenance:
+    - duck.py:37-56
+    - duck.py:581-597
+    - duck.py:604-613
+    - inventory_v2.json:frozen_items[3]
+  - name: BAY_FW
+    value:
+      v: 3.5
+      src: assumed
+      src_note: 冻结常量：数值本身是设计决定，不是实测
+    meaning: 仓前壁厚（与髋偏航载体前板真·体积重叠 0.2）
+    provenance:
+    - duck.py:37-56
+    - duck.py:581-597
+    - duck.py:604-613
+    - inventory_v2.json:frozen_items[3]
+  - name: BRACE_Z
+    value:
+      v:
+      - 112.0
+      - 118.0
+      src: assumed
+      src_note: 冻结常量：数值本身是设计决定，不是实测
+    meaning: （定义未使用 —— 死常量，注释说是'仓门卡扣咬住的横梁'）
+    provenance:
+    - duck.py:37-56
+    - duck.py:581-597
+    - duck.py:604-613
+    - inventory_v2.json:frozen_items[3]
+  - name: FOOT_X
+    value:
+      v:
+      - -43.8
+      - -35.8
+      src: assumed
+      src_note: 2026-09-22用户已解冻电池仓；hr39f门底脚实际名义值，非实物测量
+    meaning: 门底脚x范围
+    provenance:
+    - duck.py:37-56
+    - duck.py:581-597
+    - duck.py:604-613
+    - inventory_v2.json:frozen_items[3]
+    value_was_before_hr39f:
+      v:
+      - -43.8
+      - -36.8
+      src: assumed
+      src_note: 冻结常量：数值本身是设计决定，不是实测
+    source_symbol_2026-09-24_hr39f: duckstructure.trunk.FOOT_X
+  - name: FOOT_Z
+    value:
+      v:
+      - 67.4
+      - 70.7
+      src: assumed
+      src_note: 冻结常量：数值本身是设计决定，不是实测
+    meaning: B01 底脚 z 区间
+    provenance:
+    - duck.py:37-56
+    - duck.py:581-597
+    - duck.py:604-613
+    - inventory_v2.json:frozen_items[3]
+  - name: FOOT_Y
+    value:
+      v: 4.6
+      src: assumed
+      src_note: 2026-09-22用户已解冻电池仓；hr39f门底脚实际名义值，非实物测量
+    meaning: 门底脚半宽；trunk.FOOT_Y=6.5现代表T01底板窄条半宽，不能误当门脚半宽
+    provenance:
+    - duck.py:37-56
+    - duck.py:581-597
+    - duck.py:604-613
+    - inventory_v2.json:frozen_items[3]
+    value_was_before_hr39f:
+      v: 6.5
+      src: assumed
+      src_note: 冻结常量：数值本身是设计决定，不是实测
+    source_symbol_2026-09-24_hr39f: duckstructure.trunk.DOOR_FOOT_Y
+  - name: DOOR_SCREW_X
+    value:
+      v:
+      - -44.5
+      - -39.0
+      src: assumed
+      src_note: 冻结常量：数值本身是设计决定，不是实测
+    meaning: 门螺丝 x（-44.5 落空已停用）
+    provenance:
+    - duck.py:37-56
+    - duck.py:581-597
+    - duck.py:604-613
+    - inventory_v2.json:frozen_items[3]
+  - name: SNAP_Z
+    value:
+      v: 144.0
+      src: assumed
+      src_note: 冻结常量：数值本身是设计决定，不是实测
+    meaning: 卡珠 z
+    provenance:
+    - duck.py:37-56
+    - duck.py:581-597
+    - duck.py:604-613
+    - inventory_v2.json:frozen_items[3]
+  - name: SNAP_Y
+    value:
+      v: 14.05
+      src: assumed
+      src_note: 冻结常量：数值本身是设计决定，不是实测
+    meaning: 卡珠 |y|
+    provenance:
+    - duck.py:37-56
+    - duck.py:581-597
+    - duck.py:604-613
+    - inventory_v2.json:frozen_items[3]
+  - name: SNAP_D
+    value:
+      v: 2.0
+      src: assumed
+      src_note: 冻结常量：数值本身是设计决定，不是实测
+    meaning: 卡珠直径
+    provenance:
+    - duck.py:37-56
+    - duck.py:581-597
+    - duck.py:604-613
+    - inventory_v2.json:frozen_items[3]
+  - name: SHELL_BOSS
+    value:
+      v:
+      - - -17.0
+        - 20.0
+      - - 1.0
+        - 24.0
+      src: assumed
+      src_note: 扫出来的柱位（壁 2.2、落差 ≤1.2、高 8.9/10.7）
+    meaning: 躯干壳 4 根柱的 (x,y)，±y 对称
+    provenance:
+    - duck.py:68
+    - duck.py:671
+    - inventory_v2.json:frozen_items[5]
+  - name: SERVO_SHIFT
+    value:
+      v:
+        yaw_roll_motion_0: 5.0
+        jaw_soft_1: -1.7
+      src: assumed
+      src_note: 只允许沿舵机自身轴线。jaw_soft_1 2026-09-14 由 −1.5 改 −1.7（沿轴 +0.2，世界 x：舵机心 −4.9→−4.7，法兰面 8.1→8.3）：手册 T_lo 23
+        下厚段背底角离冻结的原版上头壳只剩 0.199，上头壳不能削；改后 min_gap 0.331（lib.py:SERVO_SHIFT 注释，mechanical_audit review_r1）。轴线不动
+    meaning: 舵机沿自身轴线的位移（verify_frozen 锁定）
+    provenance:
+    - duck.py:105
+    - inventory_v2.json:frozen_items[1]
+  - name: P
+    value: 见 frozen.yaml:P_dict
+    meaning: P 字典整体（verify_frozen 锁定 'P'）
+    provenance:
+    - duck.py:30-35
+    - inventory_v2.json:frozen_items[2]
+  - name: battery_bay()
+    value: 函数体（AST 冻结）
+    meaning: 仓体生成函数
+    provenance:
+    - duck.py:581
+  - name: battery_bay_cuts()
+    value: 函数体（AST 冻结）
+    meaning: 仓腔/出线口/绑带槽/底孔切除
+    provenance:
+    - duck.py:592-597
+  - name: build_battery_door()
+    value: 函数体（AST 冻结）
+    meaning: B01 生成函数
+    provenance:
+    - duck.py:604-613
+P_dict:
+  brg:
+    seat_d:
+      v: 27.15
+      src: "assumed"
+      src_note: "6704 外圈座（TC01 待打）；09-17 起只用于膝 L03（髋横滚 L01 座取消，docs/reports/髋横滚轴承取消_2026-09-17.md）"
+    hub_d:
+      v: 19.85
+      src: "assumed"
+      src_note: "6704 内圈毂（TC01b 待打）；09-17 起只用于膝 L04（髋横滚 L02 毂取消，docs/reports/髋横滚轴承取消_2026-09-17.md）"
+    provenance:
+      - "duck.py:30"
+  m2_head:
+    d:
+      v: 4.0
+      src: "assumed"
+      src_note: "M2 头径 3.8~4.0 复审"
+    h:
+      v: 1.6
+      src: "assumed"
+    provenance:
+      - "duck.py:31"
+  bat:
+    v:
+      - 18.0
+      - 25.0
+      - 72.0
+    src: "assumed"
+    src_note: "商品页标称 x厚 y宽 z高，到货复称"
+    provenance:
+      - "duck.py:32"
+  brd:
+    v:
+      - 65.0
+      - 32.0
+    src: "assumed"
+    src_note: "板尺寸（Zero 2W）"
+    provenance:
+      - "duck.py:33"
+  brd_h:
+    v:
+      - 58.0
+      - 23.0
+    src: "assumed"
+    src_note: "**是 Zero 2W 的孔距**，用户已定 Orange Pi Zero 3W，等实物量了才能改"
+    provenance:
+      - "duck.py:33"
+  foot:
+    v: null
+    src: null
+    unknown_class: "not_modeled"
+    unknown_reason: "unknowns[14] 列为死代码/未引用，但在冻结名单里；清单未给值"
+  foot_t:
+    v: null
+    src: null
+    unknown_class: "not_modeled"
+    unknown_reason: "同上"
+  sole_t:
+    v: null
+    src: null
+    unknown_class: "not_modeled"
+    unknown_reason: "同上"
+  seat_d:
+    v: 22.18
+    src: "measured"
+    src_note: "duck.py:35 标注'实测'；⚠ 复审量壳座 r10.89 = Ø21.78，差 0.2 未解决"
+    conflict_ref: "tolerances.yaml:conflicts.seat_d"
+    provenance:
+      - "duck.py:35"
+  seat_t:
+    v: null
+    src: null
+    unknown_class: "not_modeled"
+    unknown_reason: "清单只列了名字，未给值"
+  seat_disc_d:
+    v: 21.6
+    src: "assumed"
+    src_note: "N03 A/B 盘外径名义"
+    provenance:
+      - "duck.py:35"
+      - "duck.py:811-817"
+h01_sbc_posts:
+  frozen_what: "H01 香橙派立柱 posts 与前立板 postbase 的**生成式**（verify_frozen board()）"
+  measured_on: "H01"   # 2026-09-13 F-数-1：第 3 层沿 post_axis_world 在柱外沿内 3 mm 取截面，数 Ø post_d 闭环、量孔距
+  post_axis_world:
+    v: [1, 0, 0]
+    src: "duckstructure/head.py posts = cyl(5.0, …, axis=\"x\")：立柱沿世界 +x 从前立板伸出"
+  post_count: 4
+  post_d_mm:
+    v: 5.0
+    src: "assumed"
+    src_note: "Ø5 立柱"
+  pilot_d_mm:
+    v: 1.7
+    src: "assumed"
+    src_note: "Ø1.7 底孔，进柱 10"
+  hole_pitch_mm:
+    v:
+      - 58.0
+      - 23.0
+    src: "assumed"
+    src_note: "P['brd_h'] 是 Zero 2W 孔距；Orange Pi Zero 3W 未到货未量 → 到货必须解冻复核"
+  provenance:
+    - "duck.py:871-872"
+    - "duck.py:887"
+    - "inventory_v2.json:frozen_items[6]"
+  exceptions:   # 2026-09-24 hr41（复审 #1 m6）：冻结项的改动逐条显式登记（date + reason）；用户已授权「冻结件为达成目标可以解冻，每一处登记例外」
+    - id: "H01_post_+y_lower_root_hr39c"
+      date: "2026-09-23"
+      registered: "2026-09-24 hr41"
+      what: "Radxa +y 下立柱 (58.5, 29, 239.5)：根部 x 51..58.1 取消，只留尖段 x 58.1..66（Ø5、端面 x 66.0、Ø1.7 底孔、孔位都不变），尖段经连接块 WEB_LO/WEB_HI 接到板边外竖梁（y 32.8..36）再吊在 +y 上立柱上（head.py H01_POST_LOPY_X0 / H01_POST_BAR / H01_POST_WEB_*；features H01-F20）"
+      reason: "hr39c 头等比放大 +10 后嘴舵机插座端端面 x 55.3..57.0 占掉原根部；立柱原样时全头 0 个可行嘴舵机摆法（hr39c_work/jaw_scan.log）"
+      interface_unchanged_evidence: "复审 #1 §4：Ø1.7 底孔空、端面 x 66.0、端面圈 100%（与 hr38 相同）"
+      frozen_note_in_features_was_wrong: "features H01-F20 的 frozen_note 写「生成式照旧」不准确 —— 生成式改了（多了竖梁/连接块），只有安装接口（孔位/端面/孔径）没变"
+    - id: "H01_post_-y_lower_OTG_relief_hr39c"
+      date: "2026-09-23"
+      registered: "2026-09-24 hr41"
+      what: "Radxa −y 下立柱 (58.5, −29, 239.5)：给 USB-C1（OTG）口壳局部削平（head.py H01_OTG_RELIEF，离口壳 0.2），Ø1.7 底孔与端面 x 66 不动，端面只少一条弦（端面圈 96.2%）"
+      reason: "hr39c-OTG：口壳按 USB-C 规范全宽 8.94 建模后与 Ø5 立柱 +y 边重 0.17；OTG 口当时要保留刷机/调试"
+      note_2026_09_24: "用户 09-24 17:15 定 Radxa 搬后脑（hr42），OTG 装好后不要求可达；本削平与四柱是否保留由 hr42 定（hr41 不动）"
+    - id: "H01_posts_no_longer_carry_Radxa_hr43"
+      date: "2026-09-25"
+      registered: "2026-09-25 hr43"
+      what: "四根立柱**几何不变**（Ø5、端面 x 66、Ø1.7 底孔、孔距 58×23 全照旧），但**用途变了**：不再托 Radxa（F25_sbc_to_H01 停用，qty 0），三根（+y 上 / −y 上 / +y 下尖段）端面改托 H07 功放托板（F35_H07_to_H01 3×M2×8），−y 下那根空着；Radxa 改挂 H05 四根吊柱（H05-F11，F37）"
+      reason: "hr43 方案 A：Radxa 搬后脑顶部平放、吊在顶壳下；前腔空出来给直排针功放 + 托板"
+      provenance: "用户 2026-09-24 17:25 定方案 A（hr43_设计稿_Radxa后脑A.md）；功放托板拧 H01 旧四柱 = 用户 09-24 18:20 决定 3（物料记录_头部电子件.md）"
+      interface_unchanged_evidence: "hr43 没改 head.py:build_head_bracket（H01 build_fast #1 重切体积 19.1 cm³ 同 hr41）；H07 竖板贴柱端面 0 交（hr43_work/sweep43.json：amp_tray × head_bracket vol 0 / gap 0 = 面接触）"
+      frozen_what_note: "frozen_what 写的是「香橙派立柱」的生成式 —— 本例外不改生成式，只登记托的东西变了；post_count / pilot / 孔距判据照旧适用"
+    - id: "H01_post_minus_y_low_removed_hr43c"
+      date: "2026-09-25"
+      registered: "2026-09-25 hr43c"
+      what: "删掉 −y 下那根旧 Radxa 立柱 (y −29, z 239.5)（head.py build_head_bracket：posts 只留 sz > 0 的两根 + +y 下尖段）；其余三根位置 / Ø5 / 端面 x 66 / Ø1.7 底孔都不动"
+      reason: "Radxa 已搬后脑（hr43），四根里 H07 只拧 (±29, 262.5) 与 (+29, 239.5) 三根（F35）；这根空着（协调员 14:55 ②）。post_count 判据要按 3 根读"
+      provenance: "协调员 2026-09-25 14:55 ②（hr43c 简报补充）；H01-F03 / F04 实例同步（features.yaml）"
+      interface_unchanged_evidence: "hr43c build_fast #2：H01 18.887 cm³（#1 19.1），静态 0、mechanical PASS；F35 三孔 / H07 竖板不变"
+      note_2026-09-25_hr43d: "hr43d：三根立柱几何 / 端面 / 底孔仍不变，改托新件 H08 转接板托板（竖板照 H07，F35 头侧 H07 → H08）；H07 退役"
+      not_done: "协调员同条「其余三根按 B1 −y ≥1.8 挪」未做：B1 的「立柱」是 H07 的 Ø4 功放立柱（已随功放 −y 2.0，F22 4/4 通，hr43c/c12_f22.json），挪 H01 冻结立柱对 B1 没有作用，留主设计定"
+original_stl_sha256:
+  - file: "V2_S288版发布产物/01_整鸭打印件/原版件_原封不动/bottom_head_shell.stl"
+    sha256: "1e11eed22df6bec1cc905cc83503a9f7d9f5813e0de9eed05eedf2dd385459ce"
+    print: false
+    provenance:
+      - "docs/audit_2026-09-08/frozen_sha256.json —— **2026-09-23 核查：该目录已不在仓库**（当初没提交还是后来删了，用户也无印象）。**本条结论不受影响**：指纹的用法本来就是『对现存文件重算再比对』，出处文件不是必需品"
+      - "2026-09-23 重算自证：对本文件列出的每个文件逐字节重算 sha256 —— original_stl 6/6 + kinematics 2/2 **全部与记录一致，0 处不符**"
+      - "本文件生成时对文件重算 sha256（逐字节）"
+  - file: "V2_S288版发布产物/01_整鸭打印件/原版件_原封不动/jaw.stl"
+    sha256: "1c3a4000f205f1c24c9572c8156d76f67cac53ffadb68e3ac5a5a931bffc80fd"
+    print: true
+    provenance:
+      - "docs/audit_2026-09-08/frozen_sha256.json —— **2026-09-23 核查：该目录已不在仓库**（当初没提交还是后来删了，用户也无印象）。**本条结论不受影响**：指纹的用法本来就是『对现存文件重算再比对』，出处文件不是必需品"
+      - "2026-09-23 重算自证：对本文件列出的每个文件逐字节重算 sha256 —— original_stl 6/6 + kinematics 2/2 **全部与记录一致，0 处不符**"
+      - "本文件生成时对文件重算 sha256（逐字节）"
+  - file: "V2_S288版发布产物/01_整鸭打印件/原版件_原封不动/jaw_soft.stl"
+    sha256: "686e170a180bf0882229aee099085e6a876de880f4e8913369c77d15628ddd3a"
+    print: true
+    provenance:
+      - "docs/audit_2026-09-08/frozen_sha256.json —— **2026-09-23 核查：该目录已不在仓库**（当初没提交还是后来删了，用户也无印象）。**本条结论不受影响**：指纹的用法本来就是『对现存文件重算再比对』，出处文件不是必需品"
+      - "2026-09-23 重算自证：对本文件列出的每个文件逐字节重算 sha256 —— original_stl 6/6 + kinematics 2/2 **全部与记录一致，0 处不符**"
+      - "本文件生成时对文件重算 sha256（逐字节）"
+  - file: "V2_S288版发布产物/01_整鸭打印件/原版件_原封不动/motor_support.stl"
+    sha256: "41f20a370bfcae9ecb88fb55ffe16ce1a22201ed68728a7a06f53286386dc3fd"
+    print: false
+    provenance:
+      - "docs/audit_2026-09-08/frozen_sha256.json —— **2026-09-23 核查：该目录已不在仓库**（当初没提交还是后来删了，用户也无印象）。**本条结论不受影响**：指纹的用法本来就是『对现存文件重算再比对』，出处文件不是必需品"
+      - "2026-09-23 重算自证：对本文件列出的每个文件逐字节重算 sha256 —— original_stl 6/6 + kinematics 2/2 **全部与记录一致，0 处不符**"
+      - "本文件生成时对文件重算 sha256（逐字节）"
+  - file: "V2_S288版发布产物/01_整鸭打印件/原版件_原封不动/soft_mouth_top.stl"
+    sha256: "8992164e57a6ba4cea6e77812fc62a0dffb78f185fa4f829fcc12b2904d62560"
+    print: true
+    provenance:
+      - "docs/audit_2026-09-08/frozen_sha256.json —— **2026-09-23 核查：该目录已不在仓库**（当初没提交还是后来删了，用户也无印象）。**本条结论不受影响**：指纹的用法本来就是『对现存文件重算再比对』，出处文件不是必需品"
+      - "2026-09-23 重算自证：对本文件列出的每个文件逐字节重算 sha256 —— original_stl 6/6 + kinematics 2/2 **全部与记录一致，0 处不符**"
+      - "本文件生成时对文件重算 sha256（逐字节）"
+  - file: "V2_S288版发布产物/01_整鸭打印件/原版件_原封不动/top_head_shell.stl"
+    sha256: "2657ffd074d964d6f953b9aaa226e5213a0e2dc0cd57b91a5cfe4d5ee2e36ea4"
+    print: true
+    provenance:
+      - "docs/audit_2026-09-08/frozen_sha256.json —— **2026-09-23 核查：该目录已不在仓库**（当初没提交还是后来删了，用户也无印象）。**本条结论不受影响**：指纹的用法本来就是『对现存文件重算再比对』，出处文件不是必需品"
+      - "2026-09-23 重算自证：对本文件列出的每个文件逐字节重算 sha256 —— original_stl 6/6 + kinematics 2/2 **全部与记录一致，0 处不符**"
+      - "本文件生成时对文件重算 sha256（逐字节）"
+kinematics_sha256:
+  - file: "duckstructure/kin.py"
+    sha256: "cda68a25dc24ca52b3d485cf4fcb7a5ed774819adfda4fb6c8a028c4679beb30"
+    baseline_change_2026-09-09:
+      previous_file: "tools/cad/duck_kin.py"
+      previous_sha256: "9be4bc959af5ab32d2d5db32fe7030a5580e8852af82575b9830eeee511aa36c"
+      reason: |
+        commit 274ef72 把 tools/cad/duck.py 拆成 duckstructure/ 包，duck_kin.py 随之
+        git mv 成 duckstructure/kin.py（上移一层目录）。diff 只有一行：
+          MD = ...join(HERE, "..", "..", "upstream", ...)   →   join(HERE, "..", "upstream", ...)
+        即相对路径深度随目录变化。**关节轴线读取逻辑一字未改**，_T/quaternion_matrix/
+        body 遍历全部相同。Gate 的 L0/_frozen 判据抓到了这次变更，人工核对后改基线。
+      verified_by: "L0/_frozen kinematics_sha256_matches_baseline"
+    provenance:
+      - "docs/audit_2026-09-08/frozen_sha256.json —— **2026-09-23 核查：该目录已不在仓库**（当初没提交还是后来删了，用户也无印象）。**本条结论不受影响**：指纹的用法本来就是『对现存文件重算再比对』，出处文件不是必需品"
+      - "2026-09-23 重算自证：对本文件列出的每个文件逐字节重算 sha256 —— original_stl 6/6 + kinematics 2/2 **全部与记录一致，0 处不符**"
+  - file: "upstream/microduck_rl/src/mjlab_microduck/robot/microduck/robot_walk.xml"
+    sha256: "07af5e482200dfd2a7bf80ddde371153c88768a3a5aebc2f58ea42136fc7dadb"
+    provenance:
+      - "docs/audit_2026-09-08/frozen_sha256.json —— **2026-09-23 核查：该目录已不在仓库**（当初没提交还是后来删了，用户也无印象）。**本条结论不受影响**：指纹的用法本来就是『对现存文件重算再比对』，出处文件不是必需品"
+      - "2026-09-23 重算自证：对本文件列出的每个文件逐字节重算 sha256 —— original_stl 6/6 + kinematics 2/2 **全部与记录一致，0 处不符**"
+imu_pose:
+  site_name: "imu"
+  measured_on: "T01"   # 2026-09-13 F-数-1：第 3 层在 our_mounting_pos_mm 的 x/z 上沿 ±y 扫径向射线扇找两个 Ø mount_hole_d_mm 的安装孔
+  mount_hole_d_mm:
+    v: 1.7
+    src: "duckstructure/trunk.py cyl(1.7, 10, (BX1+1.5, ±10.16, 111.65), axis=\"x\")（hr29：IMU 定型 Adafruit 4438，孔距 20.32；features.yaml T01-F20 同值；site 本身不动，芯片在板中心正落在 site 上）"
+  mjcf_body: "trunk_base"
+  pos_local_m:
+    - -0.021
+    - 6.64098e-05
+    - -0.0146984
+  pos_world_mm_zero_pose:
+    v:
+      - -21.0
+      - 0.07
+      - 105.3
+    src: "measured"
+    src_note: "直接从 MJCF 读；y = 6.64098e-05 m = 0.0664 mm"
+  quat_wxyz:
+    v:
+      - 1
+      - 0
+      - 0
+      - 0
+    src: "measured"
+    src_note: "MJCF site quat 单位四元数"
+  bound_sensors:
+    - "orientation(framequat)"
+    - "angular-velocity(gyro)"
+    - "imu_ang_vel"
+    - "imu_lin_vel"
+    - "imu_accel"
+  sensor_provenance:
+    - "upstream/microduck_rl/.../sensors.xml:2-7"
+  policy_use: "策略 obs[0..3]=gyro(trunk 系)、obs[3..6]=投影重力，全部绑这个 site（orientation/angular-velocity）"
+  our_mounting_pos_mm:
+    v:
+      - -23.1
+      - 0.0
+      - 111.65
+    src: "assumed"
+    src_note: "hr29：两个安装孔那一行（Adafruit 4438 两孔在板长边下 2.54、孔距 20.32；板中心 = site (−21, 0, 105.3)，长边在 z 114.19）；x 取前壁 −23.1。旧值 (−23.1, 0, 105.3) = 原版 site 那一行（duck.py:658 用 120−14.7 定 z）"
+  delta_from_site_mm:
+    v:
+      - -2.1
+      - -0.0664
+      - 6.35
+    src: "measured"
+    src_note: "安装孔行 − MJCF site；x 差 2.1（comparison A1 判可接受）；z 差 6.35 只是孔到芯片的板内距离，芯片本身在 site 上（hr29）"
+  extrinsic_requirement: "安装**朝向**不能自由发挥：原版固件有 DEFAULT_MOUNT（绕 Y +90°）把芯片系转到 site 系；我们必须在驱动里做等效旋转并显式声明 → relations.yaml:C1_imu_extrinsic"
+  doc_rounding_note: "inventory_original.md 与 comparison 文档把 y 写成 0.1 mm，JSON/MJCF 是 0.07 mm（6.64098e-05 m）——以 MJCF 为准，见本文件 discrepancies"
+  provenance:
+    - "MJCF:109"
+    - "inventory_original.json:sites[0]"
+    - "comparison_original_vs_v2.md:A1"
+    - "duck.py:658"
+C5_reference_only:
+  comparison: "C5"
+  rule: "**只作对照、不打印、不混装**的原版件名单（机器可读）"
+  parts:
+    - mesh: "bottom_head_shell"
+      replaced_by: "H03"
+      why: "原版下头壳与我们的横滚舵机干涉 21.6 mm^3"
+      provenance:
+        - "comparison_original_vs_v2.md:C5"
+        - "comparison_original_vs_v2.md:B3"
+        - "duck.py:923"
+    - mesh: "motor_support"
+      replaced_by: "H01"
+      why: "S288 外形与 XL330 完全不同"
+      provenance:
+        - "comparison_original_vs_v2.md:C5"
+        - "comparison_original_vs_v2.md:B4"
+        - "duck.py:849-856"
+  gate_rule: "第 0 层：出现在打印集合里的 STL 若 sha256 命中这两个文件 → BLOCK"
+C6_interface_budgets:
+  comparison: "C6"
+  rule: "屏 / 相机 / 麦三件的接口在**选型前**就冻结预算；预算填不上 = BLOCK（元规则 4 未知=失败），不允许先选型后补"
+  items:
+    - component: "display_lcd"
+      mass_cap_g:
+        v: null
+        src: null
+        unknown_class: "not_selected"
+        unknown_reason: "上限未决定；头部质量上限本身要由颈部扭矩倒推（README 产出 mass_budget.md），现在还没有这条链路"
+      power_w:
+        v: null
+        src: null
+        unknown_class: "not_selected"
+        unknown_reason: "未决定"
+      wire_count:
+        v: null
+        src: null
+        unknown_class: "not_selected"
+        unknown_reason: "未决定"
+      plug_volume_mm3:
+        v: null
+        src: null
+        unknown_class: "not_selected"
+        unknown_reason: "未决定"
+      provenance:
+        - "comparison_original_vs_v2.md:C6"
+        - "comparison_original_vs_v2.md:B7"
+    - component: "camera_csi"
+      mass_cap_g:
+        v: null
+        src: null
+        unknown_class: "not_selected"
+        unknown_reason: "未决定"
+      power_w:
+        v: null
+        src: null
+        unknown_class: "not_selected"
+        unknown_reason: "未决定"
+      wire_count:
+        v: null
+        src: null
+        unknown_class: "not_selected"
+        unknown_reason: "未决定"
+      plug_volume_mm3:
+        v: null
+        src: null
+        unknown_class: "not_selected"
+        unknown_reason: "未决定"
+      extra_constraint: "视锥 80°×60° @ 出瞳 (89,0,264) 已在 keepouts.yaml:KO15 冻结；原版是竖装（转 90°）"
+      provenance:
+        - "comparison_original_vs_v2.md:C6"
+        - "comparison_original_vs_v2.md:A12"
+    - component: "mic_inmp441"
+      mass_cap_g:
+        v: null
+        src: null
+        unknown_class: "not_selected"
+        unknown_reason: "未决定"
+      power_w:
+        v: null
+        src: null
+        unknown_class: "not_selected"
+        unknown_reason: "未决定"
+      wire_count:
+        v: null
+        src: null
+        unknown_class: "not_selected"
+        unknown_reason: "未决定"
+      plug_volume_mm3:
+        v: null
+        src: null
+        unknown_class: "not_selected"
+        unknown_reason: "未决定"
+      extra_constraint: "上方 Ø2 声孔只穿顶壳（壳厚 1.749），**尚未开孔**"
+      provenance:
+        - "comparison_original_vs_v2.md:C6"
+        - "inventory_v2.json:purchased[8]"
+misc_frozen:
+  - item: "duck.py 退出码 2 不能改成 0 放行"
+    why: "退出码是唯一的自动化闸门"
+    provenance:
+      - "inventory_v2.json:frozen_items[9]"
+  - item: "原版件_原封不动/ 6 个 STL 逐字节不动（CC BY-SA-NC）"
+    why: "上游许可 + 已验证接口"
+    provenance:
+      - "inventory_v2.json:frozen_items[7]"
+discrepancies:
+  - id: "D-FROZEN-02"
+    what: "joints[] 有 15 条，MJCF 里只有 14 个 joint 元素"
+    a: "inventory_original.json:summary_counts.joints = 15，joints[] 第 15 条是 mouth"
+    b: "robot_walk.xml 里 name= 的 hinge joint 只有 14 个（113/126/135/150/160/181/194/203/216/266/279/288/303/313）；mouth 那条自己的 body 字段就写着 'jaw_soft(未建模为关节)'，evidence 指的是 duck-control/src/model.rs 不是 MJCF"
+    resolution: "本文件 joint_axes 保留 15 条但加 exists_as_mjcf_joint 标志；第 0/6 层只许对 exists_as_mjcf_joint=true 的 14 条做轴线比对"
+    provenance:
+      - "inventory_original.json:joints[14]"
+      - "MJCF:222-223"
+  - id: "D-FROZEN-03"
+    what: "comparison A2 说的'少掉的轴承由哪些关节的 S288 自带输出轴承承担'与原版实际轴承位置对不上"
+    a: "inventory_original.json:components[14].instances 列出 11 颗 Ø22 的确切位置：hip_yaw×2 / hip_roll×2 / hip_pitch×2 / knee×2 / head_yaw×1 / head_roll×2；**neck_pitch 和 head_pitch 一颗轴承都没有**"
+    b: "comparison_original_vs_v2.md:A2 写'少掉的位置改由 S288 自带输出轴承（髋偏航、髋俯仰、**颈**、**头俯仰**）承担'——颈与头俯仰原版本来就没有轴承，而真正少掉的 **head_yaw 那一颗**（原装在 neck_pitch body 上，世界 (26,0,223.2)）没被列进去"
+    resolution: "实际少掉 7 颗（不含嘴的 Ø15）= hip_yaw×2 + hip_pitch×2 + head_yaw×1 + head_roll×2；C2 的关节名单以本条为准，见 relations.yaml:C2_missing_bearing_load"
+    provenance:
+      - "inventory_original.json:components[14].instances"
+      - "comparison_original_vs_v2.md:A2"
+      - "comparison_original_vs_v2.md:C2"
+  - id: "D-FROZEN-01"
+    what: "IMU site y 坐标"
+    a: "inventory_original.json:sites[0].pos_m = 6.64098e-05 m → world y = 0.07 mm（与 MJCF:109 逐字一致）"
+    b: "inventory_original.md 第 2 节表 与 comparison_original_vs_v2.md:A1 都写 (−21.0, 0.1, 105.3)"
+    resolution: "以 MJCF/JSON 的 0.07 为准；0.1 是文档四舍五入。差 0.03 mm，远小于任何判据阈值，但记下来免得以后被当成两个不同的位置"
+
+# hr38（2026-09-23）：原版 top_head_shell 与 jaw 仍然冻结（sha256 那两份原封不动，仍是毛坯与合缝/轴线基准），
+#   但**打印件已经不是它们**：top_head_shell → H05_head_top_shell（喇叭/功放卡座 + 出风槽 + 声孔），jaw → J01_jaw（S288 法兰 6 孔 + Ø9.95 轴颈）。
+#   placed/ 里的 orig_top_head_shell / orig_jaw 已退出（duckstructure/build.py）。见 parts.yaml:H05 / J01。

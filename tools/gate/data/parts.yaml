@@ -1,0 +1,1816 @@
+# 本文件由 docs/gate/inventory_v2.json + inventory_original.json + comparison_original_vs_v2.md 机械转换而来。
+# 字段约定见 tools/gate/data/README.md：
+#   · 每条记录必须有 provenance（duck.py:行 / s288.py:行 / ankle_split.py:行 / mechanical_audit.json:键 /
+#     inventory_original.json:路径 / inventory_v2.json:路径 / MJCF:行 / comparison_original_vs_v2.md:编号）
+#   · 数值字段统一写成 {v: <值>, src: measured|datasheet|assumed}
+#   · 搬不过来的值写 v: null，并在同条记录里给 unknown_class + unknown_reason
+# 单位：mm / mm^3 / g / N / degC，除非字段名另有后缀。不四舍五入。
+# parts.yaml —— 18 个打印件（09-12 ④ 加 N04 头横滚 B 端轴颈销），件号（L01…H03, N04）为 key。
+# build_fn 只写函数名，不写模块路径（tools/cad/ 正在重构成 duckstructure/，模块路径会变）。
+
+schema_version: 1
+source:
+  duck_py_git: "d218c6f804b7660e10b6f6fe8b2901e206a4ab5e (HEAD, 工作区 tools/cad/duck.py 有未提交修改: ANK_SWEEP 37→62)"
+  duck_py_sha256_worktree: "efda71b6068001c9281385caf4ddd099ae663bdf65f9fb78f5bc626da19e38b1"
+  duck_py_sha256_HEAD_and_release_copy: "dfededcdfc936c69cbdd517257226123195cb3b5b67f2430d1638a9ebbbf5368"
+  stl_provenance: "cad/duck_s288/*.stl 与 audit_summary.json/mechanical_audit.json 生成于 2026-09-09 04:53~04:56，早于工作区 duck.py 修改(10:44)；audit_summary 踝碰撞从 ±40° 起 → 现有 STL/审计对应 HEAD(±37 让位)版本，不是工作区(±62)版本。17 个 STL 与 01_整鸭打印件/S288专用件 sha256 相同（抽查 L05/L07）。"
+  s288_py: "tools/cad/s288.py == 06_CAD源码/s288.py（diff 为空）"
+  kinematics: "upstream/microduck_rl @5946fd9 robot_walk.xml（不在 git 里）"
+  inventory_date: "2026-09-09"
+  units: "mm / mm³ / g；舵机局部坐标: 法兰朝 +x, 长边 z, 顶端 z=+9.5"
+counts:
+  parts: 37
+  parts_note_2026-09-29_hr52: 36 → 37：hr52 新件 H10 ToF 压条（body jaw_soft，v6-VL53L5CX 雷达）
+  parts_note_2026-09-25_hr43d: 35 → 36：hr43d H07 功放托板退役（块原文 hr43_work/hr43d/parts_removed_hr43d.yaml），新件 H08 转接板托板 + H09 功放支架（均 body jaw_soft）
+  parts_note_2026-09-25_hr43: 34 → 35：hr43 新件 H07 功放托板（body jaw_soft）
+  parts_note_2026-09-24_hr41: 31 → 34：hr41 头部阶段二新件 J02 嘴 +y 法兰转接盘 / J03 嘴 −y 可拆轴颈盘 / H06 摄像头内侧压框（均 body jaw_soft）
+  parts_note_2026-09-23_hr38: 26 → 27：hr38 加 H05（上头壳派生件）与 J01（活动嘴），另**修正一处旧账** —— hr37 把 parts 写成 26 但列表里只有 25 条（hr28
+    删 B02 后没减），所以 25+2 = 27。
+  parts_note_2026-09-23_hr39c: 27 → 30：hr39c 圆眼装饰 E01 白外圈 / E02 黑眼珠 / E03 高光（jaw_soft，胶粘在 H04 外面）
+  deliberately_absent: 3
+  deliberately_added: 8
+  features_total: 293
+  features_total_note_2026-09-23_hr39f: 279 → 278：hr39f 删 T02-F06（开关孔）；B03 等新件特征待登记（见 hr39f_work/进度快照.md）
+  features_total_note_2026-09-23_hr39c: 264 → 279 = features.yaml:counts.features（hr39c 4b）
+  features_total_note_2026-09-23_hr38: 253（hr37 旧数，从没跟上 hr38 第一批的 T02-F06/B01-F07）→ 264 = features.yaml:counts.features，逐件求和一致。
+  features_total_note_2026-09-24_hr39f: 按features当前实际记录重算；B03加入打印件及motion_instances
+parts:
+- id: L01
+  placed_instances:
+  - yaw2roll
+  - yaw2roll_R
+  inventory_id: L01_yaw2roll
+  role: 髋偏航从动盘、髋横滚舵机载体；6703 外圈整体座（开顶 60°，顶桥/外侧桥接杯顶板，hr08）
+  build_fn:
+  - build_yaw2roll
+  build_variant: null
+  material: PETG
+  print_orientation: 横滚轴竖直、6703 座口朝上（export_local −y 朝下；2026-09-15 六朝向真切片改，printability.yaml:parts.L01 同）
+  print_orientation_down_normal:
+  - 0
+  - -1
+  - 0
+  print_orientation_frame: export_local（= features.yaml:frames.export_local，导出 STL 自己的坐标系）
+  print_orientation_down_normal_world:
+  - -1
+  - 0
+  - 0
+  print_orientation_provenance:
+  - 2026-09-18 hr13 对齐：printability.yaml:parts.L01.down_world 09-15 已改 [-1,0,0]（座内落点 38922→0），parts.yaml 当时没跟 →
+    L1 print_orientation 红；世界 [-1,0,0] → export_local [0,-1,0]（TW(yaw2roll) 置换）
+  - docs/repair_2026-09-09/slice_final.py:PARTS（yaw2roll, 世界空间朝下法向 [0, 0, -1]）
+  - features.yaml:frames.per_part.L01.world_to_export_local_R —— 世界→件自身的旋转，本行 = R · 世界法向
+  - 校核：把件按本行法向转平后的 z 向高度，与 placed/ 件按世界法向转平后的高度逐件相等（17/17）
+  supports: 自动支撑（清单）
+  qty: 2
+  mirror_of: null
+  mirrored_copy: L01_R（body bearing_roll，mirror_y，切片时镜像）
+  derived_from_original: null
+  mates_with:
+  - T01(经髋偏航舵机法兰, 6×M2×8)
+  - servo_hip_roll(2×M2×6 上排背孔)
+  - L02(经横滚舵机法兰；6704 于 09-17 取消)
+  - bearing_6704_hip_roll(外圈) —— 09-17 已取消，无此配合
+  houses:
+  - servo_hip_roll (yaw2roll[0], 法兰朝+x, 世界(6,±17.5,102.5))
+  - bearing_6704_left_hip_roll 外圈 —— 09-17 已取消（lib.RINGS[left_hip_roll]=False，L01 无座）
+  houses_note: houses 字符串里的世界坐标是从 MJCF 关节轴线（frozen.yaml:joint_axes）推出的落位结果，只作追溯，不是判据
+  feature_count: 18
+  features_ref: features.yaml 中 part == L01 的记录
+  frozen: false
+  notes: 横滚舵机下排 2 孔故意不用（原版亦 2 颗）。audit_screws 上排叠 3.29。09-17 髋横滚 6704 座取消后 build r4 体积 3.3→2.4 cm³（docs/build_logs/build_2026-09-17_r4.log；本文件无
+    volume 字段，数字只记在这里）。
+  provenance:
+  - inventory_v2.json:printed_parts[0]
+  design_status: development_candidate_not_released
+  current_design_ref: docs/design_2026-09-17_bearing_rebuild/记录.md
+- id: L02
+  placed_instances:
+  - hip
+  - hip_R
+  inventory_id: L02_hip
+  role: 双从动盘：分别与L10/L13夹紧横滚6703、俯仰6703内圈
+  build_fn:
+  - build_hip
+  build_variant: '@memo 缓存'
+  material: PETG
+  print_orientation: 横滚盘面朝下
+  print_orientation_down_normal:
+  - 0
+  - 0
+  - 1
+  print_orientation_frame: export_local（= features.yaml:frames.export_local，导出 STL 自己的坐标系）
+  print_orientation_down_normal_world:
+  - 1
+  - 0
+  - 0
+  print_orientation_provenance:
+  - docs/repair_2026-09-09/slice_final.py:PARTS（hip, 世界空间朝下法向 [1, 0, 0]）
+  - features.yaml:frames.per_part.L02.world_to_export_local_R —— 世界→件自身的旋转，本行 = R · 世界法向
+  - 校核：把件按本行法向转平后的 z 向高度，与 placed/ 件按世界法向转平后的高度逐件相等（17/17）
+  supports: 自动
+  qty: 2
+  mirror_of: null
+  mirrored_copy: L02_R（hip_l_2）
+  derived_from_original: null
+  mates_with:
+  - L01(横滚舵机法兰 6×M2×12；6704 于 09-17 取消)
+  - L03(髋俯仰舵机法兰 6×M2×12)
+  houses:
+  - bearing_6704_left_hip_roll 内圈（毂）—— 09-17 已取消，L02 不再承载任何轴承
+  houses_note: houses 字符串里的世界坐标是从 MJCF 关节轴线（frozen.yaml:joint_axes）推出的落位结果，只作追溯，不是判据
+  feature_count: 12
+  features_ref: features.yaml 中 part == L02 的记录
+  frozen: false
+  notes: 无背孔；只靠 12 颗法兰螺丝。毂-轴承内圈无轴向夹持（盘面 17.35 距轴承外端 16.85 留 0.5）—— 09-17 起无毂无轴承，此句成历史。build r4 体积 6.3→5.6 cm³（docs/build_logs/build_2026-09-17_r4.log；本文件无
+    volume 字段）。
+  provenance:
+  - inventory_v2.json:printed_parts[1]
+  design_status: development_candidate_not_released
+  current_design_ref: docs/design_2026-09-17_bearing_rebuild/记录.md
+- id: L03
+  placed_instances:
+  - upper_leg
+  - upper_leg_R
+  inventory_id: L03_upper_leg
+  role: 髋俯仰及膝舵机载体；膝6704整体座、俯仰6703整体座（hr07，腹板桥到后下块）
+  build_fn:
+  - build_upper_leg
+  build_variant: '@memo 缓存'
+  material: PETG
+  print_orientation: 背板朝下
+  print_orientation_down_normal:
+  - 0
+  - 0
+  - 1
+  print_orientation_frame: export_local（= features.yaml:frames.export_local，导出 STL 自己的坐标系）
+  print_orientation_down_normal_world:
+  - 0
+  - 1
+  - 0
+  print_orientation_provenance:
+  - docs/repair_2026-09-09/slice_final.py:PARTS（upper_leg, 世界空间朝下法向 [0, 1, 0]）
+  - features.yaml:frames.per_part.L03.world_to_export_local_R —— 世界→件自身的旋转，本行 = R · 世界法向
+  - 校核：把件按本行法向转平后的 z 向高度，与 placed/ 件按世界法向转平后的高度逐件相等（17/17）
+  supports: 自动；薄壳拆撑待实打
+  qty: 2
+  mirror_of: null
+  mirrored_copy: L03_R
+  derived_from_original: null
+  mates_with:
+  - L02(髋俯仰舵机法兰)
+  - L04(膝舵机法兰 + 6704)
+  - servo_hip_pitch 4×M2×6
+  - servo_knee 4×M2×6
+  houses:
+  - servo_hip_pitch (upper_leg_left[1], (4,±55,102.5), 法兰朝 -y)
+  - servo_knee (upper_leg_left[0], (-31.78,±55,80.5), 法兰朝 -y)
+  - bearing_6704_left_knee 外圈
+  houses_note: houses 字符串里的世界坐标是从 MJCF 关节轴线（frozen.yaml:joint_axes）推出的落位结果，只作追溯，不是判据
+  feature_count: 13
+  features_ref: features.yaml 中 part == L03 的记录
+  frozen: false
+  notes: 原版 upper_leg_rigidity_plate 未并入（line 495）→ 是否需要加强板未评估。audit_print 薄壁 9.8%。
+  provenance:
+  - inventory_v2.json:printed_parts[2]
+  design_status: development_candidate_not_released
+  current_design_ref: docs/design_2026-09-17_bearing_rebuild/记录.md
+- id: L04
+  placed_instances:
+  - lower_leg
+  - lower_leg_R
+  inventory_id: L04_lower_leg
+  role: 膝从动盘（毂进 6704）+ 踝舵机载体（3mm 背板）+ 踝副轴颈 Ø9.95（6700 内圈）
+  build_fn:
+  - build_lower_leg
+  - clean_print_topology
+  build_variant: '@memo 缓存'
+  material: PETG
+  print_orientation: 膝盘面朝下
+  print_orientation_down_normal:
+  - 0
+  - 0
+  - 1
+  print_orientation_frame: export_local（= features.yaml:frames.export_local，导出 STL 自己的坐标系）
+  print_orientation_down_normal_world:
+  - 0
+  - -1
+  - 0
+  print_orientation_provenance:
+  - docs/repair_2026-09-09/slice_final.py:PARTS（lower_leg, 世界空间朝下法向 [0, -1, 0]）
+  - features.yaml:frames.per_part.L04.world_to_export_local_R —— 世界→件自身的旋转，本行 = R · 世界法向
+  - 校核：把件按本行法向转平后的 z 向高度，与 placed/ 件按世界法向转平后的高度逐件相等（17/17）
+  supports: 自动
+  qty: 2
+  mirror_of: null
+  mirrored_copy: L04_R
+  derived_from_original: null
+  mates_with:
+  - L03(膝法兰 6×M2×12 + 6704 毂)
+  - servo_ankle 4×M2×6
+  - L05(经踝舵机)
+  - L07(6700 套轴颈)
+  houses:
+  - servo_ankle (leg[0], (-31.78,±50,38.5), 法兰朝 +y 外侧)
+  - bearing_6704_left_knee 内圈
+  - bearing_6700_left_ankle 内圈(轴颈)
+  houses_note: houses 字符串里的世界坐标是从 MJCF 关节轴线（frozen.yaml:joint_axes）推出的落位结果，只作追溯，不是判据
+  feature_count: 16
+  features_ref: features.yaml 中 part == L04 的记录
+  frozen: false
+  notes: 唯一被 assert 退化面=0/非流形=0 的件。轴颈是从背板悬臂长出的光轴，根部强度未评估。
+  provenance:
+  - inventory_v2.json:printed_parts[3]
+- id: L05
+  placed_instances:
+  - ankle_foot
+  - ankle_foot_R
+  inventory_id: L05_ankle_foot
+  role: 主脚：踝法兰从动盘（加厚 6.7）+ 脚板 + 与 L07 的分体接口（Ø6.4 凸台、榫、Ø1.6 底孔）
+  build_fn:
+  - build_ankle_parts
+  - split_ankle
+  build_variant: split_ankle 输出 main
+  material: PETG
+  print_orientation: 脚底朝下，按脚底大平面放平（原来歪 4.9°、只有一条边贴床，第一家店整片底面垫支撑把底部窄槽灌满；= 测试包 测试_脚件三版对比_2026-09-30 文件 2 的摆法，试打结果不好再换）
+  print_orientation_down_normal:
+  - 0.000154258
+  - -0.996338804
+  - 0.08549248
+  print_orientation_frame: export_local（= features.yaml:frames.export_local，导出 STL 自己的坐标系）
+  print_orientation_down_normal_world:
+  - -0.000154258
+  - 0.08549248
+  - -0.996338804
+  print_orientation_provenance:
+  - 2026-10-01_hr54c（hr54_work/h02c_apply_orientation_l05.py）：was 『脚板朝下』 export_local [0, -1, 0]；新法向 = printability.yaml:parts.L05.down_world 经 features.yaml:frames.per_part.L05.world_to_export_local_R（同 slice_l1.down_local，9 位小数）；逐件与复刻团队摆法核对见 hr54_work/h01_pose_vs_replica.json
+  - docs/repair_2026-09-09/slice_final.py:PARTS（ankle_foot, 世界空间朝下法向 [0, 0, -1]）
+  - features.yaml:frames.per_part.L05.world_to_export_local_R —— 世界→件自身的旋转，本行 = R · 世界法向
+  - 校核：把件按本行法向转平后的 z 向高度，与 placed/ 件按世界法向转平后的高度逐件相等（17/17）
+  supports: 自动
+  qty: 2
+  mirror_of: null
+  mirrored_copy: L05_R
+  derived_from_original: 原版 foot_left + ankle_left 合并为毛坯
+  mates_with:
+  - servo_ankle 法兰 6×M2×8
+  - L07 2×M2×12 + 榫
+  - L06 鞋底
+  - L04(经舵机)
+  houses: []
+  houses_note: houses 字符串里的世界坐标是从 MJCF 关节轴线（frozen.yaml:joint_axes）推出的落位结果，只作追溯，不是判据
+  feature_count: 14
+  features_ref: features.yaml 中 part == L05 的记录
+  frozen: false
+  notes: 原版 foot_left+ankle_left 合并为毛坯。
+  provenance:
+  - inventory_v2.json:printed_parts[4]
+- id: L06
+  placed_instances:
+  - sole
+  - sole_R
+  inventory_id: L06_sole_TPU
+  role: TPU 鞋底：原版 sole_left 减 L05/L07 再开后臂螺丝工具窗
+  build_fn:
+  - build_ankle_parts
+  - split_ankle
+  build_variant: split_ankle 输出 sole
+  material: TPU 95A
+  ground_contact: true
+  print_orientation: 脚底朝下，按脚底大平面放平（原来歪 4.9°、只有一条边贴床，第一家店整片底面垫了支撑）
+  print_orientation_down_normal:
+  - -0.000161526
+  - -0.996349073
+  - 0.085372708
+  print_orientation_frame: export_local（= features.yaml:frames.export_local，导出 STL 自己的坐标系）
+  print_orientation_down_normal_world:
+  - 0.000161526
+  - 0.085372708
+  - -0.996349073
+  print_orientation_provenance:
+  - 2026-10-01_hr54（hr54_work/h02_apply_orientation.py）：was 『脚底朝下』 export_local [0, -1, 0]；新法向 = printability.yaml:parts.L06.down_world 经 features.yaml:frames.per_part.L06.world_to_export_local_R（同 slice_l1.down_local，9 位小数）；逐件与复刻团队摆法核对见 hr54_work/h01_pose_vs_replica.json
+  - docs/repair_2026-09-09/slice_final.py:PARTS（sole, 世界空间朝下法向 [0, 0, -1]）
+  - features.yaml:frames.per_part.L06.world_to_export_local_R —— 世界→件自身的旋转，本行 = R · 世界法向
+  - 校核：把件按本行法向转平后的 z 向高度，与 placed/ 件按世界法向转平后的高度逐件相等（17/17）
+  supports: —（TPU 工艺未标定）
+  qty: 2
+  mirror_of: null
+  mirrored_copy: L06_R
+  derived_from_original: 原版 sole_left
+  mates_with:
+  - L05
+  - L07
+  houses: []
+  houses_note: houses 字符串里的世界坐标是从 MJCF 关节轴线（frozen.yaml:joint_axes）推出的落位结果，只作追溯，不是判据
+  feature_count: 5
+  features_ref: features.yaml 中 part == L06 的记录
+  frozen: false
+  notes: 最薄射线 1.763 mm；退化面 632/非流形 629（切片另验）。鞋底固定螺丝孔位置/深度未知。
+  provenance:
+  - inventory_v2.json:printed_parts[5]
+- id: L07
+  placed_instances:
+  - ankle_rear_arm
+  - ankle_rear_arm_R
+  inventory_id: L07_ankle_rear_arm
+  role: 可拆后轴承臂：6700 外圈座 Ø15.1 + 2×M2×12 接 L05
+  build_fn:
+  - build_ankle_parts
+  - split_ankle
+  build_variant: split_ankle 输出 arm
+  material: PETG
+  print_orientation: 后臂侧面朝下
+  print_orientation_down_normal:
+  - 0
+  - 0
+  - -1
+  print_orientation_frame: export_local（= features.yaml:frames.export_local，导出 STL 自己的坐标系）
+  print_orientation_down_normal_world:
+  - 0
+  - -1
+  - 0
+  print_orientation_provenance:
+  - docs/repair_2026-09-09/slice_final.py:PARTS（ankle_rear_arm, 世界空间朝下法向 [0, -1, 0]）
+  - features.yaml:frames.per_part.L07.world_to_export_local_R —— 世界→件自身的旋转，本行 = R · 世界法向
+  - 校核：把件按本行法向转平后的 z 向高度，与 placed/ 件按世界法向转平后的高度逐件相等（17/17）
+  supports: 自动
+  qty: 2
+  mirror_of: null
+  mirrored_copy: L07_R
+  derived_from_original: null
+  mates_with:
+  - L05 (2×M2×12 + 榫)
+  - bearing_6700 外圈
+  - L04 轴颈(经轴承)
+  - L06
+  houses:
+  - bearing_6700_left_ankle 外圈
+  houses_note: houses 字符串里的世界坐标是从 MJCF 关节轴线（frozen.yaml:joint_axes）推出的落位结果，只作追溯，不是判据
+  feature_count: 12
+  features_ref: features.yaml 中 part == L07 的记录
+  frozen: false
+  notes: 2 颗 M2 塑料螺纹承受踝后支撑；循环载荷未验。
+  provenance:
+  - inventory_v2.json:printed_parts[6]
+- id: T01
+  placed_instances:
+  - trunk
+  inventory_id: T01_trunk
+  role: 躯干：2 个髋偏航载体 + 顶板 + 颈俯仰从动轭 + 电池仓 + 原版腹面甲板 + 4 根壳柱；09-12 ⑤ 加 2 个髋偏航 6702 外圈座（Ø24.6 座环 z 114.65..119.15，座孔
+    Ø21.15，挡肩 Ø18.5；原版此处是 22×16×4 推力式夹持，S288 配不了，改法兰侧径向 6702）
+  build_fn:
+  - build_trunk
+  build_variant: null
+  material: PETG
+  print_orientation: 轭顶朝床倒放（顶板离床 17.77 / 甲板 44.17 / 仓底 91.72）
+  print_orientation_down_normal:
+  - 0
+  - 0
+  - 1
+  print_orientation_frame: export_local（= features.yaml:frames.export_local，导出 STL 自己的坐标系）
+  print_orientation_down_normal_world:
+  - 0
+  - 0
+  - 1
+  print_orientation_provenance:
+  - docs/repair_2026-09-09/slice_final.py:PARTS（trunk, 世界空间朝下法向 [0, 0, 1]）
+  - features.yaml:frames.per_part.T01.world_to_export_local_R —— 世界→件自身的旋转，本行 = R · 世界法向
+  - 校核：把件按本行法向转平后的 z 向高度，与 placed/ 件按世界法向转平后的高度逐件相等（17/17）
+  supports: 需要，约 16082 mm³
+  qty: 1
+  mirror_of: null
+  mirrored_copy: null
+  derived_from_original: 原版 trunk_base 甲板并入
+  mates_with:
+  - L01×2(偏航法兰)
+  - N01(颈俯仰舵机法兰 6×M2×5)
+  - T02/T03(4×M2×8 壳柱)
+  - 电池
+  - IMU 2×M2
+  - B01（卡珠定位/底脚隧道，F21可选）
+  - B03 四盖脚
+  - XT30延长线（前壁扎带孔）
+  houses:
+  - servo_hip_yaw_L (trunk_base[0], (6,17.5,131.5), 法兰朝 -z)
+  - servo_hip_yaw_R (trunk_base[1])
+  - battery 72×25×18
+  - IMU(原版 site (-21,0.1,105.3))
+  houses_note: houses 字符串里的世界坐标是从 MJCF 关节轴线（frozen.yaml:joint_axes）推出的落位结果，只作追溯，不是判据
+  feature_count: 34
+  features_ref: features.yaml 中 part == T01 的记录
+  frozen: true
+  notes: 冻结：SHELL_BOSS、SERVO_SHIFT、P。仓门后孔 x=-44.5 打空是已知 unresolved。
+  frozen_note_2026-09-22: 原写「电池仓 26 项常量+3 函数」冻结 —— **用户 2026-09-22 已解冻电池仓与出线口**（frozen.yaml:battery_bay_26.unfrozen_2026-09-22）；hr38
+    已据此改 battery_bay_cuts()（出线口 20×10、让位槽 |y|≤6）与 build_battery_door()（门顶平衡线缺口）。BAT_CLR / BX0 / BX1 / BZ0 / BZ1
+    / BAT_Y 本轮仍未动。本条 frozen 标志保留为 true —— SHELL_BOSS / SERVO_SHIFT / P 仍冻结
+  provenance:
+  - inventory_v2.json:printed_parts[7]
+- id: T02
+  placed_instances:
+  - shell_L
+  inventory_id: T02_shell_L
+  role: 原版躯干壳外形；挖脖子扫掠包络、颈部区让躯干；2 个 Ø2.4 过孔；hr39f 顶盖开口 + 前舌片台阶/凸棱，开关已取消
+  build_fn:
+  - build_trunk_shell
+  build_variant: side=+1
+  material: PETG
+  print_orientation: 开口朝上、外壳底面放平（原来歪 2.0°，是原版壳带来的；复刻团队右壳同样放平了）
+  print_orientation_down_normal:
+  - -0.000000001
+  - 0.999390828
+  - -0.034899468
+  print_orientation_frame: export_local（= features.yaml:frames.export_local，导出 STL 自己的坐标系）
+  print_orientation_down_normal_world:
+  - -0.000000001
+  - 0.999390828
+  - -0.034899468
+  print_orientation_provenance:
+  - 2026-10-01_hr54（hr54_work/h02_apply_orientation.py）：was 『开口朝上』 export_local [0, 1, 0]；新法向 = printability.yaml:parts.T02.down_world 经 features.yaml:frames.per_part.T02.world_to_export_local_R（同 slice_l1.down_local，9 位小数）；逐件与复刻团队摆法核对见 hr54_work/h01_pose_vs_replica.json
+  - docs/repair_2026-09-09/slice_final.py:PARTS（shell_L, 世界空间朝下法向 [0, 1, 0]）
+  - features.yaml:frames.per_part.T02.world_to_export_local_R —— 世界→件自身的旋转，本行 = R · 世界法向
+  - 校核：把件按本行法向转平后的 z 向高度，与 placed/ 件按世界法向转平后的高度逐件相等（17/17）
+  supports: 自动
+  qty: 1
+  mirror_of: null
+  mirrored_copy: null
+  derived_from_original: 原版 left_shell/right_shell（CC BY-SA-NC）
+  mates_with:
+  - T01 壳柱 2×M2×8
+  - N01(间隙 ≥2.0 L / 0.720 R)
+  - B03 顶盖前舌片/弹性凸点
+  houses: []
+  houses_note: houses 字符串里的世界坐标是从 MJCF 关节轴线（frozen.yaml:joint_axes）推出的落位结果，只作追溯，不是判据
+  feature_count: 8
+  features_ref: features.yaml 中 part == T02 的记录
+  frozen: false
+  notes: 原版 left/right_shell 派生（CC BY-SA-NC）。
+  provenance:
+  - inventory_v2.json:printed_parts[9]
+- id: T03
+  placed_instances:
+  - shell_R
+  inventory_id: T03_shell_R
+  role: 原版躯干壳外形；挖脖子扫掠包络、颈部区让躯干；2 个 Ø2.4 过孔；hr39f 顶盖开口 + 前舌片台阶/凸棱，开关已取消
+  build_fn:
+  - build_trunk_shell
+  build_variant: side=-1
+  material: PETG
+  print_orientation: 开口朝上、外壳底面放平（原来歪 2.0°；复刻团队右壳放平后与此差 0.1°）
+  print_orientation_down_normal:
+  - -0.00000001
+  - -0.999390829
+  - -0.034899439
+  print_orientation_frame: export_local（= features.yaml:frames.export_local，导出 STL 自己的坐标系）
+  print_orientation_down_normal_world:
+  - -0.00000001
+  - -0.999390829
+  - -0.034899439
+  print_orientation_provenance:
+  - 2026-10-01_hr54（hr54_work/h02_apply_orientation.py）：was 『开口朝上』 export_local [0, -1, 0]；新法向 = printability.yaml:parts.T03.down_world 经 features.yaml:frames.per_part.T03.world_to_export_local_R（同 slice_l1.down_local，9 位小数）；逐件与复刻团队摆法核对见 hr54_work/h01_pose_vs_replica.json
+  - docs/repair_2026-09-09/slice_final.py:PARTS（shell_R, 世界空间朝下法向 [0, -1, 0]）
+  - features.yaml:frames.per_part.T03.world_to_export_local_R —— 世界→件自身的旋转，本行 = R · 世界法向
+  - 校核：把件按本行法向转平后的 z 向高度，与 placed/ 件按世界法向转平后的高度逐件相等（17/17）
+  supports: 自动
+  qty: 1
+  mirror_of: null
+  mirrored_copy: null
+  derived_from_original: 原版 left_shell/right_shell（CC BY-SA-NC）
+  mates_with:
+  - T01 壳柱 2×M2×8
+  - N01(间隙 ≥2.0 L / 0.720 R)
+  - B03 顶盖前舌片/弹性凸点
+  houses: []
+  houses_note: houses 字符串里的世界坐标是从 MJCF 关节轴线（frozen.yaml:joint_axes）推出的落位结果，只作追溯，不是判据
+  feature_count: 11
+  features_ref: features.yaml 中 part == T03 的记录
+  frozen: false
+  notes: 原版 left/right_shell 派生（CC BY-SA-NC）。
+  provenance:
+  - inventory_v2.json:printed_parts[10]
+- id: B01
+  placed_instances:
+  - battery_door
+  inventory_id: B01_battery_door
+  role: 电池后门：无外凸指扣；顶部内指槽 + B03 卡舌凹槽 + 窄底脚沿+x插进T01隧道
+  build_fn:
+  - build_battery_door
+  build_variant: null
+  material: PETG
+  print_orientation: 竖板面朝下
+  print_orientation_down_normal:
+  - -1
+  - 0
+  - 0
+  print_orientation_frame: export_local（= features.yaml:frames.export_local，导出 STL 自己的坐标系）
+  print_orientation_down_normal_world:
+  - -1
+  - 0
+  - 0
+  print_orientation_provenance:
+  - docs/repair_2026-09-09/slice_final.py:PARTS（battery_door, 世界空间朝下法向 [-1, 0, 0]）
+  - features.yaml:frames.per_part.B01.world_to_export_local_R —— 世界→件自身的旋转，本行 = R · 世界法向
+  - 校核：把件按本行法向转平后的 z 向高度，与 placed/ 件按世界法向转平后的高度逐件相等（17/17）
+  supports: 自动
+  qty: 1
+  mirror_of: null
+  mirrored_copy: null
+  derived_from_original: null
+  mates_with:
+  - T01 隧道/卡珠（F21默认不装；前孔可选，后孔停用）
+  - B03 后卡舌/倒钩
+  - 电池
+  houses: []
+  houses_note: houses 字符串里的世界坐标是从 MJCF 关节轴线（frozen.yaml:joint_axes）推出的落位结果，只作追溯，不是判据
+  feature_count: 8
+  features_ref: features.yaml 中 part == B01 的记录
+  frozen: false
+  notes: hr39f 默认免工具；开盖后沿−x抽门。卡珠定位、B03锁上口、T01隧道限制门底后摆；保持力/跌落待BN19。
+  provenance:
+  - inventory_v2.json:printed_parts[8]
+- id: N01
+  placed_instances:
+  - neck
+  inventory_id: N01_neck
+  role: 脖子：两个背靠背 pillar 载体（颈俯仰 + 头俯仰）背板并成一块 + 两侧墙 + 前唇
+  build_fn:
+  - build_neck
+  build_variant: '@memo 缓存'
+  material: PETG
+  print_orientation: 背板朝下
+  print_orientation_down_normal:
+  - 0
+  - 0
+  - 1
+  print_orientation_frame: export_local（= features.yaml:frames.export_local，导出 STL 自己的坐标系）
+  print_orientation_down_normal_world:
+  - 0
+  - -1
+  - 0
+  print_orientation_provenance:
+  - docs/repair_2026-09-09/slice_final.py:PARTS（neck, 世界空间朝下法向 [0, -1, 0]）
+  - features.yaml:frames.per_part.N01.world_to_export_local_R —— 世界→件自身的旋转，本行 = R · 世界法向
+  - 校核：把件按本行法向转平后的 z 向高度，与 placed/ 件按世界法向转平后的高度逐件相等（17/17）
+  supports: 自动
+  qty: 1
+  mirror_of: null
+  mirrored_copy: null
+  derived_from_original: null
+  mates_with:
+  - T01 轭(经颈俯仰舵机法兰)
+  - N02(经头俯仰舵机法兰)
+  - servo_neck_pitch 4×M2 背孔
+  - servo_head_pitch 2×M2×6 下排
+  houses:
+  - servo_neck_pitch (neck[0], (26,0,152.42), 法兰 +y, 顶端朝下)
+  - servo_head_pitch (neck[1], (26,0,202.42), 法兰 +y, 顶端朝上)
+  houses_note: houses 字符串里的世界坐标是从 MJCF 关节轴线（frozen.yaml:joint_axes）推出的落位结果，只作追溯，不是判据
+  feature_count: 14
+  features_ref: features.yaml 中 part == N01 的记录
+  frozen: false
+  notes: 不照原版重雕（docstring 论证）。两颗舵机间只有 1.0mm，底盖做不了。颈部无显式过线口：线束从载体开口 +z 侧/背板两侧自由走（未建模）。
+  provenance:
+  - inventory_v2.json:printed_parts[11]
+- id: N02
+  placed_instances:
+  - neck_pitch
+  inventory_id: N02_neck_pitch
+  role: 头俯仰从动件及头偏航6704内圈轴颈，与N06夹紧内圈
+  build_fn:
+  - build_neck_pitch
+  build_variant: '@memo 缓存'
+  material: PETG
+  print_orientation: 翻 180°：世界 +z 朝下（原来 −z；翻后贴床 0 → 262 mm²、支撑 631 → 402；复刻团队 neck_pitch 同此摆法）
+  print_orientation_down_normal:
+  - 0
+  - 1
+  - 0
+  print_orientation_frame: export_local（= features.yaml:frames.export_local，导出 STL 自己的坐标系）
+  print_orientation_down_normal_world:
+  - 0
+  - 0
+  - 1
+  print_orientation_provenance:
+  - 2026-10-01_hr54（hr54_work/h02_apply_orientation.py）：was 『脸颊下沿朝下；切片 Classic』 export_local [0, -1, 0]；新法向 = printability.yaml:parts.N02.down_world 经 features.yaml:frames.per_part.N02.world_to_export_local_R（同 slice_l1.down_local，9 位小数）；逐件与复刻团队摆法核对见 hr54_work/h01_pose_vs_replica.json
+  - docs/repair_2026-09-09/slice_final.py:PARTS（neck_pitch, 世界空间朝下法向 [0, 0, -1]）
+  - features.yaml:frames.per_part.N02.world_to_export_local_R —— 世界→件自身的旋转，本行 = R · 世界法向
+  - 校核：把件按本行法向转平后的 z 向高度，与 placed/ 件按世界法向转平后的高度逐件相等（17/17）
+  supports: 自动
+  qty: 1
+  mirror_of: null
+  mirrored_copy: null
+  derived_from_original: null
+  mates_with:
+  - N01(头俯仰法兰 6×M2×6)
+  - N03/servo_head_yaw 法兰 6×M2×6（从立筒内腔拧）
+  houses: []
+  houses_note: houses 字符串里的世界坐标是从 MJCF 关节轴线（frozen.yaml:joint_axes）推出的落位结果，只作追溯，不是判据
+  feature_count: 15
+  features_ref: features.yaml 中 part == N02 的记录
+  frozen: false
+  notes: N02_body_clearance_0.25mm 回归=0；N02_heads=0。
+  provenance:
+  - inventory_v2.json:printed_parts[12]
+  design_status: development_candidate_not_released
+  current_design_ref: docs/design_2026-09-17_bearing_rebuild/记录.md
+- id: N03
+  placed_instances:
+  - yrm
+  inventory_id: N03_yaw_roll
+  role: 头偏航6704外圈载体、头横滚A/B内圈连接桥
+  build_fn:
+  - build_yrm
+  build_variant: null
+  material: PETG
+  print_orientation: 背板朝下
+  print_orientation_down_normal:
+  - 0
+  - 0
+  - 1
+  print_orientation_frame: export_local（= features.yaml:frames.export_local，导出 STL 自己的坐标系）
+  print_orientation_down_normal_world:
+  - 0
+  - 0
+  - 1
+  print_orientation_provenance:
+  - docs/repair_2026-09-09/slice_final.py:PARTS（yrm, 世界空间朝下法向 [0, 0, 1]）
+  - features.yaml:frames.per_part.N03.world_to_export_local_R —— 世界→件自身的旋转，本行 = R · 世界法向
+  - 校核：把件按本行法向转平后的 z 向高度，与 placed/ 件按世界法向转平后的高度逐件相等（17/17）
+  supports: 自动
+  qty: 1
+  mirror_of: null
+  mirrored_copy: null
+  derived_from_original: null
+  mates_with:
+  - N02(偏航法兰)
+  - servo_head_yaw 4×M2×6 背孔
+  - servo_head_roll 法兰 6×M2×6 (A 盘)
+  - A 端：H01/H03 Ø22.18 半座（PLA 滑配 Ø21.6）；B 端：22×16×4 轴承经 N04 销（09-12 ④）
+  - N04 头横滚 B 端轴颈销（Ø16.2 孔 + Ø18.2 沉窝）
+  houses:
+  - servo_head_yaw (yaw_roll_motion[0], SERVO_SHIFT +5 → 世界 (26,0,240.6), 法兰 -z)；它的 +x 侧面 x=36.0 同时是 N04 的 −x 止挡（隙
+    0.3）
+  houses_note: houses 字符串里的世界坐标是从 MJCF 关节轴线（frozen.yaml:joint_axes）推出的落位结果，只作追溯，不是判据
+  feature_count: 13
+  features_ref: features.yaml 中 part == N03 的记录
+  frozen: false
+  notes: A 端 PLA 滑动配合（舵机逼的：Ø13.9 法兰外只剩 0.9 壁）；B 端 09-12 ④ 恢复原版 22×16×4 轴承，轴颈是独立的销 N04（一体轴颈与 A 端起子通道不可兼得）。
+  provenance:
+  - inventory_v2.json:printed_parts[13]
+  design_status: development_candidate_not_released
+  current_design_ref: docs/design_2026-09-17_bearing_rebuild/记录.md
+- id: N04
+  placed_instances:
+  - head_journal
+  inventory_id: N04_head_journal
+  role: 有防转键及中央底孔的头横滚B轴颈，与N07夹紧内圈
+  build_fn:
+  - build_head_journal
+  build_variant: null
+  material: PETG
+  print_orientation: 凸缘端朝下立着打
+  print_orientation_down_normal:
+  - -1
+  - 0
+  - 0
+  print_orientation_frame: export_local（与 N03 同帧 = 世界 − (26,0,221.1146)）
+  print_orientation_down_normal_world:
+  - -1
+  - 0
+  - 0
+  print_orientation_provenance:
+  - docs/reports/头横滚B端轴承N04实施规格_2026-09-12.md §2.2
+  supports: 无
+  qty: 1
+  mirror_of: null
+  mirrored_copy: null
+  derived_from_original: 原版 yaw_roll_motion 的一体 Ø16 B 端轴颈（拆成独立件的理由见 neck.py:YRM_B_* 注释）
+  mates_with:
+  - N03 Ø16.2 孔 + Ø18.2×1.0 沉窝（径向 0.10）
+  - 22×16×4 轴承内圈（径向 0.05）
+  - servo_head_yaw 本体 +x 面（−x 止挡，隙 0.3）
+  houses: []
+  feature_count: 4
+  features_ref: features.yaml 中 part == N04 的记录
+  frozen: false
+  notes: 装：H01 子装配翻过来，轴承靠重力躺在 H01 B 上半座里，销从空的头偏航舵机腔沿 +x 推到底 7.9 mm（凸缘半圈朝 +z，放反推不到底）。拆：H03 拆掉后 Ø6 顶杆从 +x 经 H01 前板孔沿轴线顶回内腔。销
+    Ø15.9 打印偏大要实配（砂到 15.90..15.95）。凸缘端朝下打时导向段下半圆悬在床上 0.3 mm，底面前 0.3 mm 有桥接毛边（在沉窝区、不参与配合），装前刮掉。
+  provenance:
+  - duckstructure/neck.py:build_head_journal
+  - docs/reports/头横滚B端轴承N04实施规格_2026-09-12.md
+  design_status: development_candidate_not_released
+  current_design_ref: docs/design_2026-09-17_bearing_rebuild/记录.md
+- id: H01
+  placed_instances:
+  - head_bracket
+  inventory_id: H01_head_bracket
+  role: 头内电子/舵机支架及头横滚A/B上半轴承座；主板柱保持（hr43：立柱不再托 Radxa，改托 H07 功放托板；几何不变）
+  build_fn:
+  - build_head_bracket
+  build_variant: null
+  material: PETG
+  print_orientation: 翻面：世界 +z 朝下（脚底朝上，export_local +x 朝下）—— 2026-09-25 18 朝向真切片改，printability.yaml:parts.H01.down_world 同步 [0,0,1]
+  print_orientation_down_normal:
+  - 1
+  - 0
+  - 0
+  print_orientation_frame: export_local（= features.yaml:frames.export_local，导出 STL 自己的坐标系）
+  print_orientation_down_normal_world:
+  - 0
+  - 0
+  - 1
+  print_orientation_provenance:
+  - 2026-09-25 主设计翻面：hr43_work/orient_h01/trial.md 18 个世界朝向真切片，forbid 落点 179664（旧 [0,0,-1] 脚底朝下）→ 7019（[0,0,1]，最少）；世界 [0,0,1] → export_local [1,0,0]（R·[0,0,1]）；旧值 down_normal [-1,0,0] / world [0,0,-1]
+  - docs/repair_2026-09-09/slice_final.py:PARTS（head_bracket, 世界空间朝下法向 [0, 0, -1]）
+  - features.yaml:frames.per_part.H01.world_to_export_local_R —— 世界→件自身的旋转，本行 = R · 世界法向
+  - 校核：把件按本行法向转平后的 z 向高度，与 placed/ 件按世界法向转平后的高度逐件相等（17/17）
+  supports: 自动
+  qty: 1
+  mirror_of: null
+  mirrored_copy: null
+  derived_from_original: 原版 motor_support 毛坯
+  mates_with:
+  - H03(4 脚 Ø2.70, M2×8 自攻)
+  - H02(2×M2×10 进 Ø1.6 底孔)
+  - N03(A/B 上半座 Ø22.18)
+  - H07 功放托板(3×M2×8 自攻进旧 Radxa 立柱端面 (y 29, z 262.5)/(−29, 262.5)/(29, 239.5)，F35；hr43)
+  - （旧 was_until_2026_09_25_hr43）主控 Radxa ZERO 3W(4×M2 自攻 Ø1.7；立柱孔距 58×23 沿用 Pi Zero/香橙派脚印，仍冻结) —— hr43 Radxa 搬后脑挂 H05 四柱，本件立柱改托 H07
+  - 原版 top_head_shell(周边梁)
+  houses:
+  - servo_head_roll (jaw_soft[1], SERVO_SHIFT -1.7 → 世界 (-4.7,0,235.61), 法兰 +x 面 x=8.3)（2026-09-14 r1 M7 由 -1.5
+    / -4.9 / 7.95 改；7.95 那个数还是 flange_h 2.9 时代的，手册 3.0 后 = 8.3）
+  - H07 功放托板 + 功放（hr43：旧 Radxa 立柱端面改托 H07；Radxa 搬后脑 H05-F11）
+  - （旧 was_until_2026_09_25_hr43）Radxa ZERO 3W(hr37 起有 placed 占位实体 zz_sbc；主控 2026-09-17 由 Orange Pi Zero 3W 改为 Radxa ZERO 3W，09-22 已下单)
+  - N03 A 轴颈 + B 轴承外圈上半 + B 唇（09-12 ④）
+  - 嘴舵机（第 15 颗 S288，ID 14）：托架 H01-F18 从上 / 两端挡，H03 托台 H03-F16 从下托（hr39c 嘴轴 (31.75, y, 245.5)、ψ 5°、法兰面 y 47.75）（hr39c）
+  - 嘴惰轮 6700ZZ 外圈上半（H01-F19）（hr39c）
+  houses_note: houses 字符串里的世界坐标是从 MJCF 关节轴线（frozen.yaml:joint_axes）推出的落位结果，只作追溯，不是判据
+  feature_count: 20
+  features_ref: features.yaml 中 part == H01 的记录
+  frozen: false
+  notes: 立柱/前立板生成式被 verify_frozen 锁定。喇叭与本件冲突 2.1 cm³，V1 不装。
+  provenance:
+  - inventory_v2.json:printed_parts[14]
+  design_status: development_candidate_not_released
+  current_design_ref: docs/design_2026-09-17_bearing_rebuild/记录.md
+  hr39c_2026-09-23:
+    volume_cm3: {v: 19.080, src: measured, src_note: 'hr39c 4a 终版 build（2026-09-23 21:51）placed/ trimesh 体积（4c 刷新；第 3 次 build 19.083，少的是 OTG 让位削掉的弦）'}
+    volume_cm3_hr38: {v: 17.293, src: measured, src_note: docs/design_2026-09-17_bearing_rebuild/hr38/placed trimesh}
+    mass_g_2wall_petg_est: {v: 20.6, src: assumed, src_note: '体积 × 1.078 g/cm³（2 圈外墙 + 30% 填充的 PETG 等效密度，09-23 14:10 估；未称）'}
+    changes: 不放大（头内支架）：Radxa 右下立柱改尖段 + 板边外竖梁吊在上 +y 立柱（H01-F20，孔位不变）；嘴舵机托架（H01-F18）+ 6700ZZ 上半拱（H01-F19）；前立板顶边整段缺口 |y| ≤ 26（H01-F17，交接 ③）；新耳 120° 绕头横滚扫掠让位；对放大后的 H03 真实毛坯让位（hr38 切法）
+    feature_count_note: hr39c 后 20 条（features.yaml:counts.by_part.H01）
+    report: docs/design_2026-09-17_bearing_rebuild/hr39_整头改版.md
+    changes_4a_2026-09-23_hr39c: OTG 让位 —— −y 下 Ø5 立柱在 Radxa USB-C1（OTG）口壳旁局部削平一条 0.37 高的弦（head.H01_OTG_RELIEF），口壳规范全宽 8.94 × H01 = 0、隙 0.20；Ø1.7 底孔 / 端面位置不动（features.yaml:H01-F03.geom.otg_relief_2026-09-23_hr39c）
+    todo_resolved_2026-09-23_hr39c_4c: 原 TODO（OTG 口座边重 0.17 mm / 0.65 mm³）已由 4a 落地；排针按实测 8.7 高后针尖离 H01 0.68，无新干涉
+  hr43c_2026-09-25:
+    volume_cm3: {v: 18.887, src: measured, src_note: 'hr43c build_fast #2（2026-09-25 15:01）cad/duck_s288/H01_head_bracket.stl trimesh 体积'}
+    changes: 协调员 14:55 ②：删空着的 Radxa 旧右下立柱 (y −29, z 239.5)（H07 只拧 (±29, 262.5) 与 (+29, 239.5) 三根，F35）；其余三根位置 / 端面 / 底孔不动；H01-F03 / F04 实例同步
+    report: docs/design_2026-09-17_bearing_rebuild/hr43_work/hr43c_改件报告.md
+  hr43d_2026-09-25:
+    volume_cm3: {v: 18.887, src: measured, src_note: 'hr43d build_fast #1（2026-09-25）cad/duck_s288/H01_head_bracket.stl trimesh 体积（几何不改，只重切）'}
+    changes: 几何不改；三根旧 Radxa 立柱端面改托 H08 转接板托板（F35 头侧 H07 → H08，孔位 / 底孔不变）
+    report: docs/design_2026-09-17_bearing_rebuild/hr43_work/hr43d_改件报告.md
+- id: H02
+  placed_instances:
+  - head_clamp
+  inventory_id: H02_head_clamp
+  role: 可拆压板：2 根 Ø5 垫柱顶横滚舵机薄段背面 x=-14.85，2×M2×8 进上排背孔；连接臂 2×M2×10 接 H01
+  build_fn:
+  - build_head_clamp
+  build_variant: null
+  material: PETG
+  print_orientation: 翻面：export_local −z 朝下（2026-09-15 六朝向真切片改，printability.yaml:parts.H02 同）
+  print_orientation_down_normal:
+  - 0
+  - 0
+  - -1
+  print_orientation_frame: export_local（= features.yaml:frames.export_local，导出 STL 自己的坐标系）
+  print_orientation_down_normal_world:
+  - 1
+  - 0
+  - 0
+  print_orientation_provenance:
+  - 2026-09-18 hr13 对齐：printability.yaml:parts.H02.down_world 09-15 已改 [1,0,0]（F07 锪平面落点 2440→0），parts.yaml 当时没跟；世界
+    [1,0,0] → export_local [0,0,-1]
+  - docs/repair_2026-09-09/slice_final.py:PARTS（head_clamp, 世界空间朝下法向 [-1, 0, 0]）
+  - features.yaml:frames.per_part.H02.world_to_export_local_R —— 世界→件自身的旋转，本行 = R · 世界法向
+  - 校核：把件按本行法向转平后的 z 向高度，与 placed/ 件按世界法向转平后的高度逐件相等（17/17）
+  supports: 自动
+  qty: 1
+  mirror_of: null
+  mirrored_copy: null
+  derived_from_original: null
+  mates_with:
+  - servo_head_roll 上排背孔 2×M2×8
+  - H01 2×M2×10
+  houses: []
+  houses_note: houses 字符串里的世界坐标是从 MJCF 关节轴线（frozen.yaml:joint_axes）推出的落位结果，只作追溯，不是判据
+  feature_count: 9
+  features_ref: features.yaml 中 part == H02 的记录
+  frozen: false
+  notes: 孔间窄筋 1.434 mm（4 条走线）。
+  provenance:
+  - inventory_v2.json:printed_parts[15]
+- id: H03
+  placed_instances:
+  - head_bottom_shell
+  inventory_id: H03_head_bottom_shell
+  role: 头底壳及头横滚A/B下半轴承座、头偏航模块让位
+  build_fn:
+  - build_head_bottom_shell
+  build_variant: null
+  material: PETG
+  print_orientation: 底面朝下
+  print_orientation_down_normal:
+  - -1
+  - 0
+  - 0
+  print_orientation_frame: export_local（= features.yaml:frames.export_local，导出 STL 自己的坐标系）
+  print_orientation_down_normal_world:
+  - 0
+  - 0
+  - -1
+  print_orientation_provenance:
+  - docs/repair_2026-09-09/slice_final.py:PARTS（head_bottom_shell, 世界空间朝下法向 [0, 0, -1]）
+  - features.yaml:frames.per_part.H03.world_to_export_local_R —— 世界→件自身的旋转，本行 = R · 世界法向
+  - 校核：把件按本行法向转平后的 z 向高度，与 placed/ 件按世界法向转平后的高度逐件相等（17/17）
+  supports: 自动
+  qty: 1
+  mirror_of: null
+  mirrored_copy: null
+  derived_from_original: 原版 bottom_head_shell（CC BY-SA-NC）
+  mates_with:
+  - H01 4 脚 M2×8 自攻（09-12 I4：H03 侧先填 Ø3.6 后自钻 Ø1.7×7.0 底孔，H03-F02/H03-F05）
+  - '原版 top_head_shell(接缝已清零：09-12 I6 H03 减上壳 DILATE6 0.1，原版×原版基线 67.9 mm³ 原版自带；build #7 mechanical_audit H03_original_seam
+    current 0.0 / added 0.0)'
+  - N03 A/B 下半座
+  houses:
+  - N03 A/B 轴颈下半圈（原版 Ø22.18, 实测 r10.89）
+  - 宇树单总线转接板（竖放槽 H03-F14，板 x 72.5..81.5 × y −24..16 × z 235.4..265.4，A 边 +y / B 边 −y）（hr39c）
+  - 嘴舵机托台（H03-F16）+ 6700ZZ 外圈下半（H03-F17）（hr39c）
+  - UBEC-3A（H03-F13，平移 T_UBEC）（hr39c）
+  houses_note: houses 字符串里的世界坐标是从 MJCF 关节轴线（frozen.yaml:joint_axes）推出的落位结果，只作追溯，不是判据
+  feature_count: 21
+  feature_count_note_2026-09-25_hr43d_d18: 19 → 21（快车道 L2 修正加 cut：H03-F26 / F27）
+  feature_count_was_until_2026_09_25_hr43d: 22
+  feature_count_was_until_2026_09_25_hr43c: 19
+  features_ref: features.yaml 中 part == H03 的记录
+  feature_count_note_2026-09-22: 11 → 12：hr37 新增 H03-F12 麦克风台（boss）；features.yaml:counts.by_part.H03 与实际记录数都已是 12，本行此前漏同步
+  frozen: false
+  notes: 替代原 bottom_head_shell，不要混装。
+  provenance:
+  - inventory_v2.json:printed_parts[16]
+  design_status: development_candidate_not_released
+  current_design_ref: docs/design_2026-09-17_bearing_rebuild/记录.md
+  hr39c_2026-09-23:
+    volume_cm3: {v: 40.622, src: measured, src_note: 'hr39c 4a 终版 build（2026-09-23 21:51）placed/ trimesh 体积（4c 刷新；第 3 次 build 40.631，少的是槽 −x 壁 USB 削口 + UBEC 墙底开口，多了托条）'}
+    volume_cm3_hr38: {v: 24.621, src: measured, src_note: docs/design_2026-09-17_bearing_rebuild/hr38/placed trimesh}
+    mass_g_2wall_petg_est: {v: 43.8, src: assumed, src_note: '体积 × 1.078 g/cm³（2 圈外墙 + 30% 填充的 PETG 等效密度，09-23 14:10 估；未称）'}
+    changes: 等比放大 s 1.2179（绕 P0 (26, 0, 218.2)，壁厚保持）毛坯 − H03_CORE_CUT + 原版颈口核心 H03_CORE_BOX（四凸台 / A、B 座块 / 框肋 / 颈口地板回到真实位置）；转接板槽 H03-F14（tub 取消，H03-F08 删）+ USB 插头井 H03-F15 + 进风槽回地板 H03-F09；嘴舵机托台 H03-F16 + 6700 下半环 H03-F17 + 嘴轴孔 H03-F18；麦克风台 / UBEC 座平移 T_MIC / T_UBEC；对 H01 让位体沿 +z 拉长 45（H01_UP_SWEEP）
+    feature_count_note: hr39c 后 17 条（features.yaml:counts.by_part.H03）
+    report: docs/design_2026-09-17_bearing_rebuild/hr39_整头改版.md
+    changes_4a_2026-09-23_hr39c: ⑧ 转接板槽 −x 壁给 USB FPC 削口（head.H03_USB_WALL_CUTS：y −13.6..−4.4 整段开口、y −24..−13.6 削到 z 239.0）；UBEC 座加 ±x 两条 0.8 托条 + ±y 墙底开口（模块抬高 5，两头出线）；⑦ 没动 H03（摄像头倒装）
+    todo_resolved_2026-09-23_hr39c_4c: H03-F14 / F15 已按 4a 终版重登（F14 加 usb_wall_cuts、F15 改出线方向；F13 记 UBEC 托条/开口）
+  hr41_2026-09-24:
+    volume_cm3: {v: 40.75, src: measured, src_note: 'hr41 build_fast 出件（2026-09-24）placed/ trimesh 体积'}
+    mass_g_2wall_petg_est: {v: 43.9, src: assumed, src_note: '体积 × 1.078 g/cm³（2 圈外墙 + 30% 填充 PETG 等效密度，未称）'}
+    changes: H05 保持螺丝 2 个 Ø2.4 过孔（H03-F20）；转接板槽 +x 壁两根立柱到 z 256（H03-F19，M1）；UBEC 座 +y 出线窗 U 槽到墙顶、扎带槽改 ±x（H03-F13，M7）；OTG 地板口**没开**（用户 09-24 17:15 定 Radxa 搬后脑，装好后 OTG/TF 不要求可达）
+    feature_count: 19
+  hr43_2026-09-25:
+    volume_cm3: {v: 40.939, src: measured, src_note: 'hr43 build_fast #4 终版（2026-09-25 07:02）cad/duck_s288/H03_head_bottom_shell.stl trimesh 体积'}
+    changes: 嘴惰轮 6700 座下半环恢复（H03-F17）：build_head_bottom_shell 刀序原为「加 h03_adds → 切 shell_pivot_cuts」，下半环（r 7.55..9.3）被壳孔刀切没；改为先切 shell_pivot_cuts(slot=False) 再 union h03_adds → ∩ 包络 → 切 h03_cuts + relief_sweep（jaw.py 刀定义不动）。截面法 y −47.05 / −46.0：下半环 46/46 点为 H03 料、座孔 0/178；对 J03 轴颈 / 6700 占位 0 交
+    report: docs/design_2026-09-17_bearing_rebuild/hr43_改件报告.md
+  hr43c_2026-09-25:
+    volume_cm3: {v: 42.105, src: measured, src_note: 'hr43c build_fast #2（2026-09-25 15:01）cad/duck_s288/H03_head_bottom_shell.stl trimesh 体积'}
+    changes: 协调员 14:55 ①：转接板改双面胶竖粘 —— 槽 +x 壁 + 两根 +x 立柱并成平床 H03-F22（x 82.0..83.7 × y −24..16 × z 232..265.4）+ 床面胶坑 H03-F23（0.5 深）；15:20 协调员：转接板位置用户要重定，本几何按已做登记
+    feature_count_note: 20 → 22（+F22 平床、+F23 胶坑；hr43b 的 F21 此前漏同步 19 → 20）
+    report: docs/design_2026-09-17_bearing_rebuild/hr43_work/hr43c_改件报告.md
+  hr43d_2026-09-25:
+    volume_cm3: {v: 39.99, src: measured, src_note: 'hr43d build_fast #1（2026-09-25）cad/duck_s288/H03_head_bottom_shell.stl trimesh 体积'}
+    changes: 转接板挪 H08 托板 → 删 F14 槽（−x 壁 / 托筋 / 挡块）、F22 平床、F23 胶坑、F15 USB 插头井、−x 壁 USB 切口（H03_USB_WALL_CUTS），F19 条目一并删（已 superseded）；新 F24 H09 接收凸台 ×2（Ø5 × 顶 224.5，(−22, 33) / (−18, 33)）+ F25 Ø1.7 底孔深 4.3；加固：F12 麦克风台两排针槽之间下沉 0.8 放 1 mm 泡棉条、F13 UBEC 两托条顶下沉 0.8 放泡棉；地板回放大原版同厚
+    feature_count_note: 19（features.yaml 实有：−F14 −F15 −F19 −F22 −F23 +F24 +F25）
+    report: docs/design_2026-09-17_bearing_rebuild/hr43_work/hr43d_改件报告.md
+  hr43e_2026-09-25:
+    volume_cm3: {v: 40.003, src: measured, src_note: 'hr43e build_fast #2（2026-09-25 20:25）cad/duck_s288/H03_head_bottom_shell.stl trimesh 体积（#1 39.986；#2 凸台顶抬 0.5）'}
+    changes: H09 接收凸台 F24 / 底孔 F25 xy (−22, 33) / (−18, 33) → (−22, 34.7) / (−18, 34.7)（head.H03_AMPB；H09 整件挪到 y ≥ 32.4 躲 L6 目标区间内 shell_L），孔底外皮 ≈0.47（原 0.55）；hr43e-2（协调员 20:10 ①）凸台顶 224.5 → 225.0、底孔 4.3 → 4.8（孔底 220.2 不变）
+    report: docs/design_2026-09-17_bearing_rebuild/hr43_work/hr43e_修正报告.md
+- id: H04
+  placed_instances:
+  - face_plate
+  inventory_id: H04_face_plate
+  role: 脸板（替换原版 face_part）：摄像头 8M 219 座（13.6 方镜孔 + 4 立柱）、麦克风 PCB 边浅槽；外形/厚度沿用原版（插顶壳凹槽、H03 前唇槽锁底边，无螺丝）
+  build_fn:
+  - build_face_plate
+  build_variant: null
+  material: PETG
+  print_orientation: 脸外面朝下平放（世界 +x 面贴床，4 根立柱朝上，无支撑）
+  print_orientation_down_normal:
+  - 0
+  - 0
+  - -1
+  print_orientation_frame: export_local（= features.yaml:frames.export_local，导出 STL 自己的坐标系；body jaw_soft 与 H03 同一置换矩阵）
+  print_orientation_down_normal_world:
+  - 1
+  - 0
+  - 0
+  print_orientation_provenance:
+  - hr37：平板件唯一合理朝向 —— 外面贴床（首层 = 整个脸面 ≈2600 mm²），立柱 Ø4.5×5.9 竖着长、镜孔/浅槽都是竖直壁，0 悬垂
+  - features.yaml:frames.per_part.H04.world_to_export_local_R —— 世界→件自身的旋转，本行 = R · 世界法向 [1,0,0] = [0,0,-1]
+  supports: 无
+  qty: 1
+  mirror_of: null
+  mirrored_copy: null
+  derived_from_original: 原版 face_part（CC BY-SA-NC）：x 80.1..81.4 那层平板原样保留（外形 = 配合面），背面原版 M12 摄像头座不要
+  mates_with:
+  - 原版 top_head_shell 凹槽（x 80..81.5，板边整圈插入；hr37 占用探测 z 260 y 36 / z 274.5 y 0）
+  - H03 前唇槽（z 230.5..231.1，x 80.5..81.5）：H03 合上即锁住底边
+  - 摄像头 8M 219 PCB（hr41 贴板）：PCB 前面贴 H04 内面四角 5×5 贴合面 x 92.17，四角 Ø1.8×1.2 定位销（H04-F05）进 PCB Ø2 孔；H06 压框压 PCB 背面，F27 2×M2×8 自攻拧进凸台（H04-F07）
+  - H06 摄像头压框：两耳贴凸台顶 x 87.0（隙 0.2，拧紧预压）
+  - ToF 模块 VL53L5X V2（hr52，v6-VL53L5CX 雷达）：板正面整片贴 0.2 实心平台（H04-F08，板正面 x 91.97），芯片进 7.6×4.2 通槽（H04-F09，hr52d；顶面与脸面齐平），正面针脚不剪：焊锡包落 0.7 槽（H04-F10）、针尖进通透长条（H04-F13，hr52c），两耳孔套 Ø1.8×1.2 定位销（H04-F11）
+  - H10 ToF 压条：两端盘坐两根 Ø5 柱（H04-F12，顶 88.3）前 0.2（拧紧预压），F39 2×M2×6 自攻拧进柱上 Ø1.7 底孔
+  - 麦克风 PCB +x 边：内面浅槽 x 80.1..80.6 × y 23.8..34.2 × z 232.8..234.8（H04-F03）
+  houses:
+  - 摄像头镜座穿 Ø23 圆通窗（H04-F01，hr41），镜头前端 x 106.97
+  - 圆眼装饰 E01 白外圈（hr41 去销，按 E02 圆筒定心）/ E02 Ø24 圆筒（套镜头，前端 106.67）/ E03 高光，胶粘在脸板外面
+  - ToF 模块（hr52）：左脸（+y）眼睛右上，板斜 27.5°，板心 (y 28.0, z 274.0)，芯片从 H04-F09 通槽露出脸面（duckstructure/tof.py）
+  houses_was_until_2026_09_24_hr41: 摄像头镜座 13.2 方穿 13.6 方孔，镜头前端 x 88.6 ／ E01 3 销插 H04-F04 ／ E02 套镜座（hr39c）
+  feature_count: 11
+  feature_count_was_until_2026_09_30_hr52c: 10
+  feature_count_note_2026-09-30_hr52c: 10 → 11（+ H04-F13 排针通透长条；F09 芯片窗改位放大、F10 焊锡包槽放宽）
+  feature_count_was_until_2026_09_29_hr52: 5
+  feature_count_note_2026-09-29_hr52: 5 → 10（+ H04-F08 ToF 实心平台 / F09 芯片通槽 / F10 排针焊点窄槽 / F11 耳孔定位销 / F12 压条柱 + 底孔）
+  features_ref: features.yaml 中 part == H04 的记录
+  frozen: false
+  notes: hr37 新件。原版 face_part 不再进 placed/（build.py 原版壳循环去掉 face_part）；不要与原版脸板混装。
+  changes_2026-09-30_hr52d: '复审 r2 m1：芯片窗各边余 0.4 → 0.6（7.6 × 4.2，H04-F09）；build #6 sha16 1fe6f2508f0b，体积 build #5 5596.71 → build #6 5589.87（−6.84，只在芯片窗四周）'
+  changes_2026-09-30_hr52c: 'ToF 针脚不剪（用户 09-30）→ 开排针通透长条 14.5 × 2.5（H04-F13）+ 焊锡包槽放宽到 b 2.1..5.6（F10）；芯片窗按商品图改位 b −1.5 → −2.2、各边余量 0.25 → 0.4（F09，7.2 × 3.8）；hr52b 底孔 92.8 → 92.9（F12）。体积 build #4 5640.23 → build #5 5596.71（相对 v4 +66.76 mm³；下一条里 hr52 的「+119」实测是 +110.28，复审 r1 m4）'
+  changes_2026-09-29_hr52: 左脸加 ToF「v6-VL53L5CX 雷达」贴面座（用户 09-29 定贴面版 + 板底实心；build_face_plate = hr41 版 build_face_plate_was_until_2026_09_29_hr52 + tof.h04_add_local / h04_cut_local）；+119 mm³。芯片槽 / 孔距 / 焊点槽按卖家手量 + assumed，到货卡尺量完再定（不对就只重打 H04 / H10）
+  provenance:
+  - docs/design_2026-09-17_bearing_rebuild/记录.md 第 45 条
+  design_status: development_candidate_not_released
+  current_design_ref: docs/design_2026-09-17_bearing_rebuild/记录.md
+  hr39c_2026-09-23:
+    volume_cm3: {v: 6.418, src: measured, src_note: 'hr39c 4a 终版 build（2026-09-23 21:51）placed/ trimesh 体积（4c 复量，与第 3 次 build 相同）'}
+    volume_cm3_hr38: {v: 4.369, src: measured, src_note: docs/design_2026-09-17_bearing_rebuild/hr38/placed trimesh}
+    mass_g_2wall_petg_est: {v: 6.9, src: assumed, src_note: '体积 × 1.078 g/cm³（2 圈外墙 + 30% 填充的 PETG 等效密度，09-23 14:10 估；未称）'}
+    changes: 放大毛坯（外面 x 93.47、内面 92.17，厚 1.3 保持）；摄像头方孔 / 4 立柱跟 T_CAM (12.07, 0, 6.94)；G7 镜孔填料上沿到 270.9；麦克风浅槽跟 T_MIC；圆眼白外圈 3 个 Ø2.0 销孔（H04-F04）
+    feature_count_note: hr39c 后 4 条（features.yaml:counts.by_part.H04）
+    report: docs/design_2026-09-17_bearing_rebuild/hr39_整头改版.md
+    todo_resolved_2026-09-23_hr39c_4c: 4a 用摄像头倒装 180°（绕光轴转）解决 ⑦，光轴 / 方孔 / 4 立柱都不动 → H04-F01/F02/F04 与 E01–E03 不挪（4c 用 4a placed 复核）
+  hr41_2026-09-24:
+    volume_cm3: {v: 5.53, src: measured, src_note: 'hr41 build_fast 出件（2026-09-24）placed/ trimesh 体积'}
+    mass_g_2wall_petg_est: {v: 6.0, src: assumed, src_note: '体积 × 1.078 g/cm³（2 圈外墙 + 30% 填充 PETG 等效密度，未称）'}
+    changes: 摄像头贴板：去 4 立柱/底孔（H04-F02 删）、13.6 方孔改 Ø23 圆通窗（H04-F01）、PCB 投影 0.8 浅坑留 0.5 皮 + 四角 5×5 贴合面（H04-F06）、四角 Ø1.8×1.2 定位销（H04-F05）、压框凸台 ×2（H04-F07，F27 改接这里）；麦克风浅槽下开口（H04-F03）；E01 销孔取消（H04-F04 删）
+    role_now: 脸板：摄像头 PCB 贴内面 92.17（定位销 + H06 压框），镜座从 Ø23 通窗伸出、外面 E02 圆筒罩住；麦克风 PCB +x 边进下开口竖槽
+- id: H05
+  placed_instances:
+  - head_top_shell
+  inventory_id: H05_head_top_shell
+  role_was_until_2026_09_25_hr43c: 见 hr43 口径（含后脑排针区鼓包 H05-F10）
+  role: 上头壳（原版 top_head_shell 派生件，hr43c **后脑零鼓包** = 放大原版外形）：Radxa 出风槽 ×5、喇叭声孔阵列、Ø28 喇叭卡座；hr43 Radxa 四根吊柱 H05-F11/F12 + SoC 出风槽 H05-F13；hr43c 排针上方横筋局部削 + 两端内皮减薄 H05-F15（直插杜邦余量），鼓包 F10 / 板角让位 F14 退役
+  role_was_until_2026_09_25_hr43: 上头壳（原版 top_head_shell 派生件）：Radxa 出风槽 ×5、喇叭声孔阵列 37×Ø2.2、Ø28 喇叭卡座（斜插+卡扣）、MAX98357A 功放卡座（推入+卡扣）；外形/合缝面/脸板凹槽与原版逐面相同
+  build_fn:
+  - build_head_top_shell
+  build_variant: null
+  material: PETG
+  print_orientation: 与原版同：脸口（世界 +x 面）朝下贴床、层沿 −x 堆；内面长出的料 +x 端全做 45° 船头，槽/孔无支撑
+  print_orientation_down_normal:
+  - 0
+  - 0
+  - -1
+  print_orientation_frame: export_local（= features.yaml:frames.export_local；body jaw_soft 与 H03/H04 同一置换矩阵）
+  print_orientation_down_normal_world:
+  - 1
+  - 0
+  - 0
+  print_orientation_provenance:
+  - printability.yaml:CAL_top_head_shell down=[0,−1,0]（资产系）= 世界 +x（TW·T 旋转），与原版复刻朝向一致
+  - features.yaml:frames.per_part.H05.world_to_export_local_R —— R·[1,0,0] = [0,0,−1]
+  - docs/design_2026-09-17_bearing_rebuild/hr38_顶壳与扬声器.md §2.1：新增平悬垂 39.1 mm²（前挡 2 mm 宽 + 爪端 + Ø2.2 孔顶），其余 45° 船头
+  supports: 无（原版是"自动"；H05 新料按无支撑设计，切片复核见 printability.yaml:slice_run）
+  qty: 1
+  mirror_of: null
+  mirrored_copy: null
+  derived_from_original: 原版 top_head_shell（CC BY-SA-NC）：毛坯原样，只减槽/孔、加内面卡座；frozen.yaml 那份 sha256 不变（原版仍是毛坯与合缝基准）
+  mates_with:
+  - H03 合缝面（原版面，HEAD_SEAM_CLR 0.1 让位在 H03 侧；六向 ±0.1 求交 0/0/0/0/0/0.0026）
+  - H04 脸板：凹槽 x 80..81.5（原版面未动，通风槽止于 x 77）
+  - 喇叭 Ø28×5：肩 z 269.5 / 三爪 264.3 / 导轨 y 2.5±14.2 / 前后挡 x 35.8、64.2
+  - （旧 was_until_2026_09_25_hr43）功放板 20×18：卡座见 H05-F04（hr43 拆掉，功放搬 H07）
+  - Radxa ZERO 3W 板顶面（257.8）贴四根吊柱端面（H05-F11，F37 4×M2×8 自攻 + 小平垫从板底拧）
+  houses:
+  - 喇叭 speaker（H05-F03）
+  - Radxa ZERO 3W sbc_radxa_zero3w（hr43：H05-F11 四柱吊装，平放 SoC 朝上；hr43c 板挪 (−0.5, +1.0, −0.5)）+ 14 个直插杜邦壳 + 出壳即弯的线（zz_gpio_dupont，H05-F15 削筋/减薄处）
+  - （旧 was_until_2026_09_25_hr43c）Radxa + 40P 直角转接 / 平插杜邦壳（zz_adapter40，H05-F10 鼓包内）
+  - （旧 was_until_2026_09_25_hr43）功放 amp_max98357a（H05-F04）
+  feature_count: 11
+  feature_count_note_2026-09-25_hr43d_d18: 10 → 11（快车道 L2 修正加 cut：H05-F16）
+  feature_count_was_until_2026_09_25_hr43d: 12
+  feature_count_was_until_2026_09_25_hr43c: 13
+  feature_count_was_until_2026_09_25_hr43_F14: 12
+  features_ref: features.yaml 中 part == H05 的记录
+  frozen: false
+  notes: hr38 新件，取代 placed/ 里的 orig_top_head_shell；原版件不再打印。喇叭/功放到货前尺寸全是 assumed（hr38_顶壳与扬声器.md §7）。
+  provenance:
+  - docs/design_2026-09-17_bearing_rebuild/hr38_顶壳与扬声器.md
+  design_status: development_candidate_not_released
+  current_design_ref: docs/design_2026-09-17_bearing_rebuild/hr38_顶壳与扬声器.md
+  hr39c_2026-09-23:
+    volume_cm3: {v: 47.857, src: measured, src_note: 'hr39c 4a 终版 build（2026-09-23 21:51）placed/ trimesh 体积（4c 复量，与第 3 次 build 相同）'}
+    volume_cm3_hr38: {v: 31.186, src: measured, src_note: docs/design_2026-09-17_bearing_rebuild/hr38/placed trimesh}
+    mass_g_2wall_petg_est: {v: 51.6, src: assumed, src_note: '体积 × 1.078 g/cm³（2 圈外墙 + 30% 填充的 PETG 等效密度，09-23 14:10 估；未称）'}
+    changes: 等比放大毛坯；喇叭卡座 / 声孔平移 T_SPK (5.18, 0.56, 12.25)（肩面 281.75）；功放卡座平移 T_AMP (−6.03, 0, 11.0) + ⑤ +y 导轨开窗；出风槽 H05-F01 挪 x 71.5..77.5；新口袋上方出风槽 H05-F05（7 条）；转接板压筋 H05-F06；嘴轴孔 + 16 宽插入槽 H05-F07（嘴子总成从下方 +z 推入）
+    feature_count_note: hr39c 后 7 条（features.yaml:counts.by_part.H05）
+    report: docs/design_2026-09-17_bearing_rebuild/hr39_整头改版.md
+  hr41_2026-09-24:
+    volume_cm3: {v: 48.582, src: measured, src_note: 'hr41 build_fast 出件（2026-09-24）placed/ trimesh 体积'}
+    mass_g_2wall_petg_est: {v: 52.4, src: assumed, src_note: '体积 × 1.078 g/cm³（2 圈外墙 + 30% 填充 PETG 等效密度，未称）'}
+    changes: 两侧 Ø21 毂让位下开 21 宽槽到 z 225（H05-F07）；保持螺丝凸台 ×2（H05-F08，F33，x 64 / |y| 48.5）；F06 压筋加 −x 叉形齿（H05-F09，M1）
+  hr43_2026-09-25:
+    volume_cm3: {v: 49.392, src: measured, src_note: 'hr43 build_fast #4 终版（2026-09-25 07:02）cad/duck_s288/H05_head_top_shell.stl trimesh 体积；build #1 为 49.23'}
+    volume_cm3_build1: {v: 49.23, src: measured, src_note: 'hr43 build_fast #1（2026-09-25）出件 trimesh 体积（hr43_work/logs/build_fast_1.log 49.2 cm³）'}
+    changes: 后脑排针区鼓包 H05-F10（盒 A 脚印 x −2..26 × y −28..24 上内面 ≥ 280.85，最高抬 8.26 mm @ (−2.5, −29)，区域 x −18..29.5 × y −34.5..29（2036 mm²），壁 2.0；build_fast #4 终值）；Radxa 四根吊柱 + 筋 H05-F11（柱长 8.58 / 20.06 / 10.48 / 20.03；+x 筋 45° 下沿延到内面，打印朝床侧无竖直端面）；Radxa 板角让位 H05-F14（后 −y 角挖 1.1 mm³，壳↔板 0.734 → 1.04）；SoC 出风槽 ×5 H05-F12；功放卡座 H05-F04 与两个开窗拆掉（改名 *_was_until_2026_09_25_hr43 留痕）；鼓包区里原版两条纵向内筋（y ±9）与横筋（x≈10）削掉
+    report: docs/design_2026-09-17_bearing_rebuild/hr43_改件报告.md
+  hr43c_2026-09-25:
+    volume_cm3: {v: 48.842, src: measured, src_note: 'hr43c build_fast #1/#2（2026-09-25）cad/duck_s288/H05_head_top_shell.stl trimesh 体积（鼓包取消 −0.62）'}
+    changes: 后脑零鼓包（用户 09-25）：毛坯回放大原版顶壳；新 F15 = 排针上方横筋局部削（x 9.5..11 × y −29..26）+ ±y 两端内皮减薄 ≤0.55（竖直壁 ≥1.227）；吊柱 F11/F12 随板 (−0.5,+1.0,−0.5)、柱长 8.0/16.9/9.86/18.17、(8,±) 贴杜邦壳削平离 1.0；F14 删（板↔原壳 1.284 @官方 R2.45 板角）；F13 槽穿原版顶板
+    feature_count_note: 13 → 12（−F10 −F14 +F15）
+    report: docs/design_2026-09-17_bearing_rebuild/hr43_work/hr43c_改件报告.md
+  hr43d_2026-09-25:
+    volume_cm3: {v: 48.002, src: measured, src_note: 'hr43d build_fast #1（2026-09-25）cad/duck_s288/H05_head_top_shell.stl trimesh 体积'}
+    changes: 转接板平放 H08 → 删 F06 顶压筋 ×2、F09 叉齿 ×2（壳回放大原版）；加固：F03 喇叭卡座 ±y 肩面抬 0.5（282.25）留 1 mm 泡棉环位
+    feature_count_note: 10（features.yaml 实有：−F06 −F09）
+    report: docs/design_2026-09-17_bearing_rebuild/hr43_work/hr43d_改件报告.md
+- id: J01
+  placed_instances:
+  - jaw
+  inventory_id: J01_jaw
+  role: 活动嘴（原版 jaw 等比放大派生件，hr39c）：+y 臂 Ø20 毂 + Ø15 垫台上 S288 法兰 6×Ø2.4 过孔 + Ø4.4 沉窝（叠厚 3.5），−y 臂 Ø9.95 轴颈套 6700ZZ；绕 (31.75, y, 245.5) 沿 y 转 0..30°
+  role_was_until_2026-09-23_hr39c: 绕 (26.1, y, 238.6146) 沿 y 转 0..30°（hr38，未放大）
+  build_fn:
+  - build_jaw
+  build_variant: null
+  material: PETG
+  print_orientation: 嘴外表面（世界 −z）朝下平放，两臂朝上；法兰 6 沉窝朝上（无桥）、Ø9.95 轴颈沿 y 是水平回转面
+  print_orientation_down_normal:
+  - -1
+  - 0
+  - 0
+  print_orientation_frame: export_local（= features.yaml:frames.export_local；body jaw_soft 与 H03/H04/H05 同一置换矩阵）
+  print_orientation_down_normal_world:
+  - 0
+  - 0
+  - -1
+  print_orientation_provenance:
+  - printability.yaml 里**没有** CAL_jaw（原版标定集只有 top_head_shell / bottom_head_shell / left_shell / upper_leg / neck_pitch / yaw2roll / face_part）→ 本件朝向是 hr38 自己定的，**assumed，未做六朝向真切片扫描**
+  - 依据：与原版 bottom_head_shell 同一朝向 [0,0,−1]；沉窝朝上避免桥接，轴颈是水平圆柱（上半圆 45° 内）
+  - features.yaml:frames.per_part.J01.world_to_export_local_R —— R·[0,0,−1] = [−1,0,0]
+  supports: 未定（hr38 首次登记，待 L1 真切片给数）
+  qty: 1
+  mirror_of: null
+  mirrored_copy: null
+  derived_from_original: 原版 jaw（jaw__52，CC BY-SA-NC）：外形原样；去掉 −y 臂 Ø11.4×0.3 台阶 + Ø≈9.8×2.7 轴颈（原版配 3 厚轴承），+y 臂填掉 XL330 舵盘 4 孔 + 6×6 方孔
+  mates_with_was_until_2026-09-24_hr41: 见下（hr39c：法兰 6×M2×6 直拧、Ø9.95 轴颈进 6700）
+  mates_with:
+  - hr41：+y 毂内面 52.05 贴 J02 盘外面、−y 毂贴 J03 盘外面；两毂各 3 颗 M2×5 沉头机牙（F34_jaw_hub_to_adapters）进 J02/J03 里压入的六角螺母；**不再直接接舵机法兰、不再带轴颈**
+  - 嘴舵机（第 15 颗 S288，ID 14）法兰：6×M2×6 从头壳外面拧（F28_jaw_to_servo）
+  - bearing_6700zz（10×15×4）内圈：Ø9.95 轴颈 y −49.55..−45.05（hr39c；hr38 y −40.0..−35.5）
+  - H01 上半拱 / H03 下半环拼出的 Ø15.1 座（轴承外圈）
+  houses: []
+  feature_count: 4
+  feature_count_note_2026-09-24_hr41: hr41 删 J01-F01/F02/F03/F06、加 J01-F07/F08 → 4 条（F04 填料 / F05 新毂 / F07 带内内面外挪 / F08 六个沉头孔）
+  features_ref: features.yaml 中 part == J01 的记录
+  frozen: false
+  notes: hr38 新件，取代 placed/ 里的 orig_jaw。原版 jaw 的 −5° 行程是软嘴（TPU soft_mouth_top）压缩量，硬件行程 0..30°。
+  provenance:
+  - docs/design_2026-09-17_bearing_rebuild/hr38_嘴关节设计.md
+  design_status: development_candidate_not_released
+  current_design_ref: docs/design_2026-09-17_bearing_rebuild/hr38_嘴关节设计.md
+  hr39c_2026-09-23:
+    volume_cm3: {v: 15.318, src: measured, src_note: 'hr39c 4a 终版 build（2026-09-23 21:51）placed/ trimesh 体积（4c 复量，与第 3 次 build 相同）'}
+    volume_cm3_hr38: {v: 9.496, src: measured, src_note: docs/design_2026-09-17_bearing_rebuild/hr38/placed trimesh}
+    mass_g_2wall_petg_est: {v: 16.5, src: assumed, src_note: '体积 × 1.078 g/cm³（2 圈外墙 + 30% 填充的 PETG 等效密度，09-23 14:10 估；未称）'}
+    changes: 等比放大原版 jaw；嘴轴挪到 (31.75, y, 245.5)（放大后原嘴轴 (26.12, 243.06) 前移 5.6、抬 2.4）：+y 臂新毂 Ø20 + 垫台 Ø15（J01-F05）、法兰 6 孔 / 沉窝（J01-F01/F02，叠厚 3.5）；−y 臂削原版短轴、内面 Ø19.6 挖平（J01-F06）、新轴颈 Ø9.95 × y −49.55..−45.05（J01-F03）；老嘴轴处 ±y Ø21 填料（J01-F04）
+    feature_count_note: hr39c 后 6 条（features.yaml:counts.by_part.J01）
+    report: docs/design_2026-09-17_bearing_rebuild/hr39_整头改版.md
+  hr41_2026-09-24:
+    volume_cm3: {v: 13.801, src: measured, src_note: 'hr41 build_fast 出件（2026-09-24）placed/ trimesh 体积'}
+    mass_g_2wall_petg_est: {v: 14.9, src: assumed, src_note: '体积 × 1.078 g/cm³（2 圈外墙 + 30% 填充 PETG 等效密度，未称）'}
+    changes: 方案 A v2（用户定）：去掉 +y Ø15 垫台 / 6 法兰孔 / 6 沉窝 / −y Ø9.95 轴颈；两臂内面在嘴轴一圈削平到 49.55，x 12..44、z 232..257 带内内面外挪到 |y| 52.05、外面加厚 1.0；毂 Ø20 在 52.05..54.9 补平；两毂各 3 个 M2 沉头孔 r 7.1 @350/130/250（不对称防错）。最后从下方 +z 装（装序 P 步 f）
+    role_now: 活动嘴（原版 jaw 等比放大派生，hr41 v2）：两毂从外面贴 J02/J03 转接盘、6 颗 M2×5 沉头机牙 + 六角螺母；绕 (31.75, y, 245.5) 沿 y 转 −5..30°
+    appearance_for_user: 每个毂外面露 3 颗平齐沉头（原 +y 露 6 颗盘头）；毂外面比 hr39c 多鼓 ≈1.0（54.85/54.9 vs 53.85）；臂离壳的缝在带内从 0.4 变成 ≈0.6–2.9；侧面能看到 J02/J03 的 Ø20 盘边（盘顶在臂顶边以上）
+    report: docs/design_2026-09-17_bearing_rebuild/hr41_头部阶段二.md
+- id: J02
+  placed_instances: [jaw_adapter]
+  inventory_id: J02_jaw_adapter
+  role: 嘴 +y 舵机法兰转接盘（hr41 新件，方案 A）：Ø15 颈 y 47.75..49.55 穿头壳 +y Ø16 孔 + Ø20×2.5 盘 49.55..52.05；3 颗 M2×5 盘头自攻拧到 S288 法兰（F28_jaw_to_servo，一次装好不拆）；盘里压入 3 颗 M2 六角螺母接 J01 +y 毂（F34）
+  build_fn: [build_jaw_adapter]
+  build_variant: null
+  material: PETG
+  print_orientation: 盘外面（世界 +y，贴 J01 那面）朝下平放，颈朝上；沉窝开口贴床、螺母穴从上面开口（穴底 = 0.85 皮上的桥 ≈4 mm）
+  print_orientation_down_normal: [0, 1, 0]
+  print_orientation_frame: export_local（jaw_soft：R·[0,1,0] = [0,1,0]）
+  print_orientation_down_normal_world: [0, 1, 0]
+  print_orientation_provenance: [hr41 自定（assumed，未做六朝向真切片）]
+  supports: 无（assumed，待 L1）
+  qty: 1
+  mirror_of: null
+  mirrored_copy: null
+  derived_from_original: null
+  mates_with: [S288 嘴舵机法兰（颈端面贴法兰凸台面 47.75；3×M2×5 自攻进法兰 6-Ø1.7 里 60/180/300° 三个，叠厚 2.6 咬入 2.4）, J01 +y 毂内面 52.05（F34 三颗沉头机牙）, 头壳 +y Ø16 孔 / H05 21 宽槽（颈、盘在里面转，径向 0.5）]
+  houses: [3 颗 M2 六角螺母（ISO 4032，压入）, 3 颗 F28 盘头（沉窝里，头顶低于盘外面 0.1）]
+  feature_count: 7
+  features_ref: features.yaml 中 part == J02 的记录
+  frozen: false
+  notes: 随嘴转。螺母外侧皮 0.85（往里加厚受壳 Ø21 让位 +0.3 限制，最多 1.05，达不到 1.2）→ 皮在螺母与 J01 之间只受压，但 PETG 六角穴压入保持力与拧紧力矩上限没测 —— **F34 拧紧力矩要限**（hr41 报告 §A）
+  volume_cm3: {v: 0.799, src: measured, src_note: 'hr41 build_fast 出件 placed/ trimesh 体积'}
+  mass_g_2wall_petg_est: {v: 0.86, src: assumed, src_note: '体积 × 1.078 g/cm³（未称；小件实际接近实心，偏小）'}
+  provenance: [duckstructure/jaw.py:build_jaw_adapter（hr41）, docs/design_2026-09-17_bearing_rebuild/hr39d_work/进度快照.md（阶段一）]
+  design_status: development_candidate_not_released
+  current_design_ref: docs/design_2026-09-17_bearing_rebuild/hr41_头部阶段二.md
+- id: J03
+  placed_instances: [jaw_journal]
+  inventory_id: J03_jaw_journal
+  role: 嘴 −y 可拆轴颈盘（hr41 新件）：Ø9.95 轴颈 −49.55..−45.05 进 6700ZZ 内圈 + Ø20×2.5 盘 −52.05..−49.55；盘里压入 3 颗 M2 六角螺母接 J01 −y 毂（F34）；壳合好后从外面沿 +y 插进轴承
+  build_fn: [build_jaw_journal]
+  build_variant: null
+  material: PETG
+  print_orientation: 盘外面（世界 −y）朝下平放，轴颈朝上；螺母穴从盘内面（上面）开口，无桥
+  print_orientation_down_normal: [0, -1, 0]
+  print_orientation_frame: export_local（jaw_soft：R·[0,−1,0] = [0,−1,0]）
+  print_orientation_down_normal_world: [0, -1, 0]
+  print_orientation_provenance: [hr41 自定（assumed，未做六朝向真切片）]
+  supports: 无（assumed，待 L1）
+  qty: 1
+  mirror_of: null
+  mirrored_copy: null
+  derived_from_original: null
+  mates_with: [bearing_6700zz 内圈（Ø9.95 轴颈，径向 0.025）, J01 −y 毂内面 −52.05（F34 三颗沉头机牙）, 头壳 −y Ø21 让位 / H05 21 宽槽]
+  houses: [3 颗 M2 六角螺母（压入）]
+  feature_count: 5
+  features_ref: features.yaml 中 part == J03 的记录
+  frozen: false
+  notes: 随嘴转。拆嘴（6 颗）后 J03 会从轴承里往外滑 —— 要按住或一起抽出；盘内面到静止座环 / 轴承外圈 0.5 浮动
+  volume_cm3: {v: 1.046, src: measured, src_note: 'hr41 build_fast 出件 placed/ trimesh 体积'}
+  mass_g_2wall_petg_est: {v: 1.13, src: assumed, src_note: '体积 × 1.078 g/cm³（未称）'}
+  provenance: [duckstructure/jaw.py:build_jaw_journal（hr41）]
+  design_status: development_candidate_not_released
+  current_design_ref: docs/design_2026-09-17_bearing_rebuild/hr41_头部阶段二.md
+- id: H06
+  placed_instances: [camera_clamp]
+  inventory_id: H06_camera_clamp
+  role: 摄像头内侧压框（hr41 新件，用户 09-23 23:53 定摄像头去立柱、PCB 贴 H04 内面）：两根竖条 + 底横梁，四角压块压 PCB 背面四个安装孔圈；两只耳朵各 1 颗 M2×8 自攻拧进 H04 凸台（F27_camera_to_H04，螺丝头在头里）
+  build_fn: [build_camera_clamp]
+  build_variant: null
+  material: PETG
+  print_orientation: 背面（世界 −x，螺丝头那面）朝下平放；压块/竖条都朝上长，Ø2.4 孔竖直
+  print_orientation_down_normal: [0, 0, 1]
+  print_orientation_frame: export_local（jaw_soft：R·[−1,0,0] = [0,0,1]）
+  print_orientation_down_normal_world: [-1, 0, 0]
+  print_orientation_provenance: [hr41 自定（assumed，未做六朝向真切片）]
+  supports: 无（assumed，待 L1）
+  qty: 1
+  mirror_of: null
+  mirrored_copy: null
+  derived_from_original: null
+  mates_with: [摄像头 PCB 背面四角（压块前面 = PCB 背面 90.57）, H04-F07 两个凸台（耳前面比凸台顶退 0.2 → 拧紧预压）]
+  houses: []
+  feature_count: 4
+  features_ref: features.yaml 中 part == H06 的记录
+  frozen: false
+  notes: 台面工位 h04_bench 上先装：H04 平放 → 摄像头 PCB 前面扣上四根定位销 → 盖 H06 → 拧 2 颗 F27。竖条离 PCB 背面 3.37（背面元件除 FPC 翻盖座外高度未量，≤3 assumed）；顶边不做横梁（翻盖座 + CSI 出线）
+  volume_cm3: {v: 1.156, src: measured, src_note: 'hr41 build_fast 出件 placed/ trimesh 体积'}
+  mass_g_2wall_petg_est: {v: 1.25, src: assumed, src_note: '体积 × 1.078 g/cm³（未称）'}
+  provenance: [duckstructure/head.py:build_camera_clamp（hr41）]
+  design_status: development_candidate_not_released
+  current_design_ref: docs/design_2026-09-17_bearing_rebuild/hr41_头部阶段二.md
+- id: H08
+  placed_instances: [adapter_tray]
+  inventory_id: H08_adapter_tray
+  role: 转接板托板（hr43d 新件，取代 H07；hr43_work/转接板安放研究.md §5.3/§5.4 B′ + agent_brief_hr43d 第 1 条）：竖板照 H07 贴 H01 旧 Radxa 立柱端面（x 66）3×M2×8 自攻（F35 复用），水平托面 2.0 厚托宇树总线转接板（平放、零件面朝上、口朝 ±y 侧出），1 mm 泡棉胶 + 2 条扎带
+  build_fn: [build_adapter_tray]
+  build_variant: null
+  material: PETG
+  print_orientation: 托面顶（世界 +z）朝下平放；竖板 / +y 下腿 / 两条下纵梁竖着长上去；胶坑在贴床面（坑底是 26 mm 桥，胶面不求光）；三个 Ø2.4 横孔在竖板上
+  print_orientation_down_normal: [1, 0, 0]
+  print_orientation_frame: export_local（jaw_soft：R·[0,0,1] = [1,0,0]）
+  print_orientation_down_normal_world: [0, 0, 1]
+  print_orientation_provenance: [hr43d 自定（assumed，未做六朝向真切片；printability.yaml:parts.H08）]
+  supports: 胶坑 26 mm 桥 / 竖板 Ø2.4 横孔（assumed，待 L1）
+  qty: 1
+  mirror_of: null
+  mirrored_copy: null
+  derived_from_original: null
+  mates_with: ['H01 旧 Radxa 立柱端面 ×3（x 66：(y 29, z 262.5)、(−29, 262.5)、(29, 239.5)；Ø2.4 过孔 → Ø1.7 底孔，M2×8 咬 6.0，F35）', '宇树转接板板底（1 mm 泡棉胶在 0.5 深胶坑里 + 2 条扎带）']  # hr43e：原首项未加引号，半角逗号把它拆成 4 项，加引号，文字未改
+  houses: [宇树总线转接板 bus_adapter（平放，hr43d）]
+  feature_count: 8
+  feature_count_was_until_2026_09_25_hr43e: 7
+  feature_count_note_2026-09-25_hr43e: 7 → 8（+H08-F07 托面前下角让髋 cut）
+  features_ref: features.yaml 中 part == H08 的记录
+  frozen: false
+  notes: 装序（assembly 步 18a，同 H07 口径）：台面先把转接板贴进胶坑、两条扎带捆好 → 整件从 +x 沿 −x 推到 H01 柱端（H03/H04/H05 都还不在，起子从 +x 直进）拧 F35。托面 z 262..264（板底 264.5 = 托面顶 + 胶 1.0 − 坑 0.5）；脚印 x 51.8..81.8 × y ±20（研究位 +x 5.8 让 F22#3 起子通道 KO09）
+  volume_cm3: {v: 2.822, src: measured, src_note: 'hr43e build_fast #1（2026-09-25 19:59）cad/duck_s288/H08_adapter_tray.stl trimesh 体积（含 H08 刻字）'}
+  volume_cm3_was_until_2026_09_25_hr43e: {v: 2.914, src: measured, src_note: 'hr43d build_fast #2（2026-09-25）cad/duck_s288/H08_adapter_tray.stl trimesh 体积（含 H08 刻字）'}
+  changes_2026-09-25_hr43e: L6 目标区间内 3 条（adapter_tray×hip / ×hip_R @ 颈俯仰 −90 / 头俯仰 +90）→ y 12.5..14.5 下纵梁 +x 端 81.8 → 75.5、托面底 x ≥ 76.0 & |y| ≥ 12.5 挖到 262.8（H08-F07；head.ADP_TRAY.rail_x1 / front_relief）；报告 hr43_work/hr43e_修正报告.md
+  mass_g_2wall_petg_est: {v: 3.04, src: assumed, src_note: '体积 × 1.078 g/cm³（未称）；hr43e 体积 2.822（was 3.14 @ 2.914）'}
+  provenance: [duckstructure/head.py:build_adapter_tray（hr43d）, docs/design_2026-09-17_bearing_rebuild/hr43_work/转接板安放研究.md §5.3/§5.4, docs/design_2026-09-17_bearing_rebuild/hr43_work/agent_brief_hr43d.md]
+  design_status: development_candidate_not_released
+  current_design_ref: docs/design_2026-09-17_bearing_rebuild/hr43_work/hr43d_改件报告.md
+- id: H09
+  placed_instances: [amp_bracket]
+  inventory_id: H09_amp_bracket
+  role: 功放支架（hr43d 新件，研究 §5.2 E′ 候选 ①）：后脑 +y、Radxa +y 端正下方，竖板贴 MAX98357A 板背（板竖放、元件面朝 +x），两根 Ø4 立柱沿 x 顶板背面 + 2×M2×6 自攻（F36 复用，头侧改 H09；hr43e-2 起 M2×6，原 M2×5）；脚板 2×M2×6 自攻拧 H03 后部地板凸台（F38，H03-F24/F25）
+  build_fn: [build_amp_bracket]
+  build_variant: null
+  material: PETG
+  print_orientation: 脚板底（世界 −z）朝下平放；竖板竖着长上去，两根 Ø4 立柱是 2 mm 横伸短桩、Ø1.7 横孔
+  print_orientation_down_normal: [-1, 0, 0]
+  print_orientation_frame: export_local（jaw_soft：R·[0,0,−1] = [−1,0,0]）
+  print_orientation_down_normal_world: [0, 0, -1]
+  print_orientation_provenance: [hr43d 自定（assumed，未做六朝向真切片；printability.yaml:parts.H09）]
+  supports: 无（assumed，待 L1；立柱 2 mm 短横伸）
+  qty: 1
+  mirror_of: null
+  mirrored_copy: null
+  derived_from_original: null
+  mates_with: [功放 PCB 板背（两根 Ø4 立柱端面 x −11.6，接触；F36 2×M2×6，hr43e-2 起，原 M2×5）, H03 后部地板两凸台 H03-F24（脚板底 z 224.5 贴凸台顶；F38 2×M2×6）]
+  houses: [功放 amp_max98357a（直排针版，hr43d 后脑 +y）]
+  feature_count: 6
+  feature_count_was_until_2026_09_25_hr43e: 5
+  feature_count_note_2026-09-25_hr43e: 5 → 6（+H09-F05 立柱背凸台，hr43e-2 F36 改 M2×6）
+  features_ref: features.yaml 中 part == H09 的记录
+  frozen: false
+  notes: 装序：H03 台面工位（H03 单件）—— H09 放上两凸台拧 F38（起子从上 +z）→ 功放扣立柱拧 F36（起子从 +x，56 mm 内无件）→ 端子接喇叭线；整组随 H03 18c 从下 +z 合上（功放 y ≥ 19.25 离 H01/H02 ≥3.45，竖直合上不碰）
+  volume_cm3: {v: 0.343, src: measured, src_note: 'hr43e build_fast #2（2026-09-25 20:25）cad/duck_s288/H09_amp_bracket.stl trimesh 体积（含 H09 刻字；#1 0.328，#2 加背凸台 + 脚板抬 0.5）'}
+  volume_cm3_was_until_2026_09_25_hr43e: {v: 0.461, src: measured, src_note: 'hr43d build_fast #2（2026-09-25）cad/duck_s288/H09_amp_bracket.stl trimesh 体积（含 H09 刻字）'}
+  changes_2026-09-25_hr43e: L6 目标区间内 33 条（amp_bracket×shell_L，全在 y 29.8..31.8）→ 竖板 y 29.5 → 32.4 起、脚板 y 30..36 → 32.4..37.2 + x −24.0 → −24.8（−x 端台阶到 36.7）、F38 孔 y 33 → 34.7；件号刻字改竖排（stamps.STAMPS[H09]）；报告 hr43_work/hr43e_修正报告.md；hr43e-2（协调员 20:10）：脚板 / 竖板底随 H03 凸台抬 0.5（225.0..227.0）、两立柱背面加 Ø4 × 1.0 背凸台（H09-F05），F36 通孔 5.0 配 M2×6
+  mass_g_2wall_petg_est: {v: 0.37, src: assumed, src_note: '体积 × 1.078 g/cm³（未称）；hr43e #2 体积 0.343（was 0.5 @ 0.461）'}
+  provenance: [duckstructure/head.py:build_amp_bracket（hr43d）, docs/design_2026-09-17_bearing_rebuild/hr43_work/转接板安放研究.md §5.2, docs/design_2026-09-17_bearing_rebuild/hr43_work/agent_brief_hr43d.md]
+  design_status: development_candidate_not_released
+  current_design_ref: docs/design_2026-09-17_bearing_rebuild/hr43_work/hr43d_改件报告.md
+- id: H10
+  placed_instances: [tof_clamp]
+  inventory_id: H10_tof_clamp
+  role: ToF 压条（hr52 新件，用户 09-29 定「v6-VL53L5CX 雷达」贴面版，同 H06 做法）：1.8 厚 × 2.4 宽的条从左柱压过左耳到右耳、再一段腿下到右柱；两只 Ø3.4 脚压 ToF 板两耳背面；两端 Ø5.4 盘各 1 颗 M2×6 自攻拧进 H04 两根柱（F39_tof_to_H04，螺丝头在头里）
+  build_fn: [build_tof_clamp]
+  build_variant: null
+  material: PETG
+  print_orientation: 背面（世界 −x，螺丝头那面）朝下平放；两只压脚朝上长（脚下在条这一层垫 Ø3.8 盘托住），Ø2.4 孔竖直；无悬垂（切片支撑 0）
+  print_orientation_down_normal: [0, 0, 1]
+  print_orientation_frame: export_local（jaw_soft：R·[−1,0,0] = [0,0,1]）
+  print_orientation_down_normal_world: [-1, 0, 0]
+  print_orientation_provenance: [hr52 自定（同 H06；assumed，未做六朝向真切片）]
+  supports: 无（assumed，待 L1）
+  qty: 1
+  mirror_of: null
+  mirrored_copy: null
+  derived_from_original: null
+  mates_with: [ToF 板两耳背面（压脚前面 = 板背 90.37，接触）, H04-F12 两根柱（盘前面 88.1 比柱顶 88.3 退 0.2 → 拧紧预压）]
+  houses: []
+  feature_count: 3
+  features_ref: features.yaml 中 part == H10 的记录
+  frozen: false
+  notes: 台面工位 h04_bench：H04 平放 → ToF 板正面朝前套两根定位销（芯片进槽）→ 放 H10（两脚压耳朵、两端盘搭柱顶）→ 拧 2 颗 F39 → 插 4 个杜邦壳。条离板背 2.27（背面元件高 ≤1.5 assumed）、离排针塑座 0.53；件号末位 0 照 L10 规则不点码（stamps.py）
+  volume_cm3: {v: 0.247, src: measured, src_note: 'hr52 build #3（2026-09-29）cad/duck_s288/H10_tof_clamp.stl trimesh 体积 247.08 mm³（无刻字；build #1/#2 无脚下垫盘时 239.46）'}
+  mass_g_2wall_petg_est: {v: 0.27, src: assumed, src_note: '体积 × 1.078 g/cm³（未称）'}
+  provenance: [duckstructure/head.py:build_tof_clamp（hr52）, duckstructure/tof.py:clamp_local]
+  design_status: development_candidate_not_released
+  current_design_ref: docs/design_2026-09-17_bearing_rebuild/tof_预检_2026-09-29/ToF候选模块_2026-09-29.md（v6 贴面版）
+- id: E01
+  placed_instances: [eye_white]
+  inventory_id: E01_eye_white
+  role: 圆眼装饰 白外圈（白料单色）：外 Ø32（eye.EYE_D，参数）、内 Ø24.4、厚 1.6；hr41 去掉定位销（H04-F04 取消，摄像头贴板让位），内圈套 E02 Ø24 圆筒定心，CA/UV 胶粘在脸面
+  role_was_until_2026_09_24_hr41: 背面 3 根 Ø1.8×1.0 定位销插进 H04 的 Ø2.0 通孔（H04-F04），CA/UV 胶粘
+  build_fn: [build_eye_white]
+  build_variant: null
+  material: PETG
+  print_orientation: 前面（世界 +x）朝下平放（hr41 无销）；无悬垂
+  print_orientation_down_normal: [0, 0, -1]
+  print_orientation_frame: export_local（= features.yaml:frames.export_local；body jaw_soft 与 H03/H04/H05/J01 同一置换矩阵）
+  print_orientation_down_normal_world: [1, 0, 0]
+  print_orientation_provenance: [duckstructure/eye.py 文件头（三件都平放，无悬垂）, 'features.yaml:frames.per_part.E01 —— R·[1,0,0] = [0,0,−1]']
+  supports: 无
+  qty: 1
+  mirror_of: null
+  mirrored_copy: null
+  derived_from_original: null
+  mates_with: [H04 脸板外面（x 93.47）：胶粘（hr41 去销）, E02 Ø24 圆筒（内圈 Ø24.4 套上，径向 0.2 定心）]
+  houses: []
+  feature_count: 0
+  feature_count_note_2026-09-24_hr41: E01-F01（定位销）随 hr41 取消 → 0 条
+  features_ref: features.yaml 中 part == E01 的记录
+  frozen: false
+  notes: hr39c 新件（用户 09-23：圆眼装饰）。尺寸全是外观参数，无实物依据；不焊不拧（螺丝头会破坏外观）。圆心 = 摄像头光轴（4a 摄像头倒装是绕光轴转，光轴不动，本件不挪）
+  volume_cm3: {v: 0.545, src: measured, src_note: 'hr39c 4a 终版 build（2026-09-23 21:51）placed/ trimesh 体积（4c 复量，与第 3 次 build 相同）'}
+  provenance: [duckstructure/eye.py（hr39c）, docs/design_2026-09-17_bearing_rebuild/hr39_整头改版.md]
+  design_status: development_candidate_not_released
+  current_design_ref: docs/design_2026-09-17_bearing_rebuild/hr39_整头改版.md
+  hr41_2026-09-24:
+    volume_cm3: {v: 0.538, src: measured, src_note: 'hr41 build_fast 出件'}
+    changes: 3 根定位销取消（H04 对应 3 孔全落在 PCB 投影里、与 0.8 浅坑冲突）→ 内圈 Ø24.4 套 E02 圆筒外定心，胶粘在脸面
+- id: E02
+  placed_instances: [eye_pupil]
+  inventory_id: E02_eye_pupil
+  role: 圆眼装饰 黑眼珠（黑料单色）：Ø24、厚 2.0，中间 13.6 方孔套摄像头镜座（13.2 方，穿出脸板）—— 镜座就是瞳孔里的方眼；左上 Ø3.6×0.8 浅坑放高光；背面贴脸板胶粘
+  build_fn: [build_eye_pupil]
+  build_variant: null
+  material: PETG
+  print_orientation: 背面（世界 −x）朝下平放；无悬垂
+  print_orientation_down_normal: [0, 0, 1]
+  print_orientation_frame: export_local（同 E01）
+  print_orientation_down_normal_world: [-1, 0, 0]
+  print_orientation_provenance: [duckstructure/eye.py 文件头, 'features.yaml:frames.per_part.E02 —— R·[−1,0,0] = [0,0,1]']
+  supports: 无
+  qty: 1
+  mirror_of: null
+  mirrored_copy: null
+  derived_from_original: null
+  mates_with: [摄像头镜座（13.2 方，单边 0.2）, H04 脸板外面（胶粘）, E01 内圈 / E03 浅坑]
+  houses: [E03 高光（浅坑）]
+  feature_count: 1
+  features_ref: features.yaml 中 part == E02 的记录
+  frozen: false
+  notes: hr39c 新件。圆心 / 方孔中心 = 摄像头光轴（4a 倒装后光轴不动，本件不挪）
+  volume_cm3: {v: 0.526, src: measured, src_note: 'hr39c 4a 终版 build（2026-09-23 21:51）placed/ trimesh 体积（4c 复量，与第 3 次 build 相同）'}
+  provenance: [duckstructure/eye.py（hr39c）]
+  design_status: development_candidate_not_released
+  current_design_ref: docs/design_2026-09-17_bearing_rebuild/hr39_整头改版.md
+  hr41_2026-09-24:
+    volume_cm3: {v: 3.518, src: measured, src_note: 'hr41 build_fast 出件（原 0.526）'}
+    mass_g_2wall_petg_est: {v: 3.79, src: assumed, src_note: 体积 × 1.078（小件接近实心，偏小）}
+    changes: Ø24 × 2.0 圆片 → Ø24 圆筒 x 93.47..106.67（镜头前端 106.97 − 0.3，视场角没查到，0.3 是 assumed 余量；前沿在镜头前端平面之后，≤180° 视场都不挡），13.6 方孔整段穿通套镜座；E03 浅坑深 0.8 → 1.0；整只眼比 hr39c 多鼓 11.2
+- id: E03
+  placed_instances: [eye_highlight]
+  inventory_id: E03_eye_highlight
+  role: 圆眼装饰 高光点（白料单色）：Ø3.4、厚 1.2，按进黑眼珠左上（观者看；世界 −y、+z）浅坑，凸出 0.4，胶粘
+  build_fn: [build_eye_highlight]
+  build_variant: null
+  material: PETG
+  print_orientation: 背面（世界 −x）朝下平放
+  print_orientation_down_normal: [0, 0, 1]
+  print_orientation_frame: export_local（同 E01）
+  print_orientation_down_normal_world: [-1, 0, 0]
+  print_orientation_provenance: [duckstructure/eye.py 文件头]
+  supports: 无
+  qty: 1
+  mirror_of: null
+  mirrored_copy: null
+  derived_from_original: null
+  mates_with: [E02 浅坑 Ø3.6×0.8（胶粘）]
+  houses: []
+  feature_count: 0
+  features_ref: 无（整件 10.9 mm³ 的小圆片）
+  frozen: false
+  notes: hr39c 新件。整件只有 10.9 mm³ —— checks.export 实体门槛已改 min(30, 半件体积)（hr39c 第 1 次 build 在这里崩过）；切片能不能出单独一片待 L1 给数
+  volume_cm3: {v: 0.011, src: measured, src_note: 'hr39c 4a 终版 build（2026-09-23 21:51）placed/ trimesh 体积（4c 复量，与第 3 次 build 相同）'}
+  provenance: [duckstructure/eye.py（hr39c）]
+  design_status: development_candidate_not_released
+  current_design_ref: docs/design_2026-09-17_bearing_rebuild/hr39_整头改版.md
+  hr41_2026-09-24:
+    changes: 跟 E02 前沿走到 x 105.67..106.87，凸出 E02 前面 0.2（原 0.4），顶面仍在镜头前端 106.97 之后；件本身不变
+- id: L10
+  inventory_id: L10_hip_roll_sleeve
+  material: PETG
+  qty: 2
+  frozen: false
+  feature_count: 3
+  print_orientation: 轴套立着打：座唇端（世界 +x 面）朝下，轴线竖直
+  print_orientation_down_normal:
+  - 0
+  - 0
+  - 1
+  print_orientation_frame: export_local（= features.yaml:frames.export_local；本件 body=hip_l，TW 旋转为置换矩阵）
+  print_orientation_down_normal_world:
+  - 1
+  - 0
+  - 0
+  print_orientation_provenance:
+  - docs/design_2026-09-17_bearing_rebuild/记录.md 第 19 条：2026-09-18 六朝向扫描（placed 网格），本朝向首层接触 176.2 mm²、>45° 悬垂面积
+    37.1 mm²，六向里接触最大/悬垂最小
+  supports: 无（悬垂 37.1 mm²；以 slice_run 真切片为准）
+  provenance:
+  - duckstructure/bearing_rebuild.py:build_hip_roll_sleeve
+  placed_instances:
+  - hip_roll_sleeve
+  - hip_roll_sleeve_R
+  role: 髋横滚内圈夹紧轴套
+  build_fn:
+  - build_hip_roll_sleeve
+  design_status: development_candidate_not_released
+- id: L13
+  inventory_id: L13_hip_pitch_sleeve
+  material: PETG
+  qty: 2
+  frozen: false
+  feature_count: 4
+  print_orientation: 轴套立着打：座唇端（世界 −y 面）朝下，轴线竖直
+  print_orientation_down_normal:
+  - -1
+  - 0
+  - 0
+  print_orientation_frame: export_local（= features.yaml:frames.export_local；本件 body=hip_l，TW 旋转为置换矩阵）
+  print_orientation_down_normal_world:
+  - 0
+  - -1
+  - 0
+  print_orientation_provenance:
+  - docs/design_2026-09-17_bearing_rebuild/记录.md 第 19 条：2026-09-18 六朝向扫描（placed 网格），本朝向首层接触 176.2 mm²、>45° 悬垂面积
+    37.1 mm²，六向里接触最大/悬垂最小
+  supports: 无（悬垂 37.1 mm²；以 slice_run 真切片为准）
+  provenance:
+  - duckstructure/hip_pitch_bearing_rebuild.py:build_hip_pitch_sleeve
+  placed_instances:
+  - hip_pitch_sleeve
+  - hip_pitch_sleeve_R
+  role: 髋俯仰内圈夹紧轴套
+  build_fn:
+  - build_hip_pitch_sleeve
+  design_status: development_candidate_not_released
+- id: N05
+  inventory_id: N05_head_roll_adapter
+  material: PETG
+  qty: 1
+  frozen: false
+  feature_count: 4
+  print_orientation: 轴颈端面（世界 +x）朝下立着打，Ø21.6 台肩朝上（台肩比轴颈只宽 0.875/边，环形悬垂 57 mm² 不用支撑；反过来台肩朝下悬垂 120 mm²）
+  print_orientation_down_normal:
+  - 1
+  - 0
+  - 0
+  print_orientation_frame: export_local（= features.yaml:frames.export_local；本件 body=yaw_roll_motion，TW 旋转为置换矩阵）
+  print_orientation_down_normal_world:
+  - 1
+  - 0
+  - 0
+  print_orientation_provenance:
+  - docs/design_2026-09-17_bearing_rebuild/记录.md 第 19 条：2026-09-18 六朝向扫描（placed 网格），本朝向首层接触 262.6 mm²、>45° 悬垂面积
+    56.9 mm²，六向里接触最大/悬垂最小
+  supports: 无（悬垂 56.9 mm²；以 slice_run 真切片为准）
+  provenance:
+  - duckstructure/head_bearing_rebuild.py:build_head_roll_adapter
+  placed_instances:
+  - head_roll_adapter
+  role: 头横滚A内圈夹紧轴套
+  build_fn:
+  - build_head_roll_adapter
+  design_status: development_candidate_not_released
+- id: N06
+  inventory_id: N06_head_yaw_adapter
+  material: PETG
+  qty: 1
+  frozen: false
+  feature_count: 4
+  print_orientation: 顶平面（Ø19.85，世界 +z）朝下，唇环朝上：无悬垂；反过来唇环内的凹面要撑
+  print_orientation_down_normal:
+  - 0
+  - 1
+  - 0
+  print_orientation_frame: export_local（= features.yaml:frames.export_local；本件 body=neck_pitch，TW 旋转为置换矩阵）
+  print_orientation_down_normal_world:
+  - 0
+  - 0
+  - 1
+  print_orientation_provenance:
+  - docs/design_2026-09-17_bearing_rebuild/记录.md 第 19 条：2026-09-18 六朝向扫描（placed 网格），本朝向首层接触 262.6 mm²、>45° 悬垂面积
+    0.0 mm²，六向里接触最大/悬垂最小
+  supports: 无（悬垂 0.0 mm²；以 slice_run 真切片为准）
+  provenance:
+  - duckstructure/head_bearing_rebuild.py:build_head_yaw_adapter
+  placed_instances:
+  - head_yaw_adapter
+  role: 头偏航内圈夹紧压盘
+  build_fn:
+  - build_head_yaw_adapter
+  design_status: development_candidate_not_released
+- id: N07
+  inventory_id: N07_head_bearing_cap
+  material: PETG
+  qty: 1
+  frozen: false
+  feature_count: 4
+  print_orientation: 平盘面（世界 −x）朝下
+  print_orientation_down_normal:
+  - -1
+  - 0
+  - 0
+  print_orientation_frame: export_local（= features.yaml:frames.export_local；本件 body=yaw_roll_motion，TW 旋转为置换矩阵）
+  print_orientation_down_normal_world:
+  - -1
+  - 0
+  - 0
+  print_orientation_provenance:
+  - docs/design_2026-09-17_bearing_rebuild/记录.md 第 19 条：2026-09-18 六朝向扫描（placed 网格），本朝向首层接触 238.7 mm²、>45° 悬垂面积
+    0.0 mm²，六向里接触最大/悬垂最小
+  supports: 无（悬垂 0.0 mm²；以 slice_run 真切片为准）
+  provenance:
+  - duckstructure/head_bearing_rebuild.py:build_head_bearing_cap
+  placed_instances:
+  - head_bearing_cap
+  role: 头横滚B内圈压盖
+  build_fn:
+  - build_head_bearing_cap
+  design_status: development_candidate_not_released
+- id: N08
+  inventory_id: N08_head_yaw_cap
+  material: PETG
+  qty: 1
+  frozen: false
+  feature_count: 5
+  print_orientation: 盖盘底面（世界 −z）朝下平放，耳朵同层
+  print_orientation_down_normal:
+  - 0
+  - 0
+  - -1
+  print_orientation_frame: export_local（= features.yaml:frames.export_local；本件 body=yaw_roll_motion，TW 旋转为置换矩阵）
+  print_orientation_down_normal_world:
+  - 0
+  - 0
+  - -1
+  print_orientation_provenance:
+  - docs/design_2026-09-17_bearing_rebuild/记录.md 第 19 条：2026-09-18 六朝向扫描（placed 网格），本朝向首层接触 301.5 mm²、>45° 悬垂面积
+    34.4 mm²，六向里接触最大/悬垂最小
+  supports: 无（悬垂 34.4 mm²；以 slice_run 真切片为准）
+  provenance:
+  - duckstructure/head_bearing_rebuild.py:build_head_yaw_cap
+  placed_instances:
+  - head_yaw_cap
+  role: 头偏航外圈压盖
+  build_fn:
+  - build_head_yaw_cap
+  design_status: development_candidate_not_released
+- id: B03
+  placed_instances:
+  - battery_lid
+  inventory_id: B03_battery_lid
+  role: 电池顶盖：开盖拔XT30，盖上锁B01后门
+  build_fn:
+  - build_battery_lid
+  build_variant: null
+  material: PETG
+  print_orientation: −y 切面贴床（世界法向[0,-1,0]）
+  print_orientation_down_normal:
+  - 0
+  - -1
+  - 0
+  print_orientation_frame: export_local（= features.yaml:frames.export_local，导出 STL 自己的坐标系）
+  print_orientation_down_normal_world:
+  - 0
+  - -1
+  - 0
+  print_orientation_provenance:
+  - hr39f_work/lid_orient.py 六朝向面积初选；2026-09-24 PrusaSlicer 2.9.6 按[0,-1,0]真切片；src/gcode哈希见printability.yaml:slice_run.parts.B03
+  supports: PrusaSlicer分析支撑694.365mm³；正式L1禁撑区0不表示卡扣无支撑，补充卡扣邻域诊断见hr39f_work/b03_support_2026-09-24.json；需PETG试打
+  qty: 1
+  mirror_of: null
+  mirrored_copy: null
+  derived_from_original: 原版 left/right_shell 曲面裁切派生，许可沿原件
+  mates_with:
+  - T01 导轨顶（四脚）
+  - T02/T03 前舌片承接台阶
+  - B01 后卡舌凹槽
+  houses: []
+  houses_note: houses 字符串里的世界坐标是从 MJCF 关节轴线（frozen.yaml:joint_axes）推出的落位结果，只作追溯，不是判据
+  feature_count: 7
+  features_ref: features.yaml part == B03
+  frozen: false
+  notes: 默认免螺丝；PETG 弹性棘爪名义下挠0.25，保持力/寿命待BN19；无刻字（STAMPS B03 none）
+  provenance:
+  - duckstructure/tail.py:build_battery_lid
+  - hr39f_work/placed_probe_2026-09-24/metadata.json
+deliberately_absent:
+  - id: "bearing_roll_plate"
+    comparison: "A3"
+    was: "原版 bearing_roll 打印支承板 ×2（23×3×40，中孔 Ø10）"
+    reason: "它就是髋偏航那颗轴承的座；删它是 A2（少 7 颗轴承）的连带结果，不是独立决定"
+    do_not_restore: false
+    depends_on: "A2"
+    provenance:
+      - "comparison_original_vs_v2.md:A3"
+      - "inventory_original.json:printed_parts_original[6]"
+  - id: "upper_leg_rigidity_plate"
+    comparison: "A4"
+    was: "原版 1 mm 加强片 ×2（1×45×58，无孔）"
+    reason: "大腿件我们重雕过、截面不同，原版加强片装不上（duck.py:495 注释写明）"
+    do_not_restore: false
+    carried_constraint: "'够刚'目前只有注释没有判据 → relations.yaml:C3_L03_stiffness 要给 L03 一个最小截面/挠度数"
+    provenance:
+      - "comparison_original_vs_v2.md:A4"
+      - "duck.py:495"
+      - "inventory_original.json:printed_parts_original[9]"
+  - id: "roller_kit"
+    comparison: "A13"
+    was: "轮滑套件 tire×4 / rim×4 / roller_blade×2 / ankle_v1×2（4 个被动轮关节）"
+    reason: "原版就是可选件"
+    do_not_restore: true
+    provenance:
+      - "comparison_original_vs_v2.md:A13"
+      - "inventory_original.json:components[23]"
+deliberately_added:
+  - id: "L07"
+    comparison: "B1"
+    what: "可拆踝后臂 ×2"
+    reason: "原版闭口踝子总成装不进去：反向抽出峰值 372.6 mm^3，六个方向全堵、−90°..+90° 74 条路径全失败"
+    evidence: "四阶段 0.25 mm 步距峰值 <0.001 mm^3"
+    do_not_merge_back: true
+    provenance:
+      - "comparison_original_vs_v2.md:B1"
+      - "ankle_split.py:38-58"
+      - "mechanical_audit.json:assembly_and_fits.ankle_paths"
+  - id: "H02"
+    comparison: "B2"
+    what: "头横滚压板 ×1"
+    reason: "原版'靠夹'在我们这版是 0.30 mm 均匀间隙，什么都没夹住（干涉=0 完美通过，功能为零）"
+    evidence: "窄筋 0.444→1.434 mm。这是'负空间检查漏掉正功能'的典型案例 → negatives/ 里有对应坏样本"
+    do_not_merge_back: false
+    provenance:
+      - "comparison_original_vs_v2.md:B2"
+      - "duck.py:903-915"
+      - "mechanical_audit.json:H02_stack_mm"
+  - id: "H03"
+    comparison: "B3"
+    what: "适配下头壳 ×1（派生自原版 bottom_head_shell）"
+    reason: "原版下头壳与我们的横滚舵机干涉 21.6 mm^3；切除约 62.15 mm^3 电机占位"
+    evidence: "mechanical_audit H03_original_seam：reference 67.898 = 原版×原版自带；09-12 I6 起 H03 减上壳 DILATE6(HEAD_SEAM_CLR=0.1) 副本让位，build #7 current 0.0 / added 0.0（接缝已清零，未新增）"
+    do_not_merge_back: false
+    carried_constraint: "装机用 H03，原版 bottom_head_shell 只留对照、不打印、不混装 → frozen.yaml:C5_reference_only"
+    provenance:
+      - "comparison_original_vs_v2.md:B3"
+      - "duck.py:923"
+      - "mechanical_audit.json:H03_original_seam"
+  - id: "H01"
+    comparison: "B4"
+    what: "头支架 ×1（替换原版 motor_support）"
+    reason: "S288 外形与 XL330 完全不同"
+    carried_constraint: "原版 motor_support 同样只留对照 → frozen.yaml:C5_reference_only"
+    provenance:
+      - "comparison_original_vs_v2.md:B4"
+      - "duck.py:849-898"
+  - id: "B01"
+    comparison: "B5"
+    what: "电池门 ×1"
+    reason: "电池换成 3S 短剑款，原版 battery_pack_lid 不适用"
+    risk: "后孔 x=−44.5 打空已停用（电池仓冻结不改孔）；前孔 1×M2×6 + 绑带槽，拉脱/跌落未验证 → bench.yaml:BN09/BN10"
+    provenance:
+      - "comparison_original_vs_v2.md:B5"
+      - "duck.py:604-613"
+      - "mechanical_audit.json:B01_receiver_center_segments_mm"
+  - id: "T02_T03"
+    comparison: "B6"
+    what: "躯干壳适配件 ×2"
+    reason: "原版躯干壳需为 S288 让位；原版网格派生"
+    provenance:
+      - "comparison_original_vs_v2.md:B6"
+      - "duck.py:703-714"
+  - id: "duck_cart_15_parts"
+    comparison: "B11"
+    what: "鸭子小车（15 件，独立支线）"
+    reason: "先给孩子玩，4 颗舵机和头件可回收到整鸭"
+    in_this_gate: false
+    note: "不在本 Gate 的 17 件范围内；只有 02_小车打印件/13_face_panel.stl 因 B7 与整鸭头部有接口交集"
+    provenance:
+      - "comparison_original_vs_v2.md:B11"
+  - id: B03_battery_lid
+    comparison: null
+    what: B03电池顶盖×1
+    reason: 用户选择(f)：盖下拔XT30断电，开盖/拆后门后水平抽电池
+    in_this_gate: true
+    provenance:
+    - hr39_电池拔插代替开关.md §5
+    - duckstructure/tail.py:build_battery_lid
+discrepancies:
+  - id: "D-PART-01"
+    what: "face_part 被算进'原版件'，但既不在冻结的 6 个 STL 里，也不在 17 件里"
+    a: "inventory_v2.json:purchased[16] —— original_prints qty=4，model 里却列了 5 个名字：top_head_shell / jaw / jaw_soft / soft_mouth_top / **face_part(占位)**"
+    b: "V2_S288版发布产物/01_整鸭打印件/原版件_原封不动/ 只有 6 个 STL：bottom_head_shell / jaw / jaw_soft / motor_support / soft_mouth_top / top_head_shell —— **没有 face_part**；docs/audit_2026-09-08/frozen_sha256.json 也没有它"
+    why_it_matters: "face_part 是原版前脸（带镜头/眼睛开孔，inventory_original.json:printed_parts_original[20] 说有 10 个孔）。B7 的 1.9\" 屏 + 脸板要接的就是这个界面。它现在没有冻结基线：谁都可以换一版而不触发 hash 告警"
+    resolution: "要么把 face_part.stl 收进 原版件_原封不动/ 并算 sha256，要么把它从 original_prints 里划掉、明确由 B7 的新脸板取代"
+    provenance:
+      - "inventory_v2.json:purchased[16]"
+      - "inventory_original.json:printed_parts_original[20]"
+      - "docs/audit_2026-09-08/frozen_sha256.json"
+      - "comparison_original_vs_v2.md:B7"
+  - id: "D-PART-02"
+    what: "'原版件 4 件' 与 '冻结 6 个 STL' 的差额没说清"
+    a: "inventory_v2.json:frozen_items[7] —— '原版件_原封不动/ 6 个 STL 逐字节'"
+    b: "purchased[16] qty=4（要打印的原版件）"
+    why_it_matters: "差的 2 个正是 bottom_head_shell 与 motor_support —— 它们冻结是为了**对照**，不是为了打印（C5）。两份数字都对，但只有读了 C5 才知道为什么不一样，机器读不出来"
+    resolution: "已在 frozen.yaml:original_stl_sha256 每条加 print: true/false，并由 frozen.yaml:C5_reference_only 兜底"
+    provenance:
+      - "inventory_v2.json:frozen_items[7]"
+      - "inventory_v2.json:purchased[16]"
+      - "comparison_original_vs_v2.md:C5"
+
+# 2026-09-12：逐个 placed 实体的刚体归属，Gate 与离线运动门禁共用。
+# 来源：duckstructure/build.py 的 add(body,name,...)；金属轴承取
+# tools/cad/assembly_audit.py:bearing_specs.mount（外圈座归属）。
+# N04 随 N03；B 端轴承外圈随头部，二者不可归到同一刚体来跳过相对运动。
+motion_instances:
+  ankle_foot: ankle_left
+  ankle_foot_R: ankle_right
+  ankle_rear_arm: ankle_left
+  ankle_rear_arm_R: ankle_right
+  battery_door: trunk_base
+  zz_adapter: jaw_soft
+  zz_speaker: jaw_soft
+  zz_amp: jaw_soft
+  zz_sbc: jaw_soft
+  zz_mic: jaw_soft
+  zz_camera: jaw_soft
+  bearing_jaw: jaw_soft
+  servo__jaw_soft_jaw: jaw_soft
+  eye_white: jaw_soft
+  eye_pupil: jaw_soft
+  eye_highlight: jaw_soft
+  bearing_head_roll_A: jaw_soft
+  bearing_head_roll_B: jaw_soft
+  bearing_head_yaw: yaw_roll_motion
+  bearing_left_ankle: ankle_left
+  bearing_left_hip_pitch: upper_leg_left
+  bearing_left_hip_roll: yaw2roll
+  bearing_left_hip_yaw: trunk_base
+  bearing_left_knee: upper_leg_left
+  bearing_right_ankle: ankle_right
+  bearing_right_hip_pitch: upper_leg_right
+  bearing_right_hip_roll: bearing_roll
+  bearing_right_hip_yaw: trunk_base
+  bearing_right_knee: upper_leg_right
+  head_bearing_cap: yaw_roll_motion
+  head_bottom_shell: jaw_soft
+  head_bracket: jaw_soft
+  head_clamp: jaw_soft
+  head_journal: yaw_roll_motion
+  head_roll_adapter: yaw_roll_motion
+  head_yaw_adapter: neck_pitch
+  head_yaw_cap: yaw_roll_motion
+  hip: hip_l
+  hip_R: hip_l_2
+  hip_pitch_sleeve: hip_l
+  hip_pitch_sleeve_R: hip_l_2
+  hip_roll_sleeve: hip_l
+  hip_roll_sleeve_R: hip_l_2
+  lower_leg: leg
+  lower_leg_R: leg_2
+  neck: neck
+  neck_pitch: neck_pitch
+  face_plate: jaw_soft
+  jaw: jaw_soft
+  jaw_adapter: jaw_soft      # hr41 J02（随嘴舵机输出转，同 jaw 口径挂 jaw_soft）
+  jaw_journal: jaw_soft      # hr41 J03（同 jaw）
+  camera_clamp: jaw_soft     # hr41 H06
+  adapter_tray: jaw_soft     # hr43d H08（取代 hr43 H07 amp_tray，退役）
+  amp_bracket: jaw_soft      # hr43d H09
+  tof_clamp: jaw_soft        # hr52 H10
+  zz_tof: jaw_soft           # hr52 ToF 模块占位
+  zz_gpio_dupont: jaw_soft   # hr43c 排针直插杜邦壳 + 出壳弯线管占位（取代 hr43 zz_adapter40 40P 直角转接占位）
+  head_top_shell: jaw_soft
+  servo__bearing_roll_hip_l_2: bearing_roll
+  servo__jaw_soft_jaw_soft: jaw_soft
+  servo__leg_2_ankle_right: leg_2
+  servo__leg_ankle_left: leg
+  servo__neck_neck: neck
+  servo__neck_neck_pitch: neck
+  servo__trunk_base_bearing_roll: trunk_base
+  servo__trunk_base_yaw2roll: trunk_base
+  servo__upper_leg_left_leg: upper_leg_left
+  servo__upper_leg_left_upper_leg_left: upper_leg_left
+  servo__upper_leg_right_leg_2: upper_leg_right
+  servo__upper_leg_right_upper_leg_right: upper_leg_right
+  servo__yaw2roll_hip_l: yaw2roll
+  servo__yaw_roll_motion_yaw_roll_motion: yaw_roll_motion
+  shell_L: trunk_base
+  shell_R: trunk_base
+  sole: ankle_left
+  sole_R: ankle_right
+  trunk: trunk_base
+  upper_leg: upper_leg_left
+  upper_leg_R: upper_leg_right
+  yaw2roll: yaw2roll
+  yaw2roll_R: bearing_roll
+  yrm: yaw_roll_motion
+  zz_battery: trunk_base
+  zz_imu: trunk_base
+  zz_ubec: jaw_soft
+  battery_lid: trunk_base
+  zz_xt30: trunk_base
+jaw_soft_mass_2026-09-23_hr39c:
+  what: 头刚体（MJCF body jaw_soft：21 件 + Radxa 点质量）质量/质心/惯量，hr39c 第 3 次 build placed。两个口径，给 MJCF 重生成与颈部余量用
+  make_mjcf_basis:
+    mass_g: 281.43
+    com_world_mm: [41.39, 0.29, 246.57]
+    com_body_mm: [10.95, 0.29, -33.29]
+    I_com_body_kgm2: {xx: 0.000621, yy: 0.0004848, zz: 0.0003149, xy: -2.79e-06, xz: 4.37e-05, yz: 8.65e-06}
+    basis: tools/sim/make_mjcf.py 同一套 part_mass_g / inertia_about / POINT_MASSES：打印件与电子件包络 = 体积 × 1.27 g/cm³（实心，assumed）；舵机 20.33 / 轴承按 make_mjcf 映射；Radxa 14 g 点质量
+    known_errors: [Radxa 算了两次：点质量 14 g + zz_sbc 包络体积 × 1.27 = 12.84 g（make_mjcf 本来就这样；全量链重生成 MJCF 时修）, '嘴轴承 bearing_jaw 被 make_mjcf 映射成 6704ZZ 5.9 g，实为 6700ZZ 1.9 g（components.yaml:bearing_6700zz）']
+    same_basis_hr38:
+      mass_g: 225.39
+      com_world_mm: [37.7, -0.09, 242.82]
+      I_diag_kgm2: [0.0003368, 0.0002679, 0.0001563]
+    src: docs/design_2026-09-17_bearing_rebuild/hr39c_work/g9_mass.json
+  near_real_estimate: {mass_g: 242.2, src: assumed, basis: 打印件 131.38 cm³ × 1.078（2 圈外墙 + 30% 填充 PETG 等效）= 141.6；舵机 2 × 20.33；轴承 头横滚 A/B 2 × 5.9（B 实为 22×16×4，质量未知，照 6704 计）+ 嘴 6700ZZ 1.9；Radxa 实测 14.93（只算一次）；摄像头模组实测 7.32；转接板/喇叭/功放/UBEC/麦克风 = 包络体积 × 1.27（13.72/3.95/2.87/2.38/1.06，assumed，未称）, not_included: 头内线束（线实体 3.8 cm³）、螺丝、杜邦壳/插头、胶；质心/惯量没按本口径重算（用上面 make_mjcf 口径）, vs_limit_test: 显卡机极限测试最重头 236.4 g（docs/training_2026-09-23/limit_head10/，head10_plus20）；本估算重 ≈5.8 g。真实重量要称, same_basis_hr38_g: 195.3}
+  report: docs/design_2026-09-17_bearing_rebuild/hr39_整头改版.md
+  refreshed_2026-09-23_hr39c_4c:
+    what: 按 4a 终版 build placed（hr39/placed，21:51）+ 当前 components.yaml 复算（g9_mass.py 同一套，只把 hr39c 路径换成 hr39/placed；结果 docs/design_2026-09-17_bearing_rebuild/hr39c_work/data4b/g9_mass_4c.json）
+    make_mjcf_basis: {mass_g: 283.48, com_world_mm: [41.61, 0.24, 246.7], com_body_mm: [11.09, 0.24, -33.51], I_com_body_kgm2: {xx: 0.0006236, yy: 0.0004875, zz: 0.000316, xy: -2.36e-06, xz: 4.52e-05, yz: 8.18e-06}}
+    make_mjcf_basis_delta: "281.43 → 283.48（+2.05）：Radxa 点质量改读实测 14.93（+0.93）、zz_sbc 包络按排针侧 10.3 变大（12.84 → 13.36）、zz_camera 翻盖座按实测 5.1×20.1×6（5.41 → 6.01）；打印件 −0.02。同口径 hr38 225.39 → 226.32（只差 Radxa 点质量 +0.93）"
+    near_real_estimate: {mass_g: 242.2, src: assumed, basis: "口径同上面 near_real_estimate：打印件 131.37 cm³ × 1.078 = 141.6，其余不变；283.48 − 打印件 25.22 − 重复的 Radxa 包络 13.36 + 摄像头实测比包络多 1.31 − 嘴轴承 4.0 = 242.2"}
+component_mass_note_2026-09-24_hr39f:
+  zz_xt30: 仅碰撞包络：电池母头+延长线公头+平衡头。不是整根延长线；禁止按PETG实体体积计质量。make_mjcf只采用已有connector_xt30 1.7g一次(partial_mass)，线/平衡头重量仍未实测，不得声称质量清单完整。

@@ -1,0 +1,1305 @@
+# 本文件由 docs/gate/inventory_v2.json + inventory_original.json + comparison_original_vs_v2.md 机械转换而来。
+# 字段约定见 tools/gate/data/README.md：
+#   · 每条记录必须有 provenance（duck.py:行 / s288.py:行 / ankle_split.py:行 / mechanical_audit.json:键 /
+#     inventory_original.json:路径 / inventory_v2.json:路径 / MJCF:行 / comparison_original_vs_v2.md:编号）
+#   · 数值字段统一写成 {v: <值>, src: measured|datasheet|assumed}
+#   · 搬不过来的值写 v: null，并在同条记录里给 unknown_class + unknown_reason
+# 单位：mm / mm^3 / g / N / degC，除非字段名另有后缀。不四舍五入。
+# relations.yaml —— 22 条功能关系 + comparison C1/C2/C3 三条 Gate 条目。
+# declared_target 是原始表述（可能是一句话），真正的判据范围一律去 target_ref 指的 tolerances.yaml 桶里取。
+# status=open 表示该关系目前没有满足的证据，第 5/7 层判 BLOCK。
+# 2026-09-09 新增 contact 段（第 5 层 l5_function.py:contact_profile / _resolve_party 直接读的机器可读结构）：
+#   contact.approach 必须是带符号的轴（'+x'/'-z'…），层里 _axis_vec 对裸 '+' 会解析成 None；
+#   contact.parties[0] 是**沿 approach 压过去的那一方**，parties[1] 是被压的一方（顺序换了符号不变，但语义会反）；
+#   contact.probe_bbox_mm 是 [[x0,y0,z0],[x1,y1,z1]] 的**世界坐标**窗口 —— 本文件里唯一的世界坐标例外，
+#     每个窗都在 probe_bbox_rationale 里写清是怎么从 cad/duck_s288/placed/ 量出来的、为什么这么夹；
+#   contact_profile 的符号约定是**过盈为正、间隙为负**。tolerances.yaml 里多数桶的 target_range_mm 写的是
+#     间隙的绝对值（正数），两者口径不符的，本文件在 contact.convention_conflict 里逐条点名，
+#     该改的是公差表的口径不是几何 —— 本轮按分工不动 tolerances.yaml。
+#   量不出来 / 量出来也不是那个量的，一律 contact: null + contact_unknown_class/contact_unknown_reason，
+#     宁可留红也不硬凑一个窗（凑了会同时造一条无意义的红和一格 fit_measured_geometry 的假绿）。
+
+# ── 2026-09-09 新增：kind 词表与它的语义（第 5 层拿 kind 决定"要不要有接触面积"）────────────
+# 起因：R15/R16 的 kind 被标成 clamp，而它们自己的 note 写着"非夹持"和"过载止挡"。
+# l5_function.py:746 的 need_touch 是一份**白名单**：kind 落在 (clamp, press_fit, bearing_seat,
+# driven_disc, snap) 里才要求"接触面积 > 0"，不在名单里的按"不要求接触"处理。所以把 R15/R16 改成
+# 下面两个新 kind 之后，层不用改一行，判据就从"必须夹住"变回"必须留够间隙"（有符号配合量仍照判）。
+# **新增 kind 时必须先想清楚它该不该进那份白名单**，并在这里登记；漏登记 = 默认不要求接触。
+kind_semantics:
+  requires_contact_area:
+    _who_reads_it: "tools/gate/layers/l5_function.py:746 need_touch"
+    kinds: ["clamp", "press_fit", "bearing_seat", "driven_disc", "snap"]
+    why: "这几类的功能就是'压住/夹住/顶住'，接触面积 = 0 等于功能为零（历史事故：H02 压板按 0.30 均匀间隙建模，交集恒为 0，'夹持'什么也没夹住）。"
+  no_contact_by_design:
+    kinds: ["clearance", "overload_stop", "slide_fit", "hinge", "screw", "horn_coupling",
+            "stiffness", "cantilever_load", "sensor_extrinsic"]
+    why: "这几类**按设计就不接触**或不是面接触。对它们要求接触面积会造出假红；反过来，如果哪天量到接触了，那才是异常 —— 但那要另立判据（例如 overload_stop 的'正常工况下必须不接触'），本轮没有。"
+    clearance: "两件之间声明的让位间隙（不传力）。判据 = 有符号配合量落在声明区间内（过盈为正 / 间隙为负）。"
+    overload_stop: "过载止挡：正常工况**不接触**，只在过载时才顶上，用来限制行程/保护舵机。判据同 clearance；'过载时顶得住'属于强度题，归第 7 层，需要 tolerances.yaml:load 里的许用应力（现在是 null）。"
+  open_gap_2026-09-09: "现在的层是**白名单**语义：一个拼错的 kind（例如 'clanp'）会静默落进'不要求接触'。真要严，l5 应当对不在本词表里的 kind 判 unknown。那是第 5 层的改动，本轮按分工不动 l5_function.py，把缺口写在这里。"
+
+schema_version: 1
+counts:
+  relations: 24
+  load_paths: 11
+  parts_without_declared_load_path: 7
+  load_path_note_2026-09-09: "17 个打印件里 11 个有声明的承力路径，6 个（T01/T02/T03/B01/H01/H03）逐条写明了为什么写不出来。第 7 层对后 6 个判 unknown（红）。"
+  gate_entries_from_comparison_C: 3
+  open: 17
+  contact_declared: 11
+  contact_null_refused: 14
+relations:
+  - id: "R01"
+    kind: "bearing_seat"
+    between:
+      - "6704 外圈"
+      - "L01/L03 座 Ø27.15"
+    declared_target: "'压进'（duck.py:30）"
+    target_ref: "tolerances.yaml:fits.pla.bearing_outer_seat_6704"
+    actual: "名义 +0.15 间隙；打印收缩后待 TC01 试件"
+    actual_src: "assumed"
+    status: "open"
+    scope_2026-09-17: "只剩膝 L03 座（L03-F04）。髋横滚 L01 座（原 L01-F10，09-17 随取消一起删）（docs/reports/髋横滚轴承取消_2026-09-17.md），between 里的 L01 成历史，不删。"
+    note: "6704 座 Ø27.15 vs 轴承 Ø27 是 +0.15 间隙，'压进'只是期望；TC01 未打"
+    contact: null
+    contact_unknown_class: "not_applicable"
+    contact_unknown_reason: "拒绝填 contact：target_ref 的桶 tolerances.yaml:fits.pla.bearing_outer_seat_6704 的 target_range_mm [26.95, 27.05] 是一个**直径**，而第 5 层 contact_profile 量出来的是沿单轴的**有符号配合量**（过盈为正、间隙为负，量级 0.x mm）。两者不是同一个量，硬填会同时制造两件坏事：① 一条数值毫无意义的红（拿 −0.0x 去比 26.95..27.05）；② 一格**假绿** —— 该桶的 fit_measured_geometry 只要『有任何一条关系量过几何』就变绿，等于声称 6704 外圈座 Ø27.15 这个直径被实测几何验证过，而 contact_profile 根本没量直径。6704 外圈座 Ø27.15 的直径归第 2 层射线判据管。要让本条能真算，需先在 tolerances.yaml 给该桶补一个『径向单边配合量』区间（过盈为正/间隙为负）；本轮按分工不动 tolerances.yaml。"
+    contact_provenance:
+      - "tolerances.yaml:fits.pla.bearing_outer_seat_6704.target_range_mm"
+      - "tools/gate/layers/l5_function.py:contact_profile（符号约定：过盈为正、间隙为负）"
+      - "tools/gate/layers/l5_function.py（fit_measured_geometry：只要有关系量过几何就判绿 → 口径不符的 contact 会造假绿）"
+    provenance:
+      - "duck.py:30,398,416"
+      - "08_公差试件"
+      - "inventory_v2.json:functional_relations[0]"
+  - id: "R02"
+    kind: "press_fit"
+    between:
+      - "6704 内圈 Ø20"
+      - "L02/L04 毂 Ø19.85"
+    declared_target: "套进不晃"
+    target_ref: "tolerances.yaml:fits.pla.bearing_inner_hub_6704"
+    actual: "名义 -0.15；TC01b 待试"
+    actual_src: "assumed"
+    status: "open"
+    scope_2026-09-17: "只剩膝 L04 毂（L04-F01）。髋横滚 L02 毂（L02-F01 旧 Ø19.85）09-17 取消，L02 改 Ø20×3 盘直接坐法兰（docs/reports/髋横滚轴承取消_2026-09-17.md），between 里的 L02 成历史，不删。"
+    note: "毂 Ø19.85 vs 内圈 Ø20 = -0.15 过盈（名义）；TC01b 未打"
+    contact: null
+    contact_unknown_class: "not_applicable"
+    contact_unknown_reason: "拒绝填 contact：target_ref 的桶 tolerances.yaml:fits.pla.bearing_inner_hub_6704 的 target_range_mm [19.85, 19.95] 是一个**直径**，而第 5 层 contact_profile 量出来的是沿单轴的**有符号配合量**（过盈为正、间隙为负，量级 0.x mm）。两者不是同一个量，硬填会同时制造两件坏事：① 一条数值毫无意义的红（拿 −0.0x 去比 19.85..19.95）；② 一格**假绿** —— 该桶的 fit_measured_geometry 只要『有任何一条关系量过几何』就变绿，等于声称 L02/L04 毂 Ø19.85 这个直径被实测几何验证过，而 contact_profile 根本没量直径。L02/L04 毂 Ø19.85 的直径归第 2 层射线判据管。要让本条能真算，需先在 tolerances.yaml 给该桶补一个『径向单边配合量』区间（过盈为正/间隙为负）；本轮按分工不动 tolerances.yaml。"
+    contact_provenance:
+      - "tolerances.yaml:fits.pla.bearing_inner_hub_6704.target_range_mm"
+      - "tools/gate/layers/l5_function.py:contact_profile"
+    provenance:
+      - "duck.py:30,226"
+      - "inventory_v2.json:functional_relations[1]"
+  - id: "R03"
+    kind: "bearing_seat"
+    between:
+      - "6704 外圈 轴向"
+      - "L01/L03 座台阶"
+    declared_target: "内侧挡 / 外侧挡"
+    target_ref: "tolerances.yaml:fits.pla.bearing_axial_retention"
+    actual: "内侧台阶 0.575 径向 @x12.75；外侧无挡（靠压配）；内圈-盘 0.5 游隙"
+    actual_src: "assumed"
+    status: "open"
+    scope_2026-09-17: "站位换到膝：髋横滚 L01 座 09-17 取消（docs/reports/髋横滚轴承取消_2026-09-17.md），contact.parties 改成 bearing_left_knee × upper_leg（膝 6704 外圈 vs L03 座 L03-F04，同一种配合）；09-09 的髋横滚实测（parties_was_until_2026-09-17 / measured_2026-09-09_hip_roll_was_until_2026-09-17）不能沿用，探测窗与实测置 null，等 r5 后重量。"
+    note: "外侧无挡，靠压配；内圈-盘 0.5 游隙 —— 双向轴向定位缺失"
+    contact:
+      axis: "x"
+      approach: "-x"
+      approach_note: "带符号的轴向；层里读的是 approach（_axis_vec），写成裸 \"+\" 会解析成 None，本条必须是 +x/-x/+y/-y/+z/-z 这种写法"
+      parties:
+        - placed: "bearing_left_knee"
+          component: "bearing_6704_left_knee"
+          role: "moving（沿膝舵机轴压向 L03 座的内侧台阶）"
+          face: "6704ZZ 外圈内侧端面（膝舵机局部 x 12.85 + 法兰面 13.0 口径，世界坐标待 r5 后量）"
+        - placed: "upper_leg"
+          part: "L03"
+          role: "fixed"
+          face: "L03 膝座（L03-F04 ring_boss(O,Rk)）的内侧台阶端面（局部 12.75，环带 r 13.0..13.575；世界坐标待 r5 后量）"
+      parties_note_2026-09-17: "axis/approach 仍写 x/−x，是旧髋横滚站位（横滚轴沿世界 x）的值；膝轴沿世界 ±y（frozen.yaml:joint_axes left_knee），重量时要一起改成膝的轴向"
+      parties_was_until_2026-09-17:
+        - placed: "bearing_left_hip_roll"
+          component: "bearing_6704_left_hip_roll"
+          role: "moving（沿 −x 压向 L01 的内侧台阶）"
+          face: "6704ZZ 外圈内侧端面 世界 x=18.85（= 髋横滚舵机局部 12.85）"
+        - placed: "yaw2roll"
+          part: "L01"
+          role: "fixed"
+          face: "L01 座的内侧台阶端面 世界 x=18.75（= 局部 12.75，径向只有 0.575 宽的环带 r 13.0..13.575）"
+      probe_bbox_mm: null
+      probe_bbox_unknown_class: "not_measured"
+      probe_bbox_unknown_reason: "站位 09-17 换到膝（bearing_left_knee × upper_leg），09-09 髋横滚的探测窗（世界 [17.5,16.0,115.5]..[20.0,19.0,115.9]）不能沿用；等 r5 后在 placed/ 上重扫 L03 座台阶环带再填"
+      probe_bbox_mm_was_until_2026-09-17:
+        - [17.5, 16.0, 115.5]
+        - [20.0, 19.0, 115.9]
+      probe_bbox_rationale_was_until_2026-09-17: "台阶是一条 r 13.0..13.575 的窄环带（duck.py:404 seat cut Ø27.15 从局部 12.75 起 + 掏空到 Ø26），只有落在这条带上的格子才同时打到轴承和 L01。本轮先用 −x 射线在 (y,z) 网格上扫出这条带的位置（r<13.0 处 L01 顶面掉到 x=17.30，差 1.55；r≥13.0 才是 18.75），再把窗收到环带正上方 y∈[16.0,19.0] × z∈[115.5,115.9]（对应 r 13.00..13.48），x 窗 [17.5,20.0] 夹在 18.75 与 18.85 之间。"
+      quantity: "6704 外圈内侧端面到 L03 膝座台阶的**轴向**有符号配合量（负 = 轴向没顶住）；09-17 前写的是 L01 髋横滚座"
+      convention_conflict: "本桶 target_range_mm 用的是**间隙的绝对值**（正数），而 contact_profile 的 signed 约定是『过盈为正、间隙为负』。所以即使间隙做对了，本条 relation_contact 也会因为符号相反而判红。**这不是几何有问题，是 tolerances.yaml 这个桶的口径要改成有符号区间**（例如 [-0.10, 0.00]，过盈为正）。本轮按分工不动 tolerances.yaml，把冲突写在这里给公差表的负责人。"
+      measured: null
+      measured_unknown_class: "not_measured"
+      measured_unknown_reason: "09-17 站位换到膝，09-09 的髋横滚实测（下方 *_was_until_2026-09-17）不能沿用，等 r5 后重量"
+      measured_2026-09-09_hip_roll_was_until_2026-09-17:
+        signed_min_mm: -0.100000381
+        signed_max_mm: -0.100000381
+        signed_med_mm: -0.100000381
+        contact_area_mm2: 0.0
+        projected_overlap_mm2: 2.8
+        clamp_travel_mm: 0.100000381
+        cells_paired: 14
+        cells_total: 14
+        cell_mm2: 0.2
+        method: "tools/gate/layers/l5_function.py:contact_profile（本轮直接调用该函数，不是另写一套）；符号约定：过盈为正、间隙为负"
+      finding_was_until_2026-09-17: "（髋横滚站位，09-17 作废）内侧台阶只剩 0.100 轴向间隙、接触面积 0；外侧本来就无挡（relations.R03.actual）→ 6704 外圈**双向都没有轴向定位**，这正是 target_range [0.0, 0.1] 想守住的东西。另记：同一条 −x 射线上，半径小于 13.0 的地方 L01 顶面掉到 x=17.30，离外圈端面 1.55 —— 台阶只有 0.575 宽是真的。"
+      provenance:
+        - "duck.py:221-227,402-418"
+        - "tolerances.yaml:fits.pla.bearing_axial_retention"
+        - "本轮 trimesh 实测：bearing_left_hip_roll 内侧端面 18.85 / yaw2roll 台阶面 18.75 → 轴向间隙 0.100"
+        - "探测窗是本轮用 ./.venv/bin/python + trimesh 直接加载 cad/duck_s288/placed/ 的实体量出来的：先取两方的世界包围盒，再沿 approach 轴逐点射线（tools/gate/layers/l2_features.py:ray_hits + solid_spans_dedup）找到两方真正相对的那一段，把窗口收到只落在这一对面上（窗口一旦包住别的料，signed 会被截断或串到邻件上）。窗口沿 approach 轴的上下界故意夹在两个面之间，这样 contact_profile 的 segment 裁剪不会把面本身裁掉。"
+    provenance:
+      - "duck.py:221-227,402-418（推导）"
+      - "inventory_v2.json:functional_relations[2]"
+  - id: "R04"
+    kind: "bearing_seat"
+    between:
+      - "6700 外圈 Ø15"
+      - "L07 座 Ø15.1"
+    declared_target: "+0.05~0.1"
+    target_ref: "tolerances.yaml:fits.pla.bearing_outer_seat_6700"
+    actual: "射线 Ø15.093–15.100；唇 Ø13.5 挡 0.8"
+    actual_src: "measured"
+    status: "ok"
+    note: null
+    contact: null
+    contact_unknown_class: "not_applicable"
+    contact_unknown_reason: "拒绝填 contact：target_ref 的桶 tolerances.yaml:fits.pla.bearing_outer_seat_6700 的 target_range_mm [15.05, 15.1] 是一个**直径**，而第 5 层 contact_profile 量出来的是沿单轴的**有符号配合量**（过盈为正、间隙为负，量级 0.x mm）。两者不是同一个量，硬填会同时制造两件坏事：① 一条数值毫无意义的红（拿 −0.0x 去比 15.05..15.1）；② 一格**假绿** —— 该桶的 fit_measured_geometry 只要『有任何一条关系量过几何』就变绿，等于声称 L07 座 Ø15.1（第 2 层射线已量到 Ø15.093–15.100） 这个直径被实测几何验证过，而 contact_profile 根本没量直径。L07 座 Ø15.1（第 2 层射线已量到 Ø15.093–15.100） 的直径归第 2 层射线判据管。要让本条能真算，需先在 tolerances.yaml 给该桶补一个『径向单边配合量』区间（过盈为正/间隙为负）；本轮按分工不动 tolerances.yaml。"
+    contact_provenance:
+      - "tolerances.yaml:fits.pla.bearing_outer_seat_6700.target_range_mm"
+      - "ankle_split.py:51-54"
+    provenance:
+      - "ankle_split.py:51-54"
+      - "修复报告 §2"
+      - "inventory_v2.json:functional_relations[3]"
+  - id: "R05"
+    kind: "slide_fit"
+    between:
+      - "6700 内圈 Ø10"
+      - "L04 轴颈 Ø9.95"
+    declared_target: "滑配"
+    target_ref: "tolerances.yaml:fits.pla.journal_slide_6700"
+    actual: "射线 Ø9.938–9.950；无轴向台阶，游隙 ≈0.55（凸台端 -16.85 ↔ 轴承 -17.4）"
+    actual_src: "measured"
+    status: "open"
+    note: "无轴向台阶，游隙 ≈0.55"
+    contact: null
+    contact_unknown_class: "not_applicable"
+    contact_unknown_reason: "拒绝填 contact：target_ref 的桶 tolerances.yaml:fits.pla.journal_slide_6700 的 target_range_mm [9.9, 9.98] 是一个**直径**，而第 5 层 contact_profile 量出来的是沿单轴的**有符号配合量**（过盈为正、间隙为负，量级 0.x mm）。两者不是同一个量，硬填会同时制造两件坏事：① 一条数值毫无意义的红（拿 −0.0x 去比 9.9..9.98）；② 一格**假绿** —— 该桶的 fit_measured_geometry 只要『有任何一条关系量过几何』就变绿，等于声称 L04 轴颈 Ø9.95（第 2 层射线已量到 Ø9.938–9.950） 这个直径被实测几何验证过，而 contact_profile 根本没量直径。L04 轴颈 Ø9.95（第 2 层射线已量到 Ø9.938–9.950） 的直径归第 2 层射线判据管。要让本条能真算，需先在 tolerances.yaml 给该桶补一个『径向单边配合量』区间（过盈为正/间隙为负）；本轮按分工不动 tolerances.yaml。"
+    contact_provenance:
+      - "tolerances.yaml:fits.pla.journal_slide_6700.target_range_mm"
+      - "duck.py:21,26-27,528"
+    provenance:
+      - "duck.py:21,26-27,528"
+      - "inventory_v2.json:functional_relations[4]"
+  - id: "R06"
+    kind: "horn_coupling"
+    between:
+      - "S288 法兰 6 孔 r4.75"
+      - "所有从动盘 horn_cut"
+    declared_target: "同心 / 相位"
+    target_ref: "tolerances.yaml:fits.horn.clock_phase"
+    actual: "几何由 horn_holes 生成；相位=0° 起（k*60°），未与实物法兰相位核对；无同心检查"
+    actual_src: "measured"
+    status: "open"
+    note: "相位=0° 起（k*60°），未与实物法兰相位核对；无同心检查 —— 第 5 层'舵盘时钟'判据的落点"
+    contact: null
+    contact_unknown_class: "not_applicable"
+    contact_unknown_reason: "拒绝填 contact：target_ref 的桶 fits.horn.clock_phase 用的是 target_range_deg（−5..+5°，相位角）—— 第 5 层对 contact 段取的是 tol_pair(node) 默认键 target_range_mm，在这里两端都会取到 null，量出来也没有判据。更根本的是『舵盘 6 孔零位相位』不是两个面沿单轴的贴合量；第 5 层已有专门的 horn 判据（horn{i}:clock_phase_vs_declared / horn_concentricity）在量它，现在缺的是**声明的零位相位与基准方向**，不是缺 contact 段。"
+    contact_provenance:
+      - "tolerances.yaml:fits.horn.clock_phase.target_range_deg"
+      - "tools/gate/layers/l5_function.py:horn{i}:clock_phase_vs_declared"
+      - "s288.py:92-100"
+    provenance:
+      - "s288.py:92-100"
+      - "duck.py:334-337"
+      - "inventory_v2.json:functional_relations[5]"
+  - id: "R07"
+    kind: "driven_disc"
+    between:
+      - "S288 法兰面 12.85"
+      - "从动盘内面"
+    declared_target: "贴合"
+    target_ref: "tolerances.yaml:fits.horn.face_contact"
+    actual: "driven_patch 补到 XLF 14.5 +0.2 重叠"
+    actual_src: "assumed"
+    status: "ok"
+    note: null
+    contact:
+      axis: "z"
+      approach: "+z"
+      approach_note: "带符号的轴向；层里读的是 approach（_axis_vec），写成裸 \"+\" 会解析成 None，本条必须是 +x/-x/+y/-y/+z/-z 这种写法"
+      parties:
+        - placed: "yaw2roll"
+          part: "L01"
+          role: "moving（沿 +z 贴上法兰面）"
+          face: "L01 髋偏航从动盘内表面（driven_patch 补到 XLF 14.5 +0.2，duck.py:276-280）"
+        - placed: "servo__trunk_base_yaw2roll"
+          component: "servo_hip_yaw_L (S288)"
+          role: "fixed"
+          face: "S288 法兰面 局部 x=12.85 → 世界 z=118.65（法兰 Ø13.9）"
+      probe_bbox_mm:
+        - [1.5, 13.0, 117.0]
+        - [10.5, 22.0, 120.0]
+      probe_bbox_rationale: "窗放在法兰 Ø13.9 之内（轴心世界 (6.0, 17.5)，半径 6.95）：x∈[1.5,10.5] × y∈[13.0,22.0] 的半宽 4.5，对角 6.36 < 6.95，保证不越到法兰外圈（越出去 B 面就变成舵机本体前端面 121.55，会串进 −2.9 的假间隙）。z 窗 [117.0,120.0] 夹住 118.65 这一个面。舵盘 6×Ø2.2 与中心 Ø5 落在窗里的格子 A 侧没料，自动跳过。"
+      quantity: "从动盘内面与 S288 法兰面的**贴合量**（正 = 重叠/压上，负 = 悬空）"
+      measured_2026-09-09:
+        signed_min_mm: -2.9695002e-10
+        signed_max_mm: 5.68434189e-13
+        signed_med_mm: 0
+        contact_area_mm2: 35.25
+        projected_overlap_mm2: 57.0
+        clamp_travel_mm: 0
+        cells_paired: 228
+        cells_total: 361
+        cell_mm2: 0.25
+        method: "tools/gate/layers/l5_function.py:contact_profile（本轮直接调用该函数，不是另写一套）；符号约定：过盈为正、间隙为负"
+      finding: "唯一一条量出来是**绿**的功能关系：从动盘内面确实贴在法兰面上，接触面积 35.25 mm²（窗内投影 57.00 mm² 中扣掉 6 个 Ø2.2 与中心 Ø5）。"
+      provenance:
+        - "duck.py:271,276-280,317-321"
+        - "tolerances.yaml:fits.horn.face_contact"
+        - "本轮 trimesh 实测：两面都在世界 z=118.65，signed 0.000000000，接触面积 35.25 mm²/投影 57.00 mm²"
+        - "探测窗是本轮用 ./.venv/bin/python + trimesh 直接加载 cad/duck_s288/placed/ 的实体量出来的：先取两方的世界包围盒，再沿 approach 轴逐点射线（tools/gate/layers/l2_features.py:ray_hits + solid_spans_dedup）找到两方真正相对的那一段，把窗口收到只落在这一对面上（窗口一旦包住别的料，signed 会被截断或串到邻件上）。窗口沿 approach 轴的上下界故意夹在两个面之间，这样 contact_profile 的 segment 裁剪不会把面本身裁掉。"
+    provenance:
+      - "duck.py:317-321"
+      - "inventory_v2.json:functional_relations[6]"
+  - id: "R08"
+    kind: "clamp"
+    between:
+      - "S288 背面"
+      - "carrier/back_shell 背板"
+    declared_target: "贴厚段 -12.85 留 0.3 → 板内面 -13.15；薄段靠垫柱/加厚块"
+    target_ref: "tolerances.yaml:fits.servo.back_clamp"
+    actual: "按 T/T_lo 实测；step_z 假设"
+    actual_src: "assumed"
+    status: "open"
+    note: "薄段靠垫柱/加厚块，整条依赖 step_z 采用值"
+    contact:
+      axis: "z"
+      approach: "-z"
+      approach_note: "带符号的轴向；层里读的是 approach（_axis_vec），写成裸 \"+\" 会解析成 None，本条必须是 +x/-x/+y/-y/+z/-z 这种写法"
+      parties:
+        - placed: "trunk"
+          part: "T01"
+          role: "moving（沿 −z 压向舵机背面）"
+          face: "载体背板内面 世界 z=144.65（= 舵机局部 XR=−13.15，duck.py:17）"
+        - placed: "servo__trunk_base_yaw2roll"
+          component: "servo_hip_yaw_L (S288)"
+          role: "fixed"
+          face: "S288 下半段（厚段）背面 局部 −12.85 → 世界 z=144.35"
+      probe_bbox_mm:
+        - [-16.0, 10.0, 143.0]
+        - [-12.0, 25.0, 146.0]
+      probe_bbox_rationale: "窗取在厚段一侧：世界 x∈[-16.0,-12.0] 对应舵机局部 z −22..−18（接线端），step_z=(−7,−12) 换算到世界 x 是 −1..−6，所以 x<−6 一定是厚段，背面稳定在 144.35。y∈[10.0,25.0] 在舵机 20 宽之内（世界 7.5..27.5）且避开背面副轴 Ø13.8（世界 y 10.6..24.4 只在 x≈6 附近）；z 窗 [143.0,146.0] 夹住 144.35 与 144.65 两个面。背板 4 个 Ø2.2 角孔在 x=−16.5/13.5，A 侧没料的格子自动跳过。"
+      quantity: "背板内面到舵机厚段背面的**有符号夹紧量**（正 = 压住，负 = 悬空）"
+      convention_conflict: "本桶 target_range_mm 用的是**间隙的绝对值**（正数），而 contact_profile 的 signed 约定是『过盈为正、间隙为负』。所以即使间隙做对了，本条 relation_contact 也会因为符号相反而判红。**这不是几何有问题，是 tolerances.yaml 这个桶的口径要改成有符号区间**（例如 [-0.30, 0.00]，过盈为正；或把 meaning 改成『留量（正数）』并另开一条有符号的夹紧判据）。本轮按分工不动 tolerances.yaml，把冲突写在这里给公差表的负责人。"
+      measured_2026-09-09:
+        signed_min_mm: -0.299987793
+        signed_max_mm: -0.299987793
+        signed_med_mm: -0.299987793
+        contact_area_mm2: 0.0
+        projected_overlap_mm2: 69.0
+        clamp_travel_mm: 0.299987793
+        cells_paired: 276
+        cells_total: 279
+        cell_mm2: 0.25
+        method: "tools/gate/layers/l5_function.py:contact_profile（本轮直接调用该函数，不是另写一套）；符号约定：过盈为正、间隙为负"
+      finding: "**这是 H02 那类事故的规模化版本**：15 颗 S288 的载体背板全部照 XR=−13.15 画，而厚段背面在 −12.85 —— 处处 0.30 间隙、接触面积 0，整台机器上没有一块背板真的压在舵机上，反力矩全靠 4 颗 M2 的螺杆受拉/受剪。第 3 层『干涉=0』对这个是完美通过的。"
+      provenance:
+        - "duck.py:17,126-165,372-377"
+        - "tolerances.yaml:fits.servo.back_clamp"
+        - "本轮 trimesh 实测：背板内面 144.65 / 厚段背面 144.35 → signed −0.300，接触面积 0.00 mm²（投影 69.00 mm²）"
+        - "探测窗是本轮用 ./.venv/bin/python + trimesh 直接加载 cad/duck_s288/placed/ 的实体量出来的：先取两方的世界包围盒，再沿 approach 轴逐点射线（tools/gate/layers/l2_features.py:ray_hits + solid_spans_dedup）找到两方真正相对的那一段，把窗口收到只落在这一对面上（窗口一旦包住别的料，signed 会被截断或串到邻件上）。窗口沿 approach 轴的上下界故意夹在两个面之间，这样 contact_profile 的 segment 裁剪不会把面本身裁掉。"
+    provenance:
+      - "duck.py:17,126-165,372-377"
+      - "inventory_v2.json:functional_relations[7]"
+  - id: "R09"
+    kind: "screw"
+    between:
+      - "M2 自攻 × S288 塑料壳"
+      - "各法兰/背孔"
+    between_was_until_2026-09-10: "『M2 × S288 螺纹』—— 口径错。S288 是塑料齿轮 + 塑料壳（宇树 2026-09-08 官方参数表，V2_S288版发布产物/04_电机到货测试/S288实测尺寸记录.md:56；用户实物确认），壳上没有金属内螺纹；官方尺寸图对 S288 写的是『6-Ø1.7 ⌄3.0(MAX) 使用 M2 自攻螺丝』，M2 内螺纹（4-M2螺纹 ⌄3.0 MAX）是 J288 的规定。"
+    declared_target: "咬入下限 **未知**（塑料自攻，tolerances.yaml:engagement_by_joint_type.s288_plastic_self_tap.range_mm 两端都是 null）；孔盲深 ≤3.0（官方图）"
+    declared_target_was_until_2026-09-10: "『咬入 1.8~3.0（深 3.0 MAX）』—— **1.8~3.0 是金属内螺纹桶（s288_metal_thread）的数，对塑料自攻无效**，2026-09-10 起本项目一颗螺丝都不挂那个桶（v2_usage: 0）。改成『未知』不是把要求放宽，是承认这条关系**现在没有验收下限**：实测下限要靠 bench.yaml:BN01 产出。"
+    target_ref: "tolerances.yaml:engagement.s288_metal_thread"
+    target_ref_left_broken_on_purpose_2026-09-10: "**本轮故意没有改 target_ref。** 它指的路径 `engagement.s288_metal_thread` 在 tolerances.yaml 里解析不到（实际路径是 engagement_by_joint_type.*），第 5 层因此对本条判 target_ref 红。把它改成 `engagement_by_joint_type.s288_plastic_self_tap` 会让这条红变绿 —— 而新桶的 range_mm 两端都是 null，绿完之后 L5 只会在下一步再判一次 unknown，中间那一步『绿』是纯粹的噪声。更重要的是：改 target_ref 是**改判据指向**，属于层/关系语义的改动，不是本轮数据轮的范围。留红。"
+    actual: "见 fasteners；N01 下排与 N03 上排例外"
+    actual_src: "assumed"
+    status: "open"
+    note: "N01 下排（F11b）与 N03 上排（F15）两个例外"
+    contact: null
+    contact_unknown_class: "not_applicable"
+    contact_unknown_reason: "拒绝填 contact：本条是**螺纹咬入**，不是两个面的贴合。咬入由第 5 层逐孔的 engagement 判据（features.yaml:feature_hole_map + fasteners.yaml:engagement_mm/stack_mm，阈值取 tolerances.yaml:engagement_by_joint_type）算出来，F11b/F15 两条已确认问题就是它抓的。contact_profile 沿单轴量两个实体表面之间的距离，量不到螺纹在孔里咬进去多少。另外本条 target_ref 'tolerances.yaml:engagement.s288_metal_thread' 在 tolerances.yaml 里解析不到（实际路径是 engagement_by_joint_type.*），第 5 层已对本条单独判 target_ref 红 —— 那条红才是本条真正缺的东西。"
+    contact_provenance:
+      - "fasteners.yaml:*.engagement_mm"
+      - "tolerances.yaml:engagement_by_joint_type.s288_plastic_self_tap（2026-09-10 起 128 颗实际挂的桶）"
+      - "tolerances.yaml:engagement_by_joint_type.s288_metal_thread（历史：本条 target_ref 仍指着它的父路径）"
+      - "tools/gate/layers/l5_function.py:_engage_rule"
+    provenance:
+      - "audit_screws / final_measurements / mechanical_audit"
+      - "inventory_v2.json:functional_relations[8]"
+  - id: "R10"
+    kind: "screw"
+    between:
+      - "M2 × PLA 自攻"
+      - "L05 Ø1.6 / H01 Ø1.6 / T01 柱 Ø1.6 / 仓底 Ø1.6 / 立柱 Ø1.7 / IMU Ø1.7"
+    declared_target: "≥2×d=4（Gate 规则）"
+    target_ref: "tolerances.yaml:engagement.pla_self_tap"
+    actual: "6.7 / 3.9 / 5.8 / 2.7 / 10 / 10 → H02→H01 3.9 与 B01 2.7 不满足"
+    actual_src: "assumed"
+    status: "open"
+    note: "H02→H01 3.9 与 B01 2.7 均 < 2×d = 4.0"
+    contact: null
+    contact_unknown_class: "not_applicable"
+    contact_unknown_reason: "拒绝填 contact：本条是**螺纹咬入**，不是两个面的贴合。咬入由第 5 层逐孔的 engagement 判据（features.yaml:feature_hole_map + fasteners.yaml:engagement_mm/stack_mm，阈值取 tolerances.yaml:engagement_by_joint_type）算出来，F11b/F15 两条已确认问题就是它抓的。contact_profile 沿单轴量两个实体表面之间的距离，量不到螺纹在孔里咬进去多少。另外本条 target_ref 'tolerances.yaml:engagement.pla_self_tap' 在 tolerances.yaml 里解析不到（实际路径是 engagement_by_joint_type.*），第 5 层已对本条单独判 target_ref 红 —— 那条红才是本条真正缺的东西。"
+    contact_provenance:
+      - "fasteners.yaml:*.engagement_mm"
+      - "tolerances.yaml:engagement_by_joint_type.pla_self_tap"
+      - "tools/gate/layers/l5_function.py:_engage_rule"
+    provenance:
+      - "ankle_split.py:12"
+      - "duck.py:672,593,887,658,898"
+      - "inventory_v2.json:functional_relations[9]"
+  - id: "R11"
+    kind: "slide_fit"
+    between:
+      - "N03 discA Ø21.6 / B 端 N04 销 Ø15.9 + 22×16×4（09-12 ④，discB 已删）"
+      - "H01+H03 Ø22.18 半座"
+    declared_target: "PLA 滑动，径向 0.3"
+    target_ref: "tolerances.yaml:fits.pla.plain_slide_head_roll"
+    actual: "2026-09-14（r2 M5 修件后）：H03/H01 A 半座下半圈 r 11.085..11.088 = Ø22.170..22.176（x 6.5/8.0/9.8 三站 × 16 向，B 座同值）；N03 A 盘 discA r 10.787..10.800 → **径向单边 0.285**（零位 0.2847、head_roll ±25° 每 1° 最小 0.2717@+14°）。旧值『实测壳座 r10.89 → 0.09 / 0.29』是 r2 之前原版半座 r 10.892 的，已作废"
+    actual_src: "measured"
+    status: "resolved_2026-09-14"
+    note: "r2 M5 已改件（head.py:24-29/166-167/176 seatA 用 P['seat_d'] 重切，x 5.98..YRM_A2+0.1，不动 x 5.4..6.0 的唇）：座 Ø22.170..22.176、盘 r10.787..10.800 → 0.285，落进 tolerances.yaml:fits.pla.plain_slide_head_roll 的 0.2..0.4。tolerances 那条已在 r2 同步（resolved_on/resolved_by + gate_must_use.discA_mm 0.09→0.285）。**contact 段下面的 measured_2026-09-09 是旧几何的数，未重跑**（见 stale_since）"
+    contact:
+      axis: "z"
+      approach: "-z"
+      approach_note: "带符号的轴向；层里读的是 approach（_axis_vec），写成裸 \"+\" 会解析成 None，本条必须是 +x/-x/+y/-y/+z/-z 这种写法"
+      parties:
+        - placed: "yrm"
+          part: "N03"
+          role: "moving（沿 −z 落进下半座）"
+          face: "N03 A 端轴颈 discA Ø21.6 的下缘 世界 z=224.815（轴心 z=235.615，r=10.8）—— 2026-09-14 复量 r 10.787..10.800，z 224.815..224.828，未变"
+        - placed: "head_bottom_shell"
+          part: "H03"
+          role: "fixed"
+          face: "H03 的 Ø22.18 半座下半圈：2026-09-14（r2 M5 后）实测 r=11.085..11.088 → 座面 z≈224.524（旧原版实测 r=10.89 / 座面 224.725 已作废）"
+      probe_bbox_mm:
+        - [6.6, -2.0, 222.0]
+        - [9.2, 2.0, 226.5]
+      probe_bbox_rationale: "A 座在世界 x 5.5..9.5（H01）/ 6.2..10.0（H03 原版实测），窗取 x∈[6.6,9.2] 落在两者交集里；y∈[-2.0,2.0] 只取圆柱最低点附近的一条带（离轴心 |y|≤2 时半径变化 <0.19，signed 才有单一含义）；z 窗 [222.0,226.5] 夹住 224.725 与 224.815。**故意选下半座而不是 H01 上半座**：本轮同法量到上半座是 −0.400、下半座是 −0.098，下半座才是抱死风险所在（见 finding）。"
+      quantity: "N03 discA 与半座的**径向单边间隙**（负 = 有间隙，正 = 已经干涉）"
+      convention_conflict: "本桶 target_range_mm 用的是**间隙的绝对值**（正数），而 contact_profile 的 signed 约定是『过盈为正、间隙为负』。所以即使间隙做对了，本条 relation_contact 也会因为符号相反而判红。**这不是几何有问题，是 tolerances.yaml 这个桶的口径要改成有符号区间**（例如 [-0.40, -0.20]，过盈为正；现在的 [0.2, 0.4] 是间隙绝对值）。本轮按分工不动 tolerances.yaml，把冲突写在这里给公差表的负责人。"
+      stale_since: "2026-09-14：下面这组 measured_2026-09-09 是 r2 M5 改件**之前**（H03 原版半座 r 10.892）在旧 placed/ 上量的，本次数据同步没有重跑 contact_profile；R11 的现行结论以上面 actual 里的 r2 复量数为准。要刷新须重跑 l5_function.contact_profile。"
+      measured_2026-09-09:
+        signed_min_mm: -0.102335394
+        signed_max_mm: -0.0953979492
+        signed_med_mm: -0.098130789
+        contact_area_mm2: 0.0
+        projected_overlap_mm2: 13.65
+        clamp_travel_mm: 0.0953979492
+        cells_paired: 63
+        cells_total: 63
+        cell_mm2: 0.216667
+        method: "tools/gate/layers/l5_function.py:contact_profile（本轮直接调用该函数，不是另写一套）；符号约定：过盈为正、间隙为负"
+      finding: "实测单边 0.0954~0.1023，与复审说的 0.09 对上，低于目标下限 0.20。叠上《实测公差锚点_2026-09-09》反推的 PLA 打印偏移 0.15~0.30 mm/边，这 0.098 会被直接吃成负值 → 头横滚**转不动**。这是本轮 11 条实测里唯一一条『数值本身就已经越界、且实物锚点还要往更坏推』的。"
+      not_covered: "上半座（H01，approach +z）的 0.400~0.412 和 discB（Ø21.2，世界 x 40.4..44.1）都没有被本 contact 段覆盖 —— 一条关系只能挂一个探测窗。要全覆盖需要把 R11 拆成 discA/discB × 上/下半座 4 条。"
+      provenance:
+        - "duck.py:35,811-817,882-884"
+        - "docs/gate/实测公差锚点_2026-09-09.md 第 4 节"
+        - "tolerances.yaml:fits.pla.plain_slide_head_roll"
+        - "本轮 trimesh 实测：discA 下缘 224.815 / H03 座面 224.725 → 单边 0.095~0.102（63/63 格全配对）；同法量 discA→H01 上半座（approach +z, 窗 z∈[245.0,248.5]）= 0.400~0.412"
+        - "探测窗是本轮用 ./.venv/bin/python + trimesh 直接加载 cad/duck_s288/placed/ 的实体量出来的：先取两方的世界包围盒，再沿 approach 轴逐点射线（tools/gate/layers/l2_features.py:ray_hits + solid_spans_dedup）找到两方真正相对的那一段，把窗口收到只落在这一对面上（窗口一旦包住别的料，signed 会被截断或串到邻件上）。窗口沿 approach 轴的上下界故意夹在两个面之间，这样 contact_profile 的 segment 裁剪不会把面本身裁掉。"
+    provenance:
+      - "duck.py:35,811-817,882-884"
+      - "复审交接 §8"
+      - "inventory_v2.json:functional_relations[10]"
+  - id: "R12"
+    kind: "hinge"
+    between:
+      - "N03 A/B 轴颈"
+      - "H01 上半 + H03 下半"
+    declared_target: "同轴 (·,0,235.61) 与 head_roll 轴"
+    target_ref: "tolerances.yaml:fits.axis.concentricity"
+    actual: "轴线来自 MJCF；无同心检查"
+    actual_src: "measured"
+    status: "open"
+    note: "轴线来自 MJCF（冻结），但没有同心检查"
+    contact: null
+    contact_unknown_class: "not_applicable"
+    contact_unknown_reason: "拒绝填 contact：本条是**同轴度**（两条轴线的径向偏移 ±0.05），不是两个面沿单轴的贴合量。contact_profile 取探测窗里所有格子 signed 的极值，圆柱面上各处 signed 本来就随方位变化，signed_max−signed_min 反映的是窗口切到的弦长差，不是偏心量 —— 填了只会得到一个看不懂的红。要真算同心，需要一条『拟合两个圆柱的轴线、比轴线距离』的判据，第 0/2/5 层现在都没有。target_ref 的 fits.axis.concentricity 区间 ±0.05 是直接沿用 datum_vs_mjcf_mm 的轴线偏移上限。"
+    contact_provenance:
+      - "tolerances.yaml:fits.axis.concentricity"
+      - "duck.py:801,821"
+      - "tools/gate/layers/l5_function.py:contact_profile"
+    provenance:
+      - "duck.py:801,821"
+      - "inventory_v2.json:functional_relations[11]"
+  - id: "R13"
+    kind: "snap"
+    between:
+      - "T01 卡珠 Ø2 凸 1.0"
+      - "B01 槽 Ø2.4"
+    declared_target: "咔一下扣住"
+    target_ref: "tolerances.yaml:fits.snap.b01"
+    actual: "未查"
+    actual_src: null
+    status: "open"
+    note: "咬合深度/推入路径全无检查"
+    contact: null
+    contact_unknown_class: "not_applicable"
+    contact_unknown_reason: "拒绝填 contact：target_ref 的桶 fits.snap.b01 的 target_range_mm [0.6, 1.0] 是**咬合深度**（卡珠越过槽口后落进槽里的有效量），那是**推入过程中的量**。零位姿（B01 已关到位）下卡珠 Ø2（duck.py:532 cyl(2.0, 1.9, (BX0, ±14.05, 144.0), axis='y')）与仓门槽 Ø2.4（duck.py:557）处处让开 0.2，本轮沿 −x 实测 A=trunk 卡珠 / B=battery_door 得 signed ≈ −0.25（槽底到珠顶的轴向余量、接触面积 0），那是让位间隙，不是咬合深度 —— 两个量不能互相顶替。要真算得有一条沿推入路径扫掠、取过程最大过盈的判据。"
+    contact_provenance:
+      - "duck.py:521,532,557"
+      - "tolerances.yaml:fits.snap.b01.target_range_mm"
+      - "本轮 trimesh 实测（cad/duck_s288/placed/trunk.stl × battery_door.stl，approach −x，窗 x∈[-45.5,-43.0]）"
+    provenance:
+      - "duck.py:576,587,612"
+      - "inventory_v2.json:functional_relations[12]"
+  - id: "R14"
+    kind: "slide_fit"
+    between:
+      - "电池 72×25×18"
+      - "仓 +0.6 单边"
+    declared_target: "推入/抽出"
+    target_ref: "tolerances.yaml:fits.battery_bay"
+    actual: "腔 x 19.2 × y 26.2 × z 73.2"
+    actual_src: "assumed"
+    status: "ok"
+    note: "BAT_CLR 0.6 单边，冻结"
+    contact:
+      axis: "y"
+      approach: "+y"
+      approach_note: "带符号的轴向；层里读的是 approach（_axis_vec），写成裸 \"+\" 会解析成 None，本条必须是 +x/-x/+y/-y/+z/-z 这种写法"
+      parties:
+        - placed: "zz_battery"
+          component: "battery 3S 1100mAh 72×25×18"
+          role: "moving（沿 +y 靠向仓侧壁）"
+          face: "电池 25 宽的 +y 侧面 世界 y=12.5"
+        - placed: "trunk"
+          part: "T01"
+          role: "fixed"
+          face: "电池仓 +y 侧内壁 世界 y=13.1（= 25/2 + BAT_CLR 0.6，duck.py:48）"
+      probe_bbox_mm:
+        - [-40.0, 12.0, 80.0]
+        - [-28.0, 14.0, 140.0]
+      probe_bbox_rationale: "窗取仓腔中段：x∈[-40.0,-28.0] 在仓腔 x −43.8..−24.6 之内且避开前壁/后口；z∈[80.0,140.0] 在 BZ0 73.7..BZ1 146.9 之内且避开底板与出线口；y 窗 [12.0,14.0] 夹住 12.5 与 13.1。导轨只从 z=100 起（RAIL_Z0），z<100 的格子 B 侧没料自动跳过（667/1000 配对）。"
+      quantity: "电池外表面到仓内壁的**单边间隙**（负 = 有间隙）"
+      convention_conflict: "本桶 target_range_mm 用的是**间隙的绝对值**（正数），而 contact_profile 的 signed 约定是『过盈为正、间隙为负』。所以即使间隙做对了，本条 relation_contact 也会因为符号相反而判红。**这不是几何有问题，是 tolerances.yaml 这个桶的口径要改成有符号区间**（例如 [-0.60, -0.60]，过盈为正；BAT_CLR 是冻结值，改的是口径不是数）。本轮按分工不动 tolerances.yaml，把冲突写在这里给公差表的负责人。"
+      measured_2026-09-09:
+        signed_min_mm: -0.600000381
+        signed_max_mm: -0.600000381
+        signed_med_mm: -0.600000381
+        contact_area_mm2: 0.0
+        projected_overlap_mm2: 513.0769
+        clamp_travel_mm: 0.600000381
+        cells_paired: 667
+        cells_total: 1000
+        cell_mm2: 0.769231
+        method: "tools/gate/layers/l5_function.py:contact_profile（本轮直接调用该函数，不是另写一套）；符号约定：过盈为正、间隙为负"
+      finding: "冻结的 BAT_CLR=0.6 在导出件上确实做到了（667 格全是 −0.600，无一格偏差）—— 这是本轮第一次用几何证明这个冻结值落地了，此前只有 duck.py 的常量。"
+      provenance:
+        - "duck.py:41-48"
+        - "frozen.yaml:battery_bay_26.BAT_CLR"
+        - "tolerances.yaml:fits.battery_bay"
+        - "本轮 trimesh 实测：电池面 12.5 / 仓壁 13.1 → 单边 0.600，667/1000 格配对"
+        - "探测窗是本轮用 ./.venv/bin/python + trimesh 直接加载 cad/duck_s288/placed/ 的实体量出来的：先取两方的世界包围盒，再沿 approach 轴逐点射线（tools/gate/layers/l2_features.py:ray_hits + solid_spans_dedup）找到两方真正相对的那一段，把窗口收到只落在这一对面上（窗口一旦包住别的料，signed 会被截断或串到邻件上）。窗口沿 approach 轴的上下界故意夹在两个面之间，这样 contact_profile 的 segment 裁剪不会把面本身裁掉。"
+    provenance:
+      - "duck.py:41-48"
+      - "inventory_v2.json:functional_relations[13]"
+  - id: "R15"
+    kind: "clearance"
+    kind_corrected_2026-09-09: "原 kind='clamp'，**标错了** —— 本条自己的 declared_target 与 note 写的都是『0.3 间隙，非夹持』。后果是第 5 层（l5_function.py:746 的 need_touch 白名单含 clamp）会对一条按设计就不接触的关系要求『必须有 > 0 的接触面积』，于是拿夹持的判据去量一个让位间隙 —— 又一次『查的东西不对』。改成 kind='clearance'（见本文件 kind_semantics）。"
+    between:
+      - "H01 笼"
+      - "横滚舵机"
+    declared_target: "0.3 间隙，非夹持"
+    target_ref: "tolerances.yaml:fits.servo.cage_clearance"
+    actual: "四面 0.3，背面 0 支撑；旷量 ±0.73°（复审）"
+    actual_src: "assumed"
+    status: "open"
+    note: "四面 0.3、背面 0 支撑；旷量 ±0.73°，无 Gate 判据"
+    contact:
+      axis: "z"
+      approach: "+z"
+      approach_note: "带符号的轴向；层里读的是 approach（_axis_vec），写成裸 \"+\" 会解析成 None，本条必须是 +x/-x/+y/-y/+z/-z 这种写法"
+      parties:
+        - placed: "head_bracket"
+          part: "H01"
+          role: "moving（沿 +z 托向舵机底面）"
+          face: "H01 舵机笼下托板顶面 世界 z=225.3（duck.py:826 lower）"
+        - placed: "servo__jaw_soft_jaw_soft"
+          component: "servo_head_roll (S288)"
+          role: "fixed"
+          face: "头横滚 S288 底面 世界 z=225.6146"
+      probe_bbox_mm:
+        - [-11.5, -20.0, 224.5]
+        - [-1.5, 4.0, 226.3]
+      probe_bbox_rationale: "窗取下托板的平顶：x∈[-11.5,-1.5]（托板 x −12..5，x≥−1 那一段被 A 座 bore / N03 走廊挖出 224.5 的凹坑，本轮射线扫描确认 x≤−1.5 处顶面稳定在 225.3）；y∈[-20.0,4.0] 在舵机长边 −24.5..9.5 之内；z 窗 [224.5,226.3] 夹住 225.3 与 225.6146。840/840 格全配对，signed 完全一致。"
+      quantity: "H01 笼下托板与舵机底面的**单边间隙**（负 = 不接触）"
+      convention_conflict: "本桶 target_range_mm 用的是**间隙的绝对值**（正数），而 contact_profile 的 signed 约定是『过盈为正、间隙为负』。所以即使间隙做对了，本条 relation_contact 也会因为符号相反而判红。**这不是几何有问题，是 tolerances.yaml 这个桶的口径要改成有符号区间**（例如 [-0.40, -0.20]，过盈为正；本条 declared_target 自己就写着『0.3 间隙，非夹持』，所以真正该改的可能是 kind —— 现在 kind='clamp' 会触发第 5 层的『必须有 >0 接触面积』，而这条关系按设计就是不接触的）。本轮按分工不动 tolerances.yaml，把冲突写在这里给公差表的负责人。"
+      measured_2026-09-09:
+        signed_min_mm: -0.314590454
+        signed_max_mm: -0.314590454
+        signed_med_mm: -0.314590454
+        contact_area_mm2: 0.0
+        projected_overlap_mm2: 258.4615
+        clamp_travel_mm: 0.314590454
+        cells_paired: 840
+        cells_total: 840
+        cell_mm2: 0.307692
+        method: "tools/gate/layers/l5_function.py:contact_profile（本轮直接调用该函数，不是另写一套）；符号约定：过盈为正、间隙为负"
+      finding: "四面里选了**下托板**（承重那一面）。实测 0.3146 落在 [0.2,0.4] 的绝对值区间里，几何是对的；红只会红在符号约定与 kind='clamp' 的接触面积要求上。"
+      not_covered: "另外三面（endL −y 端墙 / endR +y 端墙 / bridge 上桥）没被本窗覆盖；本轮顺手量到上桥底面在 246.4、舵机顶 245.6146 → 0.785，**不是 0.3**，relations.R15.note 的『四面 0.3』对上桥这一面不成立。"
+      provenance:
+        - "duck.py:826,858"
+        - "tolerances.yaml:fits.servo.cage_clearance"
+        - "本轮 trimesh 实测：托板顶 225.300 / 舵机底 225.6146 → 0.3146，840/840 格"
+        - "探测窗是本轮用 ./.venv/bin/python + trimesh 直接加载 cad/duck_s288/placed/ 的实体量出来的：先取两方的世界包围盒，再沿 approach 轴逐点射线（tools/gate/layers/l2_features.py:ray_hits + solid_spans_dedup）找到两方真正相对的那一段，把窗口收到只落在这一对面上（窗口一旦包住别的料，signed 会被截断或串到邻件上）。窗口沿 approach 轴的上下界故意夹在两个面之间，这样 contact_profile 的 segment 裁剪不会把面本身裁掉。"
+    provenance:
+      - "duck.py:858,复审交接 §10"
+      - "inventory_v2.json:functional_relations[14]"
+  - id: "R16"
+    kind: "overload_stop"
+    kind_corrected_2026-09-09: "原 kind='clamp'，**标错了** —— 本条自己的 declared_target 与 note 写的都是『过载止挡』『N01 侧墙/前唇是过载止挡不是夹持』。止挡面在正常工况下**不接触**，只有过载时才顶上；用 clamp 的『必须有 > 0 接触面积』去判它，正常状态反而判红、真顶上了反而判绿。改成 kind='overload_stop'（见本文件 kind_semantics）。"
+    between:
+      - "N01 侧墙/前唇"
+      - "头俯仰舵机"
+    declared_target: "过载止挡，间隙 0.3"
+    target_ref: "tolerances.yaml:fits.servo.overload_stop"
+    actual: "由 servo_env 切齐；未量"
+    actual_src: null
+    status: "open"
+    note: "N01 侧墙/前唇是过载止挡不是夹持；间隙未量"
+    contact:
+      axis: "y"
+      approach: "+y"
+      approach_note: "带符号的轴向；层里读的是 approach（_axis_vec），写成裸 \"+\" 会解析成 None，本条必须是 +x/-x/+y/-y/+z/-z 这种写法"
+      parties:
+        - placed: "servo__neck_neck_pitch"
+          component: "servo_head_pitch (S288)"
+          role: "moving（沿 +y 顶向前唇）"
+          face: "头俯仰 S288 前表面 局部 x=9.95 → 世界 y=9.95"
+        - placed: "neck"
+          part: "N01"
+          role: "fixed"
+          face: "N01 前唇内表面 世界 y=10.25（NK_LIP_Y=(10.25,12.35)，duck.py:671）"
+      probe_bbox_mm:
+        - [17.0, 8.5, 178.0]
+        - [35.0, 11.0, 184.0]
+      probe_bbox_rationale: "窗取前唇正对舵机本体那一段：x∈[17.0,35.0] 在舵机 20 宽（世界 16..36）与前唇 x 13.5..38.5 的交集里；z∈[178.0,184.0] 在 NK_WALL_Z (177.3,184.5) 之内、且避开法兰凸台 Ø13.9（z 195.5..209.4）；y 窗 [8.5,11.0] 夹住 9.95 与 10.25。481/481 格全配对。"
+      quantity: "N01 前唇（过载止挡）到舵机前表面的**单边间隙**（负 = 不接触）"
+      convention_conflict: "本桶 target_range_mm 用的是**间隙的绝对值**（正数），而 contact_profile 的 signed 约定是『过盈为正、间隙为负』。所以即使间隙做对了，本条 relation_contact 也会因为符号相反而判红。**这不是几何有问题，是 tolerances.yaml 这个桶的口径要改成有符号区间**（例如 [-0.50, -0.20]，过盈为正；本条 declared_target 写的就是『过载止挡，间隙 0.3』，kind='clamp' 同样会误触发『必须有 >0 接触面积』）。本轮按分工不动 tolerances.yaml，把冲突写在这里给公差表的负责人。"
+      measured_2026-09-09:
+        signed_min_mm: -0.300000191
+        signed_max_mm: -0.300000191
+        signed_med_mm: -0.300000191
+        contact_area_mm2: 0.0
+        projected_overlap_mm2: 120.25
+        clamp_travel_mm: 0.300000191
+        cells_paired: 481
+        cells_total: 481
+        cell_mm2: 0.25
+        method: "tools/gate/layers/l5_function.py:contact_profile（本轮直接调用该函数，不是另写一套）；符号约定：过盈为正、间隙为负"
+      finding: "间隙 0.300 与 declared_target 完全一致（此前 actual_src 是 null、note 写『未量』）—— 本轮把『未量』变成了 481 格实测。侧墙（NK_WALL_X 两段，沿 ±x）没被本窗覆盖。"
+      provenance:
+        - "duck.py:671,719-724,744,754"
+        - "tolerances.yaml:fits.servo.overload_stop"
+        - "本轮 trimesh 实测：舵机前表面 9.950 / 前唇 10.250 → 0.300，481/481 格"
+        - "探测窗是本轮用 ./.venv/bin/python + trimesh 直接加载 cad/duck_s288/placed/ 的实体量出来的：先取两方的世界包围盒，再沿 approach 轴逐点射线（tools/gate/layers/l2_features.py:ray_hits + solid_spans_dedup）找到两方真正相对的那一段，把窗口收到只落在这一对面上（窗口一旦包住别的料，signed 会被截断或串到邻件上）。窗口沿 approach 轴的上下界故意夹在两个面之间，这样 contact_profile 的 segment 裁剪不会把面本身裁掉。"
+    provenance:
+      - "duck.py:719-724,744,754"
+      - "inventory_v2.json:functional_relations[15]"
+  - id: "R17"
+    kind: "clamp"
+    between:
+      - "H02 垫柱端面"
+      - "横滚舵机薄段背面 -14.85"
+    declared_target: "接触"
+    target_ref: "tolerances.yaml:fits.servo.pad_contact"
+    actual: "按 T=19.9 名义接触"
+    actual_src: "assumed"
+    status: "open"
+    note: "H02 垫柱按 T=19.9 名义接触，依赖实测厚度"
+    contact:
+      axis: "x"
+      approach: "+x"
+      approach_note: "带符号的轴向；层里读的是 approach（_axis_vec），写成裸 \"+\" 会解析成 None，本条必须是 +x/-x/+y/-y/+z/-z 这种写法"
+      parties:
+        - placed: "head_clamp"
+          part: "H02"
+          role: "moving（沿 +x 压向薄段背面）"
+          face: "H02 两根 Ø5 垫柱端面 世界 x=−14.85（duck.py:909 cyl(5.0, 3.25, x=−16.475) → 端面 −16.475+1.625）"
+        - placed: "servo__jaw_soft_jaw_soft"
+          component: "servo_head_roll (S288)"
+          role: "fixed"
+          face: "头横滚 S288 薄段（上半段）背面 局部 −T/2=−9.95 → 世界 x=−14.85（轴心 x=−4.9）"
+      probe_bbox_mm:
+        - [-17.0, 5.2, 225.0]
+        - [-13.0, 9.4, 246.0]
+      probe_bbox_rationale: "窗只罩两根垫柱：y∈[5.2,9.4]（垫柱在世界 y=7.5、Ø5；舵机长边到 y=9.5 为止），z∈[225.0,246.0] 同时罩住 z=227.615 与 243.615 两根柱子；x 窗 [-17.0,-13.0] 夹住 −14.85 这一个面 —— **关键**：这个 x 窗把 H02 主板（x −21.05..−18.05）整段排除在外，不然主板会以 3.2 的假间隙盖过垫柱。连接臂（x −18.1..−12，y 9.8..14.8）在 y 窗之外；副轴 Ø13.8（世界 y ≤6.9、z 228.7..242.5）与垫柱圆盘最近距离 10.96−2.5=8.46 > 6.9，不会串。111/400 格配对（其余格子落在垫柱之外，A 侧没料）。"
+      quantity: "H02 垫柱端面到舵机薄段背面的**有符号配合量**（正 = 压住，负 = 悬空）"
+      measured_2026-09-09:
+        signed_min_mm: -9.53674572e-07
+        signed_max_mm: -9.53673975e-07
+        signed_med_mm: -9.53674316e-07
+        contact_area_mm2: 0.0
+        projected_overlap_mm2: 27.8923
+        clamp_travel_mm: 9.53673975e-07
+        cells_paired: 111
+        cells_total: 400
+        cell_mm2: 0.251282
+        method: "tools/gate/layers/l5_function.py:contact_profile（本轮直接调用该函数，不是另写一套）；符号约定：过盈为正、间隙为负"
+      finding: "**『退 0.30 夹不住』的嫌疑不成立**：H02 的两根垫柱端面与舵机薄段背面在导出 STL 上是同一个平面（有符号配合量 −0.00000095 mm = float32 的 1 ulp，不是 −0.30）。真正的 0.30 在别处：H02 主板内面在 x=−18.05、舵机厚段背面在 −17.75 —— 但主板的 y 范围（4.0..11.5）全落在薄段区，主板本来就不该碰厚段，那 0.30 是垫柱高度差不是装配间隙。**规模化的 0.30 夹不住在 R08**（15 个载体背板全部退 0.30）。"
+      known_layer_artifact: "本条 relation_contact 仍会判红，但红的原因只有一个：contact_profile 的contact_cells 用的是硬阈值 arr >= 0，而 signed = −9.5e-7（float32 噪声）被算成不接触 → 接触面积 0 → kind='clamp' 的『必须有 >0 接触面积』不满足。有符号配合量本身 −9.5e-7 是落在 target_range [-0.1, 0.1] 里的。第 5 层别处（_in_range）已经用 _NUM_EPS=1e-6 处理过同一个问题，contact_cells 这里没有 —— 这是层的事，本轮按分工不动层文件。"
+      provenance:
+        - "duck.py:850,903,909"
+        - "tolerances.yaml:fits.servo.pad_contact"
+        - "本轮 trimesh 实测：垫柱端面与薄段背面同在世界 x=−14.85，signed = −9.5367e-7 mm（float32 表示噪声，1 ulp）；接触面积 0.00 mm²、投影重叠 27.89 mm²、夹紧行程 9.5e-7 mm"
+        - "探测窗是本轮用 ./.venv/bin/python + trimesh 直接加载 cad/duck_s288/placed/ 的实体量出来的：先取两方的世界包围盒，再沿 approach 轴逐点射线（tools/gate/layers/l2_features.py:ray_hits + solid_spans_dedup）找到两方真正相对的那一段，把窗口收到只落在这一对面上（窗口一旦包住别的料，signed 会被截断或串到邻件上）。窗口沿 approach 轴的上下界故意夹在两个面之间，这样 contact_profile 的 segment 裁剪不会把面本身裁掉。"
+    provenance:
+      - "duck.py:903,909"
+      - "inventory_v2.json:functional_relations[16]"
+  - id: "R18"
+    kind: "slide_fit"
+    between:
+      - "L05 榫 2.2×2×3"
+      - "L07 槽 2.6×2.4×3.4"
+    declared_target: "间隙 0.2"
+    target_ref: "tolerances.yaml:fits.pla.key_slot"
+    actual: "名义"
+    actual_src: "assumed"
+    status: "ok"
+    note: "榫/槽名义间隙 0.2"
+    contact:
+      axis: "x"
+      approach: "+x"
+      approach_note: "带符号的轴向；层里读的是 approach（_axis_vec），写成裸 \"+\" 会解析成 None，本条必须是 +x/-x/+y/-y/+z/-z 这种写法"
+      parties:
+        - placed: "ankle_foot"
+          part: "L05"
+          role: "moving（沿 +x 靠向槽壁）"
+          face: "L05 定位榫 2.2×2×3 的 +x 侧面（ankle_split.py:48 局部 y=+1.0 → 世界 x=−30.777）"
+        - placed: "ankle_rear_arm"
+          part: "L07"
+          role: "fixed"
+          face: "L07 榫槽 2.3×2.4×3.4 的 +x 侧壁（ankle_split.py:49 局部 y=+1.2 → 世界 x=−30.577）"
+      probe_bbox_mm:
+        - [-31.3, 34.6, 19.3]
+        - [-30.0, 36.1, 21.3]
+      probe_bbox_rationale: "踝舵机局部→世界：局部 y→世界 x（轴心 −31.777）、局部 z→世界 −z（38.5−z）、局部 x→世界 y（+50）；本轮用包围盒反推并逐条射线核对过（ankle_foot 的 y 下界 34.3 正好是榫的局部 x=−15.7）。窗取榫/槽在 y、z 上的公共内区：y∈[34.6,36.1]（榫 34.3..36.5 ∩ 槽 34.1..36.4），z∈[19.3,21.3]（榫 18.8..21.8 ∩ 槽 18.6..22.0）；x 窗 [-31.3,-30.0] 夹住 −30.777 与 −30.577。20/20 格全配对。"
+      quantity: "定位榫与槽的**单边间隙**（负 = 有间隙）"
+      convention_conflict: "本桶 target_range_mm 用的是**间隙的绝对值**（正数），而 contact_profile 的 signed 约定是『过盈为正、间隙为负』。所以即使间隙做对了，本条 relation_contact 也会因为符号相反而判红。**这不是几何有问题，是 tolerances.yaml 这个桶的口径要改成有符号区间**（例如 [-0.30, -0.15]，过盈为正）。本轮按分工不动 tolerances.yaml，把冲突写在这里给公差表的负责人。"
+      measured_2026-09-09:
+        signed_min_mm: -0.199998856
+        signed_max_mm: -0.199998856
+        signed_med_mm: -0.199998856
+        contact_area_mm2: 0.0
+        projected_overlap_mm2: 5.0
+        clamp_travel_mm: 0.199998856
+        cells_paired: 20
+        cells_total: 20
+        cell_mm2: 0.25
+        method: "tools/gate/layers/l5_function.py:contact_profile（本轮直接调用该函数，不是另写一套）；符号约定：过盈为正、间隙为负"
+      finding: "key_clearance=0.2 在导出件上做到了（20 格全 −0.200）。但《实测公差锚点_2026-09-09》反推的 PLA 打印偏移 0.15~0.30 mm/边意味着实物这条 0.2 很可能变成 0 到负 —— 榫压不进槽。这条现在 status=ok，值得连同 R11 一起进 TC03 试件。"
+      provenance:
+        - "ankle_split.py:12,48-49"
+        - "tolerances.yaml:fits.pla.key_slot"
+        - "本轮 trimesh 实测：榫面 −30.777 / 槽壁 −30.577 → 单边 0.200，20/20 格"
+        - "探测窗是本轮用 ./.venv/bin/python + trimesh 直接加载 cad/duck_s288/placed/ 的实体量出来的：先取两方的世界包围盒，再沿 approach 轴逐点射线（tools/gate/layers/l2_features.py:ray_hits + solid_spans_dedup）找到两方真正相对的那一段，把窗口收到只落在这一对面上（窗口一旦包住别的料，signed 会被截断或串到邻件上）。窗口沿 approach 轴的上下界故意夹在两个面之间，这样 contact_profile 的 segment 裁剪不会把面本身裁掉。"
+    provenance:
+      - "ankle_split.py:48-49"
+      - "inventory_v2.json:functional_relations[17]"
+  - id: "R19"
+    kind: "clamp"
+    between:
+      - "L05 桥 / L07 桥 接触面 x=-13.7"
+      - "缝 0.2 @ -13.5"
+    declared_target: "承压 57.06 mm²"
+    target_ref: "tolerances.yaml:fits.pla.bearing_face"
+    actual: "报告数"
+    actual_src: "measured"
+    status: "ok"
+    note: "L05/L07 桥接触面承压 57.06 mm^2"
+    contact:
+      axis: "y"
+      approach: "+y"
+      approach_note: "带符号的轴向；层里读的是 approach（_axis_vec），写成裸 \"+\" 会解析成 None，本条必须是 +x/-x/+y/-y/+z/-z 这种写法"
+      parties:
+        - placed: "ankle_rear_arm"
+          part: "L07"
+          role: "moving（沿 +y 拉向 L05 承压面）"
+          face: "L07 桥的承压端面 局部 x=contact_x=−13.7 → 世界 y=36.3（ankle_split.py:38-47）"
+        - placed: "ankle_foot"
+          part: "L05"
+          role: "fixed"
+          face: "L05 桥的承压端面 同一个平面 世界 y=36.3"
+      probe_bbox_mm:
+        - [-37.8, 35.0, 17.5]
+        - [-32.9, 37.5, 22.3]
+      probe_bbox_rationale: "只取桥的 −x 半边：桥在世界 x −37.977..−25.577（局部 y ±6.2）、z 17.3..22.5（局部 z 16..21.2），而定位榫正好占住中间 x −32.777..−30.777 —— 窗取 x∈[-37.8,-32.9] 避开榫，否则榫那一列会串进 −0.2 的槽间隙，把承压面的 0 拉成一个 −0.2..0 的假区间。z∈[17.5,22.3] 在桥之内；y 窗 [35.0,37.5] 夹住 36.3（两件在这里是同一个面）。97/121 格配对。"
+      quantity: "L05/L07 桥承压面的**有符号贴合量**（正 = 压住）与**接触面积**"
+      convention_conflict: "本桶 target_range_mm 用的是**间隙的绝对值**（正数），而 contact_profile 的 signed 约定是『过盈为正、间隙为负』。所以即使间隙做对了，本条 relation_contact 也会因为符号相反而判红。**这不是几何有问题，是 tolerances.yaml 这个桶的口径要改成有符号区间**（例如 给『承压面』单开一个有符号桶（例如 [0.00, 0.05]）；现在的 [0.1, 0.3] 描述的是**桥以外的分体缝**（main_split_x −13.5 vs contact_x −13.7 = 0.2），和本条 declared_target『承压 57.06 mm²』说的不是同一个面）。本轮按分工不动 tolerances.yaml，把冲突写在这里给公差表的负责人。"
+      measured_2026-09-09:
+        signed_min_mm: -2.07478479e-12
+        signed_max_mm: 9.09494702e-13
+        signed_med_mm: 0
+        contact_area_mm2: 19.0512
+        projected_overlap_mm2: 22.8144
+        clamp_travel_mm: 0
+        cells_paired: 97
+        cells_total: 121
+        cell_mm2: 0.2352
+        method: "tools/gate/layers/l5_function.py:contact_profile（本轮直接调用该函数，不是另写一套）；符号约定：过盈为正、间隙为负"
+      finding: "桥面确实是贴上的（signed 0、接触面积 19.05 mm² 只算了 −x 半边，全桥 12.4×5.2 扣掉榫列与倒角后与报告的 57.06 mm² 同量级）。红只会红在桶的口径：0 不在 [0.1,0.3] 里。"
+      provenance:
+        - "ankle_split.py:38-47"
+        - "docs/repair_2026-09-09 修复报告 §2"
+        - "tolerances.yaml:fits.pla.bearing_face"
+        - "本轮 trimesh 实测：两件桥端面同在世界 y=36.3，signed 0.000000000，接触面积 19.05 mm²/投影 22.81 mm²（仅 −x 半边）"
+        - "探测窗是本轮用 ./.venv/bin/python + trimesh 直接加载 cad/duck_s288/placed/ 的实体量出来的：先取两方的世界包围盒，再沿 approach 轴逐点射线（tools/gate/layers/l2_features.py:ray_hits + solid_spans_dedup）找到两方真正相对的那一段，把窗口收到只落在这一对面上（窗口一旦包住别的料，signed 会被截断或串到邻件上）。窗口沿 approach 轴的上下界故意夹在两个面之间，这样 contact_profile 的 segment 裁剪不会把面本身裁掉。"
+    provenance:
+      - "ankle_split.py:38-47"
+      - "修复报告 §2"
+      - "inventory_v2.json:functional_relations[18]"
+  - id: "R20"
+    kind: "screw"
+    between:
+      - "T02/T03 壳 Ø2.4"
+      - "T01 柱"
+    declared_target: "M2×8 穿 2.2 + 5.8"
+    target_ref: "tolerances.yaml:engagement.pla_self_tap"
+    actual: "未审计"
+    actual_src: null
+    status: "open"
+    note: "T02/T03 壳柱螺丝完全未审计"
+    contact: null
+    contact_unknown_class: "not_applicable"
+    contact_unknown_reason: "拒绝填 contact：本条是**螺纹咬入**，不是两个面的贴合。咬入由第 5 层逐孔的 engagement 判据（features.yaml:feature_hole_map + fasteners.yaml:engagement_mm/stack_mm，阈值取 tolerances.yaml:engagement_by_joint_type）算出来，F11b/F15 两条已确认问题就是它抓的。contact_profile 沿单轴量两个实体表面之间的距离，量不到螺纹在孔里咬进去多少。另外本条 target_ref 'tolerances.yaml:engagement.pla_self_tap' 在 tolerances.yaml 里解析不到（实际路径是 engagement_by_joint_type.*），第 5 层已对本条单独判 target_ref 红 —— 那条红才是本条真正缺的东西。 另注：本条 actual='未审计' 指的是 T02/T03 壳柱那 4 颗（F20_shell_to_T01），而 F20 在第 4 层连刀轴都解析不出来（drive_direction 'PH0 从壳外向下 (-z)' 里字母轴 −z 与『向下』互相矛盾，_drive_axis 拒绝猜）—— 那才是这一组现在的第一道拦路虎。"
+    contact_provenance:
+      - "fasteners.yaml:F20_shell_to_T01.drive_direction"
+      - "tools/gate/layers/l4_assembly.py:_drive_axis"
+      - "duck.py:664,710-714"
+    provenance:
+      - "duck.py:664,710-714"
+      - "inventory_v2.json:functional_relations[19]"
+  - id: "R21b_6702_outer_seat"
+    kind: "bearing_seat"
+    between:
+      - "6702ZZ 外圈 Ø21"
+      - "T01 髋偏航座孔 Ø21.15（T01-F25）"
+    nominal_mm:
+      v: 21.15
+      src: "assumed"
+      src_note: "09-12 ⑤：与 6704 座同口径（+0.15 间隙）；挡肩 Ø18.5 只压外圈（T01-F26）"
+    target_ref: "tolerances.yaml:fits.pla.bearing_outer_seat_6702"
+    status: "open"
+    status_note: "待 Ø21.15 试件（TC01 要加座规）"
+    checked_by: "mechanical_audit.json:hip_yaw_bearing.*.seat（3 站位 24 方位 Ø21.13..21.15）"
+    provenance:
+      - "duckstructure/lib.py:carrier(ring=True, brg=P['brg_yaw'])"
+      - "docs/reports/髋偏航6702轴承实施规格_2026-09-12.md"
+  - id: "R21c_6702_inner_hub"
+    kind: "press_fit"
+    between:
+      - "6702ZZ 内圈 Ø15"
+      - "L01 偏航端毂 Ø14.85（L01-F02）"
+    nominal_mm:
+      v: 14.85
+      src: "assumed"
+      src_note: "09-12 ⑤：名义 −0.15（同 6704 毂 19.85）"
+    target_ref: "tolerances.yaml:fits.pla.bearing_inner_hub_6702"
+    status: "open"
+    status_note: "待 Ø14.85 试件（TC01b 要加毂规）；分度圆定 5.25 时毂上孔外缘余量 1.07"
+    checked_by: "mechanical_audit.json:hip_yaw_bearing.*.insert_yaw2roll（L01 沿法兰方向装入 0）"
+    provenance:
+      - "duckstructure/lib.py:driven(brg=P['brg_yaw'])"
+  - id: "R21"
+    kind: "driven_disc"
+    between:
+      - "T01 甲板 Ø18.99 钥匙孔"
+      - "髋偏航法兰 Ø13.9"
+    declared_target: "单边 2.35 间隙 + 侧滑槽 Ø14.9"
+    target_ref: "tolerances.yaml:fits.deck.keyhole"
+    actual: "几何"
+    actual_src: "assumed"
+    status: "ok"
+    note: "单边 2.35 间隙 + 侧滑槽 Ø14.9"
+    contact:
+      axis: "y"
+      approach: "-y"
+      approach_note: "带符号的轴向；层里读的是 approach（_axis_vec），写成裸 \"+\" 会解析成 None，本条必须是 +x/-x/+y/-y/+z/-z 这种写法"
+      parties:
+        - placed: "servo__trunk_base_yaw2roll"
+          component: "servo_hip_yaw_L (S288)"
+          role: "moving（沿 −y 靠向孔壁）"
+          face: "髋偏航 S288 法兰 Ø13.9 外缘（轴心世界 (6.0, 17.5)，法兰面 z=118.65..121.55）"
+        - placed: "trunk"
+          part: "T01"
+          role: "fixed"
+          face: "T01 甲板上髋偏航孔的 −y 侧孔壁（原版 Ø18.99 钥匙孔 + duck.py:659 重开的 Ø14.9 侧滑槽）"
+      probe_bbox_mm:
+        - [2.0, 9.0, 119.4]
+        - [10.0, 17.5, 121.2]
+      probe_bbox_rationale: "甲板在 z 119.15..121.25（DECK_TOP）、法兰在 z 118.65..121.55，窗取交集 z∈[119.4,121.2]；x∈[2.0,10.0] 罩住法兰在 −y 方向的迎风面；y 窗 [9.0,17.5] 夹住法兰外缘（17.5−6.95=10.55）与孔壁。**方向是量出来选的**：本轮四个方向都试过 —— +y 与 −x 探不到任何配对格（甲板在那两侧被侧滑槽/载体开口让空了），只有 −y 与 +x 有壁，取格子多的 −y。85/85 格全配对。"
+      quantity: "髋偏航法兰到甲板孔壁的**单边间隙**（负 = 有间隙）"
+      convention_conflict: "本桶 target_range_mm 用的是**间隙的绝对值**（正数），而 contact_profile 的 signed 约定是『过盈为正、间隙为负』。所以即使间隙做对了，本条 relation_contact 也会因为符号相反而判红。**这不是几何有问题，是 tolerances.yaml 这个桶的口径要改成有符号区间**（例如 [-3.00, -2.00]，过盈为正）。本轮按分工不动 tolerances.yaml，把冲突写在这里给公差表的负责人。"
+      measured_2026-09-09:
+        signed_min_mm: -0.601978677
+        signed_max_mm: -0.499999688
+        signed_med_mm: -0.514826383
+        contact_area_mm2: 0.0
+        projected_overlap_mm2: 19.125
+        clamp_travel_mm: 0.499999688
+        cells_paired: 85
+        cells_total: 85
+        cell_mm2: 0.225
+        method: "tools/gate/layers/l5_function.py:contact_profile（本轮直接调用该函数，不是另写一套）；符号约定：过盈为正、间隙为负"
+      finding: "**实测单边间隙是 0.50，不是清单写的 2.35**。2.35 是原版 Ø18.99 钥匙孔对 Ø13.9 法兰的数，但 duck.py:659 为了让髋偏航舵机侧滑进载体，又在甲板上重开了 Ø14.9 滑槽 —— Ø14.9/2 − Ø13.9/2 = 0.50，**滑槽才是这一圈的最小间隙**，它把 2.35 完全盖掉了。法兰是随髋偏航转的，0.50 对一个转动件是够，但清单上的 2.35 从今天起是错的口径。"
+      provenance:
+        - "duck.py:627-628,659,573"
+        - "tolerances.yaml:fits.deck.keyhole"
+        - "本轮 trimesh 实测：单边 0.500~0.602（−y 方向 85 格）；同法 +x 方向 0.500~0.972（50/55 格）"
+        - "探测窗是本轮用 ./.venv/bin/python + trimesh 直接加载 cad/duck_s288/placed/ 的实体量出来的：先取两方的世界包围盒，再沿 approach 轴逐点射线（tools/gate/layers/l2_features.py:ray_hits + solid_spans_dedup）找到两方真正相对的那一段，把窗口收到只落在这一对面上（窗口一旦包住别的料，signed 会被截断或串到邻件上）。窗口沿 approach 轴的上下界故意夹在两个面之间，这样 contact_profile 的 segment 裁剪不会把面本身裁掉。"
+    provenance:
+      - "duck.py:627-628,659"
+      - "inventory_v2.json:functional_relations[20]"
+  - id: "R22"
+    kind: "hinge"
+    between:
+      - "所有 14 关节轴线"
+      - "robot_walk.xml"
+    declared_target: "100% 一致"
+    target_ref: "frozen.yaml:joint_axes"
+    actual: "由 duck_kin 直接读；SERVO_SHIFT 只沿轴"
+    actual_src: "assumed"
+    status: "ok"
+    note: "由 duck_kin 直接读 robot_walk.xml；SERVO_SHIFT 只沿舵机自身轴线"
+    contact: null
+    contact_unknown_class: "not_applicable"
+    contact_unknown_reason: "拒绝填 contact：本条不是配合，是『14 条关节轴线与 robot_walk.xml 100% 一致』。target_ref 指向 frozen.yaml:joint_axes —— 不是 fits 桶、没有 target_range_mm，第 5 层 tol_pair 在这里取到 (None, None)，即使填了 contact 也只会换一条『没有判据』的红。轴线一致性归第 0 层的 datum_vs_mjcf 判据管。"
+    contact_provenance:
+      - "frozen.yaml:joint_axes"
+      - "duck_kin.py"
+      - "tools/gate/README.md 第 2 节 第 0 层"
+    provenance:
+      - "duck_kin.py"
+      - "duck.py:105"
+      - "inventory_v2.json:functional_relations[21]"
+gate_entries_from_comparison_C:
+  - id: "C1_imu_extrinsic"
+    comparison: "C1"
+    kind: "sensor_extrinsic"
+    between:
+      - "imu_icm42688 芯片坐标系"
+      - "MJCF site imu（trunk_base）"
+    declared_target: "安装外参（位置 + 朝向四元数）必须是**声明项**，且与 MJCF site imu 一致"
+    target_ref: "frozen.yaml:imu_pose"
+    position_tolerance_mm:
+      v: 3.0
+      src: "assumed"
+      src_note: "我们放 (-23.1,0,105.3) vs site (-21.0,0.07,105.3)，x 差 2.1 mm；comparison A1 判'对陀螺无影响、对加速度计杠杆臂影响可忽略，可接受' → 取 3.0 作为不超过既有偏差的上限"
+    orientation_tolerance_deg:
+      v: null
+      src: null
+      unknown_class: "not_selected"
+      unknown_reason: "外参角度容差未决定；原版固件用 DEFAULT_MOUNT 绕 Y +90° 把芯片系转到 site 系，我们必须在驱动里做等效旋转并声明；实测对齐见 bench.yaml:BN07"
+    actual: "未声明 —— 驱动里的等效旋转还没写，也没有任何文件记录我们这颗 IMU（hr29 定型 Adafruit 4438 / LSM6DSOX；原写 ICM-42688 作废）的芯片朝向"
+    status: "open"
+    severity: "BLOCK"
+    contact: null
+    contact_unknown_class: "not_applicable"
+    contact_unknown_reason: "拒绝填 contact：IMU 安装外参是**位姿**（位置 + 朝向四元数），target_ref 指向 frozen.yaml:imu_pose —— 不是 fits 桶、没有 target_range_mm，第 5 层在这里取不到判据。而且 IMU（hr29 起 = Adafruit 4438 LSM6DSOX，components.yaml 条目 id 仍叫 imu_icm42688）在 hr37 之前 cad/duck_s288/placed/ 里没有实体；hr37 已加占位实体 zz_imu（duckstructure/electronics.py:imu_boxes，贴 T01 前壁 x −21.1），本条 contact 能不能解析要按新 placed 复核，contact.parties 两方都解析不出落位件。本条真正缺的是驱动里的等效旋转声明与 orientation_tolerance_deg，见本条自己的 unknown_reason 与 bench.yaml:BN07。"
+    contact_provenance:
+      - "frozen.yaml:imu_pose"
+      - "comparison_original_vs_v2.md:C1"
+      - "MJCF:109"
+      - "cad/duck_s288/placed/（本轮清点 48 个实体，无 IMU）"
+    provenance:
+      - "comparison_original_vs_v2.md:C1"
+      - "comparison_original_vs_v2.md:A1"
+      - "MJCF:109"
+      - "inventory_original.json:components[1].mount"
+      - "duck.py:658"
+  - id: "C2_missing_bearing_load"
+    comparison: "C2"
+    kind: "cantilever_load"
+    between:
+      - "S288 单侧输出支承（髋横滚×2/髋俯仰×2/头偏航）+ 头横滚A滑配支承"
+      - "原版对应6处滚动支承（嘴另1处取消，不属于运动负载验证）"
+    declared_target: "第 7 层对这些关节单独算悬臂载荷，并与 S288 输出轴承额定比；实机清单要有松旷/磨损项"
+    target_ref: "tolerances.yaml:load.servo_output_bearing"
+    joints_actually_dropped:
+      - "left_hip_roll"
+      - "right_hip_roll"
+      - "left_hip_pitch"
+      - "right_hip_pitch"
+      - "head_yaw"
+      - "head_roll(A 端)"
+    restored_2026-09-12:
+      - "left_hip_yaw / right_hip_yaw：法兰侧 6702ZZ（原版此处本来就有一颗 22×16×4 推力式夹持（受力报告第 96 行），S288 配不了那种夹法，我们改法兰侧径向 6702；components.yaml:bearing_6702zz）"
+      - "head_roll(B 端)：22×16×4 经 N04 销（恢复原版；components.yaml:bearing_22x16x4）"
+      - "neck_pitch / head_pitch：背面惰轮双支撑（原版就有，09-11 误删后恢复；fasteners.yaml:F12b/F14b）"
+    joints_note: "09-17 r5相对原版少7处：本条6处运动支承+嘴1处（嘴不做）。颈/头俯仰原版无滚动轴承，采用惰轮另验；髋偏航、头横滚B已有滚动支承，不能再列为缺失。"
+    still_has_bearing:
+      - "left_knee"
+      - "right_knee"
+      - "left_ankle"
+      - "right_ankle"
+    removed_2026-09-17_from_still_has_bearing:
+      - "left_hip_roll"
+      - "right_hip_roll"
+    removed_2026-09-17_reason: "原6704在真实姿态里左右互撞约132.7 mm³，r5改L02 Ø20盘直接坐S288法兰。该碰撞仅否定旧位置旧轴承设计，不证明所有更小轴承/后惰轮方案不可能，也不证明取消后承载/摩擦/寿命合格。原版此处有22×16×4滚动轴承，不能简称为已证实的纯推力垫。"
+    rated_radial_load_N:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "S288 输出轴承径向额定未在手册摘录里；到货前无数；bench.yaml:BN08 实测松旷"
+    actual: "未计算"
+    status: "open"
+    severity: "BLOCK"
+    contact: null
+    contact_unknown_class: "not_applicable"
+    contact_unknown_reason: "拒绝填 contact：本条是**悬臂载荷 vs 轴承额定**，第 7 层的算题，不是两个面沿单轴的贴合量。target_ref 指 tolerances.yaml:load.servo_output_bearing；S288 输出轴承的径向额定至今是 null（见本条 rated_radial_load_N），没有额定值，量到再精确的接触也判不了。"
+    contact_provenance:
+      - "comparison_original_vs_v2.md:C2"
+      - "tolerances.yaml:load.servo_output_bearing"
+      - "bench.yaml:BN08"
+    provenance:
+      - "comparison_original_vs_v2.md:C2"
+      - "comparison_original_vs_v2.md:A2"
+      - "comparison_original_vs_v2.md:A3"
+      - "inventory_original.json:components[14].instances"
+      - "frozen.yaml:discrepancies.D-FROZEN-03"
+  - id: "C3_L03_stiffness"
+    comparison: "C3"
+    kind: "stiffness"
+    between:
+      - "L03 大腿件（弃用原版 upper_leg_rigidity_plate 后）"
+      - "髋俯仰 + 膝两颗舵机的反力矩"
+    declared_target: "要有**数值判据**（最小承力截面 / 薄筋长厚比 / 层向 vs 受力 / 挠度），不能只有 duck.py:495 的注释"
+    target_ref: "tolerances.yaml:load.min_section_and_rib"
+    min_section_mm2:
+      v: null
+      src: null
+      unknown_class: "not_selected"
+      unknown_reason: "最小截面阈值未决定；inventory 只给了 audit_print 薄壁 9.8% 这一个覆盖率数字"
+    deflection_limit_mm:
+      v: null
+      src: null
+      unknown_class: "not_selected"
+      unknown_reason: "挠度上限未决定"
+    actual: "未评估（inventory_v2.unknowns[17]）"
+    status: "open"
+    severity: "BLOCK"
+    contact: null
+    contact_unknown_class: "not_applicable"
+    contact_unknown_reason: "拒绝填 contact：本条是**刚度 / 最小承力截面 / 薄筋长厚比 / 挠度**，第 7 层的算题，不是面接触。两个阈值（min_section_mm2 / deflection_limit_mm）现在都还是 null —— 判据本身没定，补 contact 段解决不了本条。"
+    contact_provenance:
+      - "comparison_original_vs_v2.md:C3"
+      - "tolerances.yaml:load.min_section_and_rib"
+      - "duck.py:495"
+    provenance:
+      - "comparison_original_vs_v2.md:C3"
+      - "comparison_original_vs_v2.md:A4"
+      - "duck.py:495"
+      - "inventory_v2.json:unknowns[17]"
+
+# ── 2026-09-09 新增：承力路径（C3_L03_stiffness.what_would_unblock 第 1 条要的那份机器可读声明）──
+# 为什么必须有它：第 7 层原来的 min_section 量的是"沿**世界 z** 每 1 mm 切一刀、**整件**最小的那一层
+# 水平截面积"，那不是承力截面 —— H03 量到的 7.611 mm² 是下头壳最上沿的一圈装饰唇边（一克载荷都不过），
+# L06 鞋底的 256.897 mm² 反倒是整件最大的实心块；而且只沿重力方向切，L04 踝副轴颈那种层间剪切
+# 根本不在这个方向上。见 tolerances.yaml:load.min_section_and_rib.min_load_section_mm2.refused_2026-09-09。
+#
+# 本节把"力从哪进、从哪出、沿什么方向"写成数据，第 7 层（l7_mass.py:_sections）改成
+# **沿声明方向的法平面、只在 from→to 那一段里**切，取那一段的最小截面。没声明路径的件判 unknown（红）。
+#
+# 坐标系：一律 export_local（= 该件导出 STL 自己的坐标系 = 它所属的 MJCF 连杆坐标系）。
+#   定义与每个件的 world→export_local 变换见 features.yaml:frames（同一套，不另立）。
+#   选它而不是世界系的原因有二：① 导出 STL 本来就在这个系里，不用再乘一次变换；
+#   ② 它随连杆走，所以左右镜像件、零位/home 不同姿态下这条路径都是同一条 —— 旧写法只切了
+#   镜像对里的一个实例、且只在零位姿，换个姿态结论就变。
+#
+# from/to 的取法（只用已经存在的声明，不新造坐标）：
+#   · 关节轴点 = MJCF 连杆树里父/子 body 的原点。父关节 = export_local 原点 (0,0,0)；
+#     子关节 = inv(TW(本 body))·TW(子 body) 的平移列，本轮用 duckstructure.kin 算出后逐条写进本文件。
+#   · 从动盘 / 轴承座 / 凸台 = features.yaml 里对应特征的 geom.pos。
+#   · 落地面 / 贴合面 = 该件导出 STL 包围盒在受力方向上的端面（features.yaml:frames.per_part[*].export_stl_bbox_mm）。
+# direction 是**单位向量**，和 (to − from) 未必同向（例如落地件按重力方向切，而 from/to 还差一个轴向偏置）；
+#   层里会把两者的夹角一并报出来，对不上会看得见。
+load_paths:
+  - id: "LP-L01-01"
+    part: "L01"
+    load_case: "static_stand"
+    load_case_note: "整机静态站立：地面反力经腿链一路上传。本件在链上的位置 = 髋横滚关节 → 髋偏航关节。"
+    frame: "export_local"
+    from:
+      what: "髋横滚关节轴（MJCF 子 body hip_l 的原点；髋横滚舵机与 6704 都装在这条轴上，力从这里进 L01；09-17 起无 6704，只有舵机法兰）"
+      pos_mm: [0.0, 16.5, 12.5]
+      src: "measured"
+      src_note: "inv(TW('yaw2roll'))·TW('hip_l') 的平移列，由 duckstructure.kin 从 robot_walk.xml 解析（2026-09-09 实算）"
+    to:
+      what: "髋偏航从动盘 L01-F01（Ø26×3，12×M2×8 F02_hipyaw_flange 把力交给髋偏航 S288 法兰）"
+      pos_mm: [0.0, 0.0, 0.0]
+      src: "measured"
+      src_note: "= export_local 原点 = 髋偏航关节轴（features.yaml:L01-F01.geom.pos 的轴心在 (0,0,·)）"
+    direction: [0.0, -0.797092, -0.603858]
+    direction_note: "= normalize(to − from)。两个关节轴之间的连线方向 —— 双力杆的轴力方向，临界截面是它的法平面。"
+    length_mm: 20.7002
+    provenance:
+      - "relations.yaml:C3_L03_stiffness.what_would_unblock"
+      - "features.yaml:L01-F01 / L01-F10 / frames.per_part.L01"
+      - "fasteners.yaml:F02_hipyaw_flange / F03_hiproll_back"
+      - "upstream/microduck_rl/.../robot_walk.xml（body yaw2roll → hip_l）"
+  - id: "LP-L02-01"
+    part: "L02"
+    load_case: "static_stand"
+    load_case_note: "髋俯仰关节 → 髋横滚关节。"
+    frame: "export_local"
+    from:
+      what: "L02-F02 髋俯仰从动盘 Ø19×3（12×M2×12 F06_hippitch_flange 把髋俯仰 S288 的力交进 L02）"
+      pos_mm: [23.15, 0.0, -18.5]
+      src: "measured"
+      src_note: "features.yaml:L02-F02.geom.pos。**不取髋俯仰关节轴原点 (25.0, 0.0, −18.5)**（= inv(TW('hip_l'))·TW('upper_leg_left') 的平移列）：那个点在 x 上比 L02 导出件的包围盒上界 24.65 还多出 0.35 mm，落在件外，切出来第一刀就是空刀。力真正进件的位置是从动盘，不是数学上的轴心。"
+    to:
+      what: "髋横滚从动盘 L02-F01（09-17 起 Ø20×3 盘直接坐法兰、无毂；旧 Ø19.85 毂 + Ø26 盘，12×M2×12 F04_hiproll_flange 交给髋横滚 S288）—— 下面 pos_mm 仍是旧盘位 z 2.35，待 r4 重量后随 features.yaml:L02-F01.geom.pos 一起改"
+      pos_mm: [0.0, 0.0, 2.35]
+      src: "measured"
+      src_note: "features.yaml:L02-F01.geom.pos = [0.0, 0.0, 2.35]，在髋横滚关节轴（export_local 的 z 轴）上"
+    direction: [-0.743055, 0.0, 0.669231]
+    direction_note: "= normalize(to − from)"
+    length_mm: 31.1552
+    provenance:
+      - "features.yaml:L02-F01 / L02-F02 / frames.per_part.L02"
+      - "fasteners.yaml:F04_hiproll_flange / F06_hippitch_flange"
+      - "upstream/microduck_rl/.../robot_walk.xml（body hip_l → upper_leg_left）"
+  - id: "LP-L03-01"
+    part: "L03"
+    load_case: "static_stand"
+    load_case_note: "膝关节 → 髋俯仰关节。这正是 comparison C3 点名的那条：弃用原版 upper_leg_rigidity_plate 之后，髋俯仰与膝两颗舵机的反力矩全靠 L03 自己扛。"
+    frame: "export_local"
+    from:
+      what: "膝关节轴（MJCF 子 body leg 的原点；膝舵机由 8×M2×6 F07_knee_back 挂在 L03 背板上，L03-F04 是它的 6704 座）"
+      pos_mm: [22.0, 35.7771, -4.0]
+      src: "measured"
+      src_note: "inv(TW('upper_leg_left'))·TW('leg') 的平移列（2026-09-09 实算）；与 features.yaml:L03-F04.geom.pos [22.0, 35.7771, -2.35] 的 x/y 一致，z 差 1.65 是轴承座的轴向位置不是轴线位置"
+    to:
+      what: "髋俯仰关节轴（髋俯仰舵机由 8×M2×6 F05_hippitch_back 挂在 L03 背板上）"
+      pos_mm: [0.0, 0.0, 0.0]
+      src: "measured"
+      src_note: "= export_local 原点"
+    direction: [-0.52145, -0.847998, 0.094809]
+    direction_note: "= normalize(to − from)"
+    length_mm: 42.1901
+    provenance:
+      - "comparison_original_vs_v2.md:C3 / relations.yaml:C3_L03_stiffness"
+      - "features.yaml:L03-F01 / L03-F04 / frames.per_part.L03"
+      - "fasteners.yaml:F05_hippitch_back / F07_knee_back"
+      - "upstream/microduck_rl/.../robot_walk.xml（body upper_leg_left → leg）"
+  - id: "LP-L04-01"
+    part: "L04"
+    load_case: "static_stand"
+    load_case_note: "踝关节 → 膝关节。踝副轴颈 L04-F11（Ø9.95 光轴，从背板悬臂长出）就在这条路径的起点侧，tolerances.yaml:load.min_section_and_rib.layer_vs_load_rule 说的层间剪切说的就是它。"
+    frame: "export_local"
+    from:
+      what: "L04-F11 踝副轴颈 Ø9.95（从背板悬臂长出的光轴，L07 的 6700 内圈就套在它上面；力从这里进 L04）"
+      pos_mm: [0.0, 42.0, 6.225]
+      src: "measured"
+      src_note: "features.yaml:L04-F11.geom.pos。**不取踝关节轴原点 (0, 42.0, −26.0)**（= inv(TW('leg'))·TW('ankle_left') 的平移列）：踝关节轴是 export_local 里过 (0,42,·) 的那条 z 线，而 L04 导出件的 z 只到 −3.655..10.1 —— 轴心点落在件外 22 mm，切出来前 5 刀全是空刀（2026-09-09 本轮 load_path_continuous 就是这么发现的）。轴线没错，错的是取了轴线上件外的那个站位。"
+    to:
+      what: "膝从动毂 L04-F01（Ø19.85 毂 + Ø26 盘，12×M2×12 F08_knee_flange 交给膝 S288）"
+      pos_mm: [0.0, 0.0, 2.35]
+      src: "measured"
+      src_note: "features.yaml:L04-F01.geom.pos = [0.0, 0.0, 2.35]，在膝关节轴（export_local 的 z 轴）上"
+    direction: [0.0, -0.995771, -0.091872]
+    direction_note: "= normalize(to − from)"
+    length_mm: 42.1784
+    provenance:
+      - "features.yaml:L04-F01 / L04-F03 / L04-F11 / frames.per_part.L04"
+      - "fasteners.yaml:F08_knee_flange / F09_ankle_back"
+      - "upstream/microduck_rl/.../robot_walk.xml（body leg → ankle_left）"
+  - id: "LP-L05-01"
+    part: "L05"
+    load_case: "static_stand"
+    load_case_note: "地面反力经 L06 鞋底进 L05，再由踝从动盘交给踝舵机。ankle_left 是叶子连杆，没有子关节，所以起点取落地侧而不是子关节轴。"
+    frame: "export_local"
+    from:
+      what: "L06 鞋底贴合面（L05 在重力方向上的最低端面；8×M2×8 F23_sole_to_foot 把 L06 压在这面上）"
+      pos_mm: [0.0, -23.023, 1.7]
+      src: "measured"
+      src_note: "y = features.yaml:frames.per_part.L05.export_stl_bbox_mm 的 y 下界 −23.023；x/z 取 to 的同值，使 from→to 与 direction 同向"
+    to:
+      what: "踝从动盘 L05-F01（Ø26×6.7 加厚盘，12×M2×8 F10_ankle_flange 交给踝 S288 法兰）"
+      pos_mm: [0.0, 0.0, 1.7]
+      src: "measured"
+      src_note: "features.yaml:L05-F01.geom.pos = [0.0, 0.0, 1.7]"
+    direction: [0.0, 1.0, 0.0]
+    direction_note: "世界 +z（重力反向）在 L05 export_local 里 = +y，见 features.yaml:frames.per_part.L05.world_to_export_local_R 的第 3 列 (0,1,0)。这条是落地件，轴力方向就是重力方向。"
+    length_mm: 23.023
+    provenance:
+      - "features.yaml:L05-F01 / frames.per_part.L05"
+      - "fasteners.yaml:F10_ankle_flange / F23_sole_to_foot"
+      - "relations.yaml:R19（L05/L07 桥承压面 57.06 mm²）"
+  - id: "LP-L06-01"
+    part: "L06"
+    load_case: "static_stand"
+    load_case_note: "整机重量的入口：地面 → TPU 鞋底 → L05/L07 贴合面。"
+    frame: "export_local"
+    from:
+      what: "落地面（L06 在重力方向上的最低端面）"
+      pos_mm: [0.0, -25.0263748, -25.0]
+      src: "measured"
+      src_note: "y = 导出件 L06_sole_TPU.stl 包围盒的 y 下界（本轮 trimesh 实测 −25.02637482，取到小数点后 7 位；features.yaml:frames.per_part.L06.export_stl_bbox_mm 记的 −25.0264 是四舍五入过的，直接用会比真实下界还低 2.5e-5 mm、被端点检查判成『在件外』）；x/z 取鞋底中段"
+    to:
+      what: "与 L05/L07 的贴合面（L06 的最上端面；8×M2×8 F23_sole_to_foot 从这面穿上去）"
+      pos_mm: [0.0, -12.1190147, -25.0]
+      src: "measured"
+      src_note: "y = 同一实测包围盒的 y 上界 −12.11901474（同上，features.yaml 里记的 −12.119 是四舍五入过的）"
+    direction: [0.0, 1.0, 0.0]
+    direction_note: "同 LP-L05-01：世界 +z 在 ankle_left export_local 里 = +y"
+    length_mm: 12.9073601
+    provenance:
+      - "features.yaml:frames.per_part.L06（注意其中的 bbox 是四舍五入值，本条的两个端点用的是本轮实测的全精度值）"
+      - "fasteners.yaml:F23_sole_to_foot"
+      - "parts.yaml:L06（TPU 95A）"
+  - id: "LP-L07-01"
+    part: "L07"
+    load_case: "static_stand"
+    load_case_note: "L07 后臂两条载荷都走这条竖直路径：① 经 L06 传上来的地面反力（F23 也拧在 L07 上）；② R19 从 L05 桥面传来的承压 57.06 mm²。出口是 6700 轴承座 —— 踝副轴（L04-F11）就压在这里。"
+    frame: "export_local"
+    from:
+      what: "落地/贴 L06 一侧的最低端面"
+      pos_mm: [0.0, -23.028, -32.6]
+      src: "measured"
+      src_note: "y = features.yaml:frames.per_part.L07.export_stl_bbox_mm 的 y 下界 −23.028；x/z 取 6700 座轴线所在的 (0, ·, −32.6)（= L07-F04 boss 的 geom.pos z）"
+    to:
+      what: "6700 轴承座 L07-F01（Ø15.1 深 4.0，承 L04 踝副轴颈 Ø9.95）"
+      pos_mm: [0.0, 0.0, -32.6]
+      src: "measured"
+      src_note: "features.yaml:L07-F01.geom.pos 的径向位置是 (0, 0, ·)，与踝关节轴同轴；y=0 即踝轴平面"
+    direction: [0.0, 1.0, 0.0]
+    direction_note: "同 LP-L05-01"
+    length_mm: 23.028
+    provenance:
+      - "features.yaml:L07-F01 / L07-F04 / L07-F08 / frames.per_part.L07"
+      - "fasteners.yaml:F23_sole_to_foot / F24_L07_to_L05"
+      - "relations.yaml:R04 / R19"
+  - id: "LP-N01-01"
+    part: "N01"
+    load_case: "head_hanging"
+    load_case_note: "头部总成（N02/N03/H01/H02/H03 + 头部三颗 S288 + 主板/摄像头）的重量与俯仰反力矩，经颈链一节一节传回躯干。与 static_stand 不是同一个工况：这里的力不过地面，只过头部质量。"
+    frame: "export_local"
+    from:
+      what: "N01-F02 头俯仰舵机载体 c2 的形心（2×M2×6 F13_headpitch_back 把头俯仰 S288 的力交进 N01）"
+      pos_mm: [-1.4, -32.49, 29.15]
+      src: "measured"
+      src_note: "features.yaml:N01-F02.geom.pos。**不取头俯仰关节轴原点 (0, −50, 0) / 颈俯仰关节轴原点 (0,0,0)**：N01 导出件的 z 只有 2.15..30.65，两个轴心点的 z=0 都落在件外，切出来前 10 刀是空刀（本轮 load_path_continuous 发现）。N01 是一根把两个舵机载体连起来的梁，力真正进出的位置是两个载体，不是关节轴心。"
+    to:
+      what: "N01-F01 颈俯仰舵机载体 c1 的形心（F11/F11b 背孔把力交给颈俯仰 S288）"
+      pos_mm: [-1.4, -8.55, 29.15]
+      src: "measured"
+      src_note: "features.yaml:N01-F01.geom.pos"
+    direction: [0.0, 1.0, 0.0]
+    direction_note: "= normalize(to − from)。两个载体之间就是 N01-F03 那条 web（3 mm 腹板），这条路径切的正是它。"
+    length_mm: 23.94
+    provenance:
+      - "features.yaml:N01-F01 / N01-F02 / N01-F03 / frames.per_part.N01"
+      - "fasteners.yaml:F11_neckpitch_back_upper / F11b_neckpitch_back_lower / F13_headpitch_back"
+      - "upstream/microduck_rl/.../robot_walk.xml（body neck → neck_pitch）"
+  - id: "LP-N02-01"
+    part: "N02"
+    load_case: "head_hanging"
+    frame: "export_local"
+    from:
+      what: "头偏航关节轴（MJCF 子 body yaw_roll_motion 的原点；头偏航 S288 由 6×M2×6 F16_headyaw_flange 拧在 N02-F04 立筒顶盘上）"
+      pos_mm: [0.0, 18.6931, -14.5]
+      src: "measured"
+      src_note: "inv(TW('neck_pitch'))·TW('yaw_roll_motion') 的平移列（2026-09-09 实算）；与 features.yaml:N02-F04.geom.pos [0.0, 20.561, −14.5] 同 x/z，y 差 1.868 是立筒顶盘的板厚站位"
+    to:
+      what: "头俯仰关节轴（N02 +y 脸颊由 6×M2×6 F14_headpitch_flange 拧在头俯仰 S288 法兰上）"
+      pos_mm: [0.0, 0.0, 0.0]
+      src: "measured"
+      src_note: "= export_local 原点"
+    direction: [0.0, -0.790152, 0.612911]
+    direction_note: "= normalize(to − from)"
+    length_mm: 23.6576
+    provenance:
+      - "features.yaml:N02-F04 / frames.per_part.N02"
+      - "fasteners.yaml:F14_headpitch_flange / F16_headyaw_flange"
+      - "upstream/microduck_rl/.../robot_walk.xml（body neck_pitch → yaw_roll_motion）"
+  - id: "LP-N03-01"
+    part: "N03"
+    load_case: "head_hanging"
+    load_case_note: "N03 还是 R11/R12 那对 PLA 滑动配合 A/B 盘的载体（原版那两颗滚动轴承没保留），头壳的全部重量都经这两个盘压在 N03 上。"
+    frame: "export_local"
+    from:
+      what: "头横滚关节轴（MJCF 子 body jaw_soft 的原点；A/B 盘 N03-F01/F02 就骑在这条轴上）"
+      pos_mm: [-17.9, 0.0, 14.5]
+      src: "measured"
+      src_note: "inv(TW('yaw_roll_motion'))·TW('jaw_soft') 的平移列（2026-09-09 实算）；与 features.yaml:N03-F02.geom.pos [16.25, 0.0, 14.5] 同 y/z（A 盘与 B 盘在轴两端，x 相反）"
+    to:
+      what: "头偏航关节轴上、与 from 同一轴向站位的那一点（N03 背板 N03-F03 由 4×M2×6 F15_headyaw_back 挂在头偏航 S288 上）"
+      pos_mm: [0.0, 0.0, 14.5]
+      src: "measured"
+      src_note: "头偏航关节轴 = export_local 的 z 轴（robot_walk.xml 里 yaw_roll_motion 的 <joint axis> = 0 0 1）。**不取原点 (0,0,0)**：N03 导出件的 z 只有 3.6954..36.35，原点落在件外。取 z=14.5 = from 的同一站位，于是这条路径就是头横滚轴到头偏航轴的**垂直力臂**，长度 17.9 mm。"
+    direction: [1.0, 0.0, 0.0]
+    direction_note: "= normalize(to − from)：两条关节轴之间的公垂线方向，也就是头壳重量在 N03 上的悬臂方向。"
+    length_mm: 17.9
+    provenance:
+      - "features.yaml:N03-F01 / N03-F02 / N03-F03 / frames.per_part.N03"
+      - "fasteners.yaml:F15_headyaw_back / F17_headroll_flange"
+      - "relations.yaml:R11 / R12"
+      - "upstream/microduck_rl/.../robot_walk.xml（body yaw_roll_motion → jaw_soft）"
+  - id: "LP-H02-01"
+    part: "H02"
+    load_case: "head_clamp_path"
+    load_case_note: "H02 是可拆压板：2×M2×8（F18_headroll_back_H02）把它拧在横滚 S288 的上排背孔上，2×M2×10（F19_H02_to_H01）把它接到 H01 的 Ø5 座。头壳与主板的重量、以及横滚舵机的反力矩，就从垫柱端面进、从连接臂的两个孔出。**这条路径正好穿过 H02 的沉孔窄筋**（features.yaml:H02-R01，实测厚 1.434 mm）—— 承力路径与薄筋在同一处，这是本件唯一需要看截面的地方。"
+    frame: "export_local"
+    from:
+      what: "H02-F02 两根 Ø5 垫柱的端面中点（贴横滚 S288 薄段背面，见 relations.yaml:R17）"
+      pos_mm: [0.0, 7.5, 22.95]
+      src: "measured"
+      src_note: "features.yaml:H02-F02.geom.positions_mm = [[−8.0,7.5,24.575],[8.0,7.5,24.575]]（柱心），端面在 z=22.95（世界 x=−14.85 → export z = 14.85+8.1）；取两柱中点 x=0"
+    to:
+      what: "H02-F06 两个 M2×10 通孔的中点（F19_H02_to_H01 把力交给 H01-F11 的 Ø5 座）"
+      pos_mm: [3.3854, 13.3, 28.1]
+      src: "measured"
+      src_note: "features.yaml:H02-F06.geom.positions_mm = [[−0.6146,13.3,28.1],[7.3854,13.3,28.1]] 的中点"
+    direction: [0.400021, 0.685331, 0.608527]
+    direction_note: "= normalize(to − from)"
+    length_mm: 8.4631
+    provenance:
+      - "features.yaml:H02-F02 / H02-F03 / H02-F05 / H02-F06 / H02-R01 / frames.per_part.H02"
+      - "fasteners.yaml:F18_headroll_back_H02 / F19_H02_to_H01"
+      - "relations.yaml:R17"
+      - "comparison_original_vs_v2.md:B2（窄筋 0.444→1.434）"
+# 没有声明承力路径的件：**逐条写明为什么写不出来**，而不是让它在层里变成一句无名的 unknown。
+# 层（l7_mass.py:_sections）会把这里的 reason 原样贴进红格的 detail —— 写不出路径本身就是缺口，判红。
+parts_without_declared_load_path:
+  - part: "T01"
+    reason: "T01 是浮动基座（MJCF root body trunk_base），有三个子关节（左右髋偏航 + 颈俯仰），载荷是三条支路 + 电池/主板/整机自重的**分布**载荷，不能约化成一条 from→to。要写它得先声明『按哪条支路、什么工况』——例如『单脚站立时右髋偏航支路』——那是三条独立路径，本轮不编。"
+    what_would_unblock: "把 static_stand 拆成 double_support / single_support_L / single_support_R 三个工况，逐工况给 T01 一条支路路径（from=受载那侧髋偏航轴，to=另一侧髋偏航轴或颈俯仰轴）。"
+  - part: "T02"
+    reason: "躯干侧壳，只由 4×M2×8（F20_shell_to_T01）挂在 T01 的柱上，不在任何一条传力链上（它承的是自重与外壳磕碰，后者是冲击工况，README 第 2 节把冲击划给 bench）。"
+    what_would_unblock: "bench.yaml 增加跌落/磕碰工况并给出等效静载，才谈得上截面判据。"
+  - part: "T03"
+    reason: "同 T02（镜像件）。"
+    what_would_unblock: "同 T02。"
+  - part: "B01"
+    reason: "电池仓门，靠 F21_B01_to_T01_front 一颗 M2×6 + F28_snap_B01 两颗卡珠固定；它托的是电池自重，方向随整机姿态变，而且卡珠是点接触、力的入口位置由 R13 的过盈量决定，data 里没有卡珠承载的声明。"
+    what_would_unblock: "relations.yaml:R13 给出卡珠的承载方向与允许载荷（或改用绑带固定并声明绑带位置）。"
+  - part: "H01"
+    reason: "H01 同时是头横滚舵机笼、N03 A/B 盘的半座（R12 铰链）、香橙派立柱载体、以及 H03 的接口（F22 4×M2×8 自攻）—— 四个载荷入口分布在件的四个不同区域，没有一条主路径。**注意 H01 上的香橙派立柱是冻结项**，不能为了凑一条路径去改它。"
+    what_would_unblock: "把它拆成多条路径逐条声明（A/B 盘 → 头横滚轴、立柱 → 主板自重、4 脚 → H03），每条都要有自己的工况；本轮只写能从现有数据一次推出来的那些。"
+  - part: "H03"
+    reason: "下头壳，H01 4 脚自攻挂上去；它托的是自己的壳体自重与（将来的）脸屏，脸屏尚未选型（V2_S288版发布产物/01_整鸭打印件/打印清单与参数.md：『屏板替换件与相邻零件接口尚未复核』）。入口位置和大小都还不存在。"
+    what_would_unblock: "脸屏选型 + components.yaml 给出它的 mass_g 与安装点，才有 from。"

@@ -1,0 +1,1818 @@
+# 本文件由 docs/gate/inventory_v2.json + inventory_original.json + comparison_original_vs_v2.md 机械转换而来。
+# 字段约定见 tools/gate/data/README.md：
+#   · 每条记录必须有 provenance（duck.py:行 / s288.py:行 / ankle_split.py:行 / mechanical_audit.json:键 /
+#     inventory_original.json:路径 / inventory_v2.json:路径 / MJCF:行 / comparison_original_vs_v2.md:编号）
+#   · 数值字段统一写成 {v: <值>, src: measured|datasheet|assumed}
+#   · 搬不过来的值写 v: null，并在同条记录里给 unknown_class + unknown_reason
+# 单位：mm / mm^3 / g / N / degC，除非字段名另有后缀。不四舍五入。
+# tolerances.yaml —— 公差表。按 **材料 × 打印方向 × 特征类型** 分桶；咬入按**连接类型**给范围，不给通用数。
+# 刀具通道不在这里 —— 每颗螺丝在 fasteners.yaml 里写自己的 tool_envelope。
+# 顶部 placeholder_summary 就是'还有几个配合依赖占位值'的机器可读答案。
+
+schema_version: 1
+placeholder_summary:
+  note: "**还有几个配合依赖占位值** —— 下面这些桶的 nominal 是 assumed 或干脆是 null，公差试件一颗都没打。按元规则 4，配合间隙 < 公差表值且字段是 assumed 的一律红。"
+  fits_on_placeholder_count: 22
+  fits_on_placeholder:
+    - "fits.pla.bearing_outer_seat_6704"
+    - "fits.pla.bearing_inner_hub_6704"
+    - "fits.pla.bearing_axial_retention"
+    - "fits.pla.plain_slide_head_roll"
+    - "fits.pla.key_slot"
+    - "fits.pla.general_clearance"
+    - "fits.pla.min_wall"
+    - "fits.pla.m2_through_hole"
+    - "fits.pla.m2_pilot_hole_self_tap"
+    - "fits.pla.m2_counterbore"
+    - "fits.tpu.process"
+    - "fits.horn.clock_phase"
+    - "fits.horn.face_contact"
+    - "fits.horn.concentricity"
+    - "fits.servo.back_clamp"
+    - "fits.servo.cage_clearance"
+    - "fits.servo.overload_stop"
+    - "fits.snap.b01"
+    - "fits.battery_bay"
+    - "fits.deck.keyhole"
+    - "fits.deck.deck_to_L01_gap"
+    - "fits.axis.concentricity"          # 2026-09-09 新建的桶：relations.yaml:R12 的 target_ref 原来指着它，但它以前根本不存在
+  coupons_printed: 0
+  coupons_total: 6
+  coupons_printed_note_2026-09-10: "**这个 0 本轮故意没动，但它已经不能读成『没有任何实物公差数据』了。** 2026-09-10 用户打了 `TC02_holes.stl`（tools/cad/coupons.py:holes() 的 M2 竖直孔规）并报了读数，本仓库因此有了第一个实测工艺锚点：tolerances.yaml:process.xy_offset_mm_per_side = 0.15 mm/边。之所以还写 0：本键数的是 deliberately_added.tolerance_coupons_TC01_TC05.coupons 那张表，那张表里的 `TC02` 指的是**榫/槽 + Ø1.6 底孔咬入**试件（unblocks: fits.pla.key_slot），和 TC02_holes 不是同一个件 —— 把 0 改成 1 等于宣称 key_slot 拿到了锚点，而它没有。名称冲突的完整说明见 process.xy_offset_mm_per_side.coupon_name_collision_warning。"
+  note_first_real_anchor_2026-09-10: "本节开头那句『公差试件一颗都没打』**在 2026-09-10 之后不成立**：M2 竖直孔规打了、量了。但它只解开『孔的 xy 偏移』这一个量，下面 22 个 fits_on_placeholder 一个都没被它解开（那 22 条要的是各自的名义配合值，不是工艺偏移）。所以 fits_on_placeholder_count 也没有变。"
+engagement_by_joint_type:
+  s288_metal_thread:
+    # ── 2026-09-10：**本项目一颗都不用了**（v2_usage: 0）。桶保留不删，两个理由：
+    #   ① tools/gate/negatives/ 里 n_l5_fg14 / n_l5_fg15 / n_l4_tool_far_seal 三个反例的假件用的就是
+    #      joint_type: "s288_metal_thread"，删桶会让反例判 unknown 而不是判它们该判的红，等于把反例跑挂；
+    #   ② 它是 J288（钢齿铝壳、4-M2螺纹 ⌄3.0 MAX）真实存在的连接类型，将来若换 J288 会用回来。
+    v2_usage: 0
+    superseded_by: "tolerances.yaml:engagement_by_joint_type.s288_plastic_self_tap"
+    superseded_note: "128 颗（19 组）原来挂在本桶下，2026-09-10 全部改挂 s288_plastic_self_tap。改口径的理由见新桶的 why_replaced_s288_metal_thread。**本桶的 1.8–3.0 是金属内螺纹的数，对塑料自攻无效**，不许再被 S288 的螺丝引用。"
+    applies_to_model: "J288（钢齿、铝壳、35 g、25.2 V、1.5 N·m）—— 不是 S288"
+    range_mm:
+      min: 1.8
+      max: 3.0
+    hard_cap_mm:
+      v: 3.0
+      src: "assumed"
+      src_note: "horn_depth/mnt_depth = 3.0 MAX（官方图，未量）—— 超过就顶底"
+    # ⚠ 2026-09-09：3.0 和 0.3 原来在这里被写死一遍、在顶层 screw_length_rule.formula 又写一遍，
+    #   两处不一致时不知道听谁的 → 长度公式的**唯一权威定义在 screw_length_rule**，本条改成引用。
+    rule: "长度判据取 tolerances.yaml:screw_length_rule.formula（螺丝总长 ≤ 叠厚 + 盲深 − 0.3）。本桶只负责提供该公式里的『盲深』= hard_cap_mm = 3.0，以及可接受的咬入区间 range_mm = 1.8~3.0。每颗按**自己的**叠厚算，不许按组取 max（F11b 就是这么被掩盖的）。"
+    authoritative_length_rule_ref: "tolerances.yaml:screw_length_rule"
+    blind_depth_for_formula_ref: "tolerances.yaml:engagement_by_joint_type.s288_metal_thread.hard_cap_mm"
+    provenance:
+      - "s288.py:24"
+      - "duck.py:325"
+      - "inventory_v2.json:functional_relations[8]"
+  s288_plastic_self_tap:
+    # ── 2026-09-10 新建。128 颗（19 组，见 fasteners.yaml:counts.self_tapping_audit_2026-09-10）从
+    #    s288_metal_thread 改挂到这里。**这次改动的净效果是把绿变红**，这是对的：原来那些绿是拿
+    #    金属内螺纹的阈值去判塑料自攻得来的，属于元规则 10 要抓的「查了、过了、但查的东西不对」。
+    range_mm:
+      min: null
+      max: null
+    unknown_class: "not_measured"
+    unknown_reason: "塑料自攻的可接受咬入区间**本仓库没有任何数据**。① 宇树没给：docs/reference/s288/给宇树客服的问题清单_2026-09-10.md:47 第 5 节问了牙型、拧入扭矩上限、可反复拆装次数，2026-09-10 未回；官方图只规定了孔（Ø1.7 光孔、⌄3.0 MAX），没规定咬入。② 本仓库没测：bench.yaml:BN01 是提出来的实测项，checked=false。③ **不许从 s288_metal_thread 的 1.8–3.0 挪过来**：塑料自攻靠的是牙侧挤压塑料产生的径向抱紧力，金属内螺纹靠的是牙的剪切面积，一般塑料自攻需要**更长**的咬入（常见工程惯例 ≥2×螺径，M2 即 ≥4.0），而 S288 的孔深上限只有 3.0 —— 这两个数一旦都写实，很可能得出『这个连接本来就不够』的结论，正因为如此更不许随手填一个能通过的数。"
+    why_range_is_null_and_not_4_0: "pla_self_tap 桶用的 4.0（=2×螺径）是打印件 PLA 的惯例值，src 也只是 rule 里的一句话。舵机塑料壳是**注塑件**、牌号未知（PA/POM/ABS 都可能），壁厚与孔深由官方图定死在 3.0 —— 把 PLA 的 4.0 搬过来既没有出处，也会让 19 组全部因『3.0 < 4.0』判红，红得不是地方。填 null 让层判 unknown（元规则 3），红在『没有判据』上，理由是真的。"
+    hard_cap_mm:
+      v: 3.0
+      src: "datasheet"
+      src_note: "官方尺寸图：法兰 6-Ø1.7 ⌄3.0(MAX)、背面 4 角孔 16×30 Ø1.7 光孔深 ≤3.0（S288实测尺寸记录.md:44、给宇树客服的问题清单_2026-09-10.md:47）。这是**孔的盲深**，是几何量，和牙是金属还是塑料无关 —— 所以本键有值、range_mm 没值，两者不矛盾：孔多深是知道的，多深才算拧住是不知道的。超过 3.0 就顶底。"
+      changed_2026-09-10: "值没变（还是 3.0），但 src 从 assumed 升到 datasheet：s288_metal_thread 那条写的是『官方图，未量』，其实官方图就是数据表出处。"
+    rule: "长度判据取 tolerances.yaml:screw_length_rule.formula（螺丝总长 ≤ 叠厚 + 盲深 − 0.3），本桶提供该公式里的『盲深』= hard_cap_mm = 3.0。**咬入区间本桶给不出**（range_mm 两端都是 null）→ 第 5 层对这 19 组的 `engagement` 判 unknown（= 红），19/19 全红（2026-09-10 实跑 gate.py --layers 5 核实）。这是有意的：数据缺失必须变成红格，不许静默跳过。"
+    correction_2026-09-10: "本键原文写的是『……engagement_declared / engagement_derived 两条随之失去阈值』。**实跑核实这句话是错的**：engagement_declared / engagement_derived / engagement_per_hole 各 9 条，全部落在 pla_self_tap 那 8 组上，s288_plastic_self_tap 的 19 组一条都没有 —— 这 19 组只产出 `engagement` 一条判据。原句把没发生的事说成发生了（元规则 9）。"
+    authoritative_length_rule_ref: "tolerances.yaml:screw_length_rule"
+    blind_depth_for_formula_ref: "tolerances.yaml:engagement_by_joint_type.s288_plastic_self_tap.hard_cap_mm"
+    thread_form_guidance:
+      recommended: "PT 型（挤压式三角牙）"
+      is_not_an_answer: "**这是工程惯例，不是宇树答复，也不是本仓实测。** 所以它只出现在本键和各组的 screw_type.thread_form.candidate 里，不出现在任何 v: 上。"
+      why: "塑料自攻要挤压成型、不要切削。切削型（尖头自攻 / 割尾自攻）在注塑壳里会切出塑料屑、切断分子链，屑还会掉进减速箱；挤压型三角牙把材料推开形成连续的牙，同一个孔能多拧几次。S288 全塑料（塑料齿轮 + 塑料壳，宇树 2026-09-08 参数表，用户实物确认），减速箱就在螺丝孔背后。"
+      falsified_by: "宇树给出牙型答复；或 bench.yaml:BN01 用两种牙型各拧一颗做拆装对比。"
+    max_reinsertions_ref: "fasteners.yaml:<组>.max_reinsertions（全部 null，unknown_class: not_measured）"
+    why_replaced_s288_metal_thread: "S288 是**塑料齿轮 + 塑料壳**（宇树客服 2026-09-08 官方参数表原文，抄在 V2_S288版发布产物/04_电机到货测试/S288实测尺寸记录.md:56；J288 才是钢齿、铝壳、35 g、25.2 V、1.5 N·m）。用户已拿实物确认全塑料。官方尺寸图对两款的规定本来就不同：S288 是『6-Ø1.7 ⌄3.0(MAX) 使用 M2 自攻螺丝』+ 背面 4 角孔 Ø1.7 光孔，J288 才是『4-M2螺纹 ⌄3.0(MAX)』+ 2-Ø2 销钉。也就是说 S288 上**没有任何金属内螺纹**，原来 19 组 128 颗写 s288_metal_thread 是把 J288 的规定套在了 S288 上。"
+    consequences_of_the_fix: "① 咬入判据从『有阈值、大部分绿』变成『无阈值、全 unknown（红）』—— 少了假绿，多了诚实的红。② 螺丝长度规则不受影响：它只要盲深，盲深还是 3.0（官方图）。③ 采购口径变了：157 颗全是自攻，牙型未定，现在不能下单（fasteners.yaml:counts.self_tapping_audit_2026-09-10.consequences_for_purchasing）。"
+    what_would_unblock:
+      - "宇树答复：推荐牙型 + 拧入扭矩上限 + 同孔可反复拆装次数（问题清单第 5 节）"
+      - "bench.yaml:BN01 实测：拧到位后 24 h 扭矩衰减、重复拆装 N 次后的拔出力/咬入衰减"
+      - "两者任一给出可接受咬入下限后，回填 range_mm.min，并把 unknown_class 删掉"
+    provenance:
+      - "V2_S288版发布产物/04_电机到货测试/S288实测尺寸记录.md:44"
+      - "V2_S288版发布产物/04_电机到货测试/S288实测尺寸记录.md:56"
+      - "docs/reference/s288/给宇树客服的问题清单_2026-09-10.md:47"
+      - "fasteners.yaml:counts.self_tapping_audit_2026-09-10"
+  pla_self_tap:
+    range_mm:
+      min: 4.0
+      max: null
+    rule: "≥ 2×螺径（M2 → 4.0）。**长度判据同样取 screw_length_rule.formula**，本桶只提供咬入下限 range_mm.min = 4.0。现状 3 处不满足：H02→H01 3.9、B01→T01 2.7、IMU→T01 前壁 2.4（hr30 M2×4，壁 3.5 本就到不了 4.0）；L07→L05 6.7、T02/T03→柱 5.8、香橙派立柱 10.0 满足"
+    authoritative_length_rule_ref: "tolerances.yaml:screw_length_rule"
+    # 2026-09-09：原 rule 文本说"3 处不满足"却只列了 2 处；补齐并改成机器可读。
+    violations:
+      - fastener: "F19_H02_to_H01"
+        engagement_mm: {v: 3.9, src: "assumed", src_note: "叠 6.10 − 沉 0.6 后 M2×10 剩下的长度；底孔见 H01-F12（Ø1.6 深 4.5）"}
+        pilot_feature: "H01-F12"
+      - fastener: "F21_B01_to_T01_front"
+        engagement_mm: {v: 2.7, src: "assumed", src_note: "trunk.py:36 底孔 Ø1.6 深 2.7（仓底板厚 3.0，留 0.3 不穿）"}
+        pilot_feature: "T01-F16"
+      - fastener: "F26_imu_to_T01"
+        engagement_mm: {v: 3.5, src: "assumed", src_note: "**原来被记成 10**（fasteners.joins 与 relations R10 的自由文本）。实际：刀 cyl(1.7, 10, ...) 长 10，但前壁只有 BAY_FW=3.5 厚且孔直接通进电池仓 → 可咬入上限 3.5"}
+        pilot_feature: "T01-F20"
+    satisfied:
+      - {fastener: "F24_L07_to_L05", engagement_mm: 6.7, pilot_feature: "L05-F12"}
+      - {fastener: "F20_shell_to_T01", engagement_mm: 5.8, pilot_feature: "T01-F23"}
+      - {fastener: "F25_sbc_to_H01", engagement_mm: 10.0, pilot_feature: "H01-F04"}
+      - {fastener: "F22_H01_to_H03", engagement_mm: 6.3, pilot_feature: "H03-F02", src: "derived", src_note: "2026-09-13 由 unknown 移入：09-12 I4 H03 先填 Ø3.6 后自钻 Ø1.7×7.0（径向重叠 +0.15，build #7 射线 r 0.849..0.850）；M2×8 − H01 脚厚 1.7 = 6.3；孔4 (49.1,9.35) 的 Ø1.7 段只有 5.0146 → 该孔按 5.0 计，其余落在原版 Ø2.2 残段让位。导出几何推算，未打印/未试件（TC04/BN01）"}
+    unknown:
+      - {fastener: "F23_sole_to_foot", unknown_class: "not_applicable", unknown_reason: "2026-09-19 改为无螺丝点胶（原版 TPU 鞋底本就无孔）；L06-F04 特征已删除"}
+    provenance:
+      - "inventory_v2.json:functional_relations[9]"
+  heat_set_insert:
+    range_mm:
+      min: null
+      max: null
+    rule: "按螺母长（全长咬合）"
+    v2_usage: 0
+    unknown_class: "not_applicable"
+    unknown_reason: "S288 版一颗热熔螺母都没用；原版 microduck 也没有（只有 ODM v2 旁证用 M3 热熔螺母）"
+    provenance:
+      - "inventory_original.json:fasteners[25]"
+      - "comparison_original_vs_v2.md:A16"
+  pla_snap:
+    range_mm:
+      min: 0.6
+      max: 1.0
+    rule: "卡扣咬合深度（见 fits.snap.b01）"
+    provenance:
+      - "duck.py:612"
+  none_zip_tie:
+    range_mm:
+      min: null
+      max: null
+    rule: "扎带，无咬入概念"
+    provenance:
+      - "duck.py:597"
+  none_adhesive:
+    range_mm:
+      min: null
+      max: null
+    rule: "胶粘（TPU 鞋底 F23：B7000/E6000 类软胶），无咬入概念；qty 0、status disabled，不进螺丝 BOM，装配步在 assembly.yaml 步 5 注明点胶"
+    provenance:
+      - "docs/design_2026-09-17_bearing_rebuild/记录.md 第 21 条（2026-09-19 用户定 (a)）"
+  none_no_receiver:
+    range_mm:
+      min: null
+      max: null
+    rule: "无接收材料 → 该孔必须标 disabled，且不得出现在 fastener_bom.md 里"
+    provenance:
+      - "mechanical_audit.json:unresolved"
+  machine_screw_hex_nut:
+    # 2026-09-24 hr41 新建：全机第一处机牙 —— J01 活动嘴两毂 → J02/J03 转接盘，6 颗 M2×5 十字沉头机牙 + 6 颗 M2 六角螺母（压入盘里的六角穴）。
+    #   用户 09-23 定：嘴对盘用机械螺丝 + 嵌六角螺母，不自攻塑料法兰、不用热熔铜螺母。
+    range_mm:
+      min: null
+      max: null
+    v2_usage: 6
+    unknown_class: "not_selected"
+    unknown_reason: "机牙进钢螺母的可接受咬入本仓库没有数（常见惯例：螺纹穿满螺母高度、至少 3 扣 = 1.2 mm @P0.4；两条都是惯例不是本项目数据）。本组设计咬入 1.5（螺尖离螺母外端面 0.1；J03 侧螺尖再长就进入盘内面到静止座环的 0.5 浮动间隙）—— 不编一个能通过的下限，判 unknown。PETG 六角穴压入保持力、螺母外侧皮 0.85 的拧紧力矩上限都没测。"
+    hard_cap_mm:
+      v: null
+      src: null
+      unknown_class: "not_applicable"
+      unknown_reason: "不是盲孔：螺母在六角穴里，螺尖以下 J02 侧是穴空腔（到法兰面 1.85）、J03 侧是盘内面外 0.5 的浮动间隙；螺丝长度规则按 fasteners.yaml:F34_jaw_hub_to_adapters.pilot 里逐侧写的余量判"
+    rule: "咬入 = 螺丝总长 − 头顶沉入深 − 夹层（J01 毂 2.8 + 盘外侧皮 0.85）；螺尖不得出盘内面（J03）/ 不得顶法兰（J02）"
+    provenance:
+      - "duckstructure/jaw.py:JAW_CS / JAW_NUT / J02_* （hr41）"
+      - "docs/design_2026-09-17_bearing_rebuild/hr41_头部阶段二.md §A"
+screw_length_rule:
+  # 本节是螺丝长度公式的**唯一权威定义**（2026-09-09）。engagement_by_joint_type.*.rule 一律引用这里，不再各自写死 3.0 / 0.3。
+  authoritative: true
+  formula: "螺丝总长 ≤ 叠厚 + 盲深 − 0.3"
+  tip_margin_mm: {v: 0.3, src: "assumed", src_note: "公式里的 0.3 —— 螺丝尖到螺纹底的余量。**只在这里定义一次**"}
+  blind_depth_by_joint_type:
+    s288_plastic_self_tap: "tolerances.yaml:engagement_by_joint_type.s288_plastic_self_tap.hard_cap_mm"   # 2026-09-10：128 颗实际走的是这一条
+    s288_metal_thread: "tolerances.yaml:engagement_by_joint_type.s288_metal_thread.hard_cap_mm"           # v2_usage: 0，只剩反例在用
+    pla_self_tap: "由该孔自己的 features.yaml:<id>.geom.depth_mm（自攻底孔的盲深）给，不是常数"
+    heat_set_insert: "tolerances.yaml:engagement_by_joint_type.heat_set_insert"   # v2 一颗没用
+  per_hole_not_per_group: true
+  why: "F11b（N01 颈俯仰下排）就是被'按组取 max 叠厚'掩盖的：组内 max 5.2 选 M2×8，实际下排只有 3.3"
+  provenance:
+    - "tools/gate/README.md 第 2 节 第 5 层"
+    - "inventory_v2.json:unknowns[1]"
+# ── 2026-09-10 新增：打印工艺偏移（本仓库第一个**实测**公差锚点）─────────────────
+# 在此之前 tolerances.yaml 的 26 个配合桶**没有一个**有真实打印件数据，全是名义值/采用值。
+# 本节不改任何几何：用户 2026-09-10 已决定 **不改 CAD**，改成让打印店在切片里做孔径补偿
+# （Bambu/Orca `hole_size_compensation` / Cura `X-Y hole compensation` / PrusaSlicer `Hole Horizontal Expansion`）。
+# 所以本节的用途只有一个：**判「哪些配合在不补偿的情况下会失效」**，即给出一张
+# 「这批件如果照现在的 STL 直接打、切片不补偿，会装不上的清单」。它不是设计输入。
+process:
+  _positioning: "本节是**判据输入**，不是**设计输入**。不许有任何工具拿 xy_offset_mm_per_side 去**自动**改 CAD 尺寸。**口径变更 2026-09-13**：用户拍板『有则改之』——M2 过孔/头窝这两个**内轮廓**按本节实测让 0.15/边（2.2→2.4、4.2→4.4，手改常量、有出处），不再把命押在切片补偿上（PrusaSlicer 只有整体 XY 补偿，会连带缩小没测过的外轮廓）；外轮廓（毂/轴颈/榫）仍按原值，等 TC01b 毂规读数。09-10 那句『走切片补偿、几何保持现状』到此为止。本节存在的意义是：在补偿没被执行（或执行了但没验证）的情况下，把会失效的配合点名点出来。"
+  _layer_reads_this: false
+  _layer_reads_this_note: "**层现在一个字节都没读本节。** `grep -rn xy_offset tools/gate/layers/` 为空（2026-09-10 核对）。所以本节现在是数据，不是判据 —— 和 load.density_by_material 的处境一样。不许因为本节存在就说『打印偏移已经被 Gate 覆盖了』。要变成判据需要改层（见 what_would_make_it_a_criterion），改层不在本轮范围。"
+  xy_offset_mm_per_side:
+    v: 0.15
+    src: "measured"
+    出处: "TC02 孔规 2026-09-10"
+    src_note: "TC02_holes 孔规（tools/cad/coupons.py:holes()，11 个竖直孔 Ø1.6→2.6 步进 0.1，平放打印）。用户 2026-09-10 拿 M2 螺丝逐孔试：**从右数第 4 个孔恰好能插进 M2，再往小的都进不去**。孔规从切角那头 Ø1.6 递增到 Ø2.6，右端是 2.6 → 从右数第 4 个 = 2.6 − 3×0.1 = **Ø2.3**。设计 Ø2.3 的孔实测刚好等于 M2 外径 → 直径缩水 2.3 − 2.0 = **0.30 mm**，单边 **0.15 mm**。"
+    measurement_chain: "设计孔径 2.30 − 实际通过孔径 2.00 = 0.30 直径 ⇒ 0.15/边。**注意这一步用了一个未验证的等号**：把『M2 螺丝的实际外径』当成了 2.00。"
+    reading_2026-09-16:
+      raw: "用户 2026-09-16 口述（同一片 TC02_holes 孔规，**现在买的这批 M2 螺丝**）：能『无阻碍』进去的是**第二大的孔（Ø2.5）**；到**第三大（Ø2.4）**就不能无阻碍进了。"
+      derived: "自由通过阈值落在 Ø2.4–2.5 之间（比 09-10 那次『Ø2.3 恰好能插进』的判据松一档：无阻碍 ≠ 恰好）。若螺丝外径仍按 2.00：缩水 0.4–0.5 直径 = **0.20–0.25/边**，高于本节 v=0.15、也高于 band 上界 0.20。"
+      open_questions: "① 09-10 与 09-16 是不是同一批螺丝（用户说『现在买的』，可能换了）；② 『无阻碍』是手推还是拧；③ 这颗螺丝的实际外径没量过（卡尺一量就能把 ±0.03 那项去掉）。三个都没答之前 v 不改，本条只记数据。"
+      user_decision_2026-09-16: "过孔**不改**（保持 2.4，装配时多拧几圈）；材料改 **PETG**（本节 PLA 读数到此为止，PETG 试件包重打后另立读数）；自攻底孔打完钻 Ø1.6。TC04_horn_24 已实物拧上舵机法兰、6 颗全对孔（分度圆 r 5.25 落实）。"
+      user_followup_2026-09-16: "用户随后说：螺纹大径就是 2.0（口述，未说是否卡尺量）；过孔紧一点『多拧一拧』就行、材料 PLA/PETG 都可。→ 按 2.0 算缩水 0.20–0.25/边成立。过孔紧的后果小（多点扭矩、夹紧力略降），底孔的后果不小（Ø1.6/1.7 打成 1.1–1.3，M2 小径 ≈1.5 都塞不进，见 fits.pla.self_tap_pilot 的 why_no_verdict）。"
+      implication_if_confirmed: "M2 过孔现值 Ø2.4（s288.py horn_hole_d / mnt_hole_d，09-13 由 2.2 改来）对这批螺丝是**有阻碍**的过孔 → 要改 Ø2.5；头窝 4.4 / 垫管孔 4.4 同理各 +0.1；自攻底孔 Ø1.6/1.7 名义不变但实际径向过盈比 fasteners.yaml 按 0.15 算的更大（更难拧、更易裂）。改不改由用户定，改的话是常量级改动、需重 build + L5 重跑。"
+    uncertainty:
+      from_gauge_step_mm: 0.05
+      from_gauge_step_note: "孔规步进 0.1 mm（直径），Go/No-Go 只能把真值框在相邻两孔之间 → 直径 ±0.10，单边 ±0.05。"
+      from_screw_od_mm: 0.03
+      from_screw_od_note: "M2 外螺纹大径按 ISO 965 是 1.886~2.000（6g），**用户没有拿卡尺量这颗螺丝**。若实际是 1.94，则真实缩水 = 2.30 − 1.94 = 0.36 直径 = 0.18/边。所以 0.15 是这个区间的**下界**，不是中值。"
+      band_mm_per_side: "0.15 ~ 0.20（保守取用时按上界 0.20 复核一遍，见 conservative_use）"
+      conservative_use: "元规则 4（宁可多报红）：判『会不会失效』时用 0.15 已经能判红的，用 0.20 只会更红；反过来，靠 0.15 刚好判绿的配合**不算通过**，因为 0.20 会让它翻红 → 那类要标 marginal，不许当绿。"
+    scope:
+      applies_to: "**内轮廓（孔/槽/内腔）**，竖直孔（孔轴 ⊥ 打印床），PLA，0.4 喷嘴 / 0.2 层高，用户这一台打印机、这一卷料。"
+      does_not_apply_to_outer_contours: "**外轮廓（轴 / 凸台 / 毂 / 榫）方向相反，且本仓库没测。** 同一个挤出偏移让孔变小、让轴变大，所以不许把 0.15 直接搬去判 fits.pla.bearing_inner_hub_6704（毂 Ø19.85）、fits.pla.journal_slide_6700（轴颈 Ø9.95）、L05 榫。TC01b_hubs 毂规的 STL 在 cad/coupons_s288/ 里出好了，但**它有没有被打印、有没有读数，本仓库一个字都没记**（placeholder_summary.coupons_printed 至今是 0）→ 外轮廓偏移仍是 unknown。"
+      outer_contour_offset_mm_per_side:
+        v: null
+        src: null
+        unknown_class: "not_measured"
+        unknown_reason: "TC01b_hubs（Ø19.7/19.85/20.0 三根毂柱）与 TC01_bearing（Ø27.0/27.15/27.3/27.45 四个座孔）的 STL 已生成（cad/coupons_s288/），**但本仓库没有任何记录说它们被打印过**，更没有读数 —— 2026-09-10 用户报的只有 TC02 孔规这一项。没有读数就没有外轮廓的锚点。不许拿孔的 0.15 反号当外轮廓用 —— 挤出偏移对内外轮廓的量值不一定相等（内轮廓还叠了一层小圆孔的弦高效应）。"
+      does_not_apply_to_horizontal_holes: "TC02b_hholes（站着打、孔轴水平，Ø2.0/2.2/2.4/2.6）是**另一条独立的锚点**，同样没有读数（是否打印过本仓库也没记录）。coupons.py 的注释明说『横孔打出来比竖孔更小』→ 横孔偏移 ≥ 0.15，具体多少 unknown。侧壁上的过孔（例如 T01 IMU 前壁孔）属于这一类。"
+      horizontal_hole_offset_mm_per_side:
+        v: null
+        src: null
+        unknown_class: "not_measured"
+        unknown_reason: "TC02b_hholes 的 STL 已生成，**是否打印过本仓库没有记录**，用户也未报任何读数。横孔与竖孔是两条独立的锚点，不许用竖孔的 0.15 代。"
+    consistency_with_earlier_estimate: "docs/gate/实测公差锚点_2026-09-09.md 第 2 节从测试台 TB01 卡槽（设计单边过盈 0.05 → 实物『装上就拆不下来』）**反推**出 0.15~0.30/边。本次 TC02 是直接量的，落在那个区间的下端 —— 两个独立来源不矛盾。但两者证据强度不同：TB01 是从『装配手感』反推的量级，TC02 是孔规读数。"
+    coupon_name_collision_warning: "**本仓库有两个东西都叫 TC02。** ① tools/cad/coupons.py:holes() 产出的 `TC02_holes.stl` = M2 竖直孔规（**这次打的、这次量的就是它**）；② tolerances.yaml:deliberately_added.tolerance_coupons_TC01_TC05.coupons[TC02] 写的是『榫/槽 0.2 间隙 + Ø1.6 底孔自攻咬入』，对应 fits.pla.key_slot。两者不是同一个件：TC02_holes 上没有任何榫/槽特征。所以 **fits.pla.key_slot 并没有因为这次打件而拿到锚点**，它的 coupon 仍是『未打』。placeholder_summary.coupons_printed 本轮**故意没动**（它数的是 ② 那张表，动它会说成『榫槽锚点有了』）。"
+  criteria:
+    _note: "两条可被判据引用的准则。写成 expr 是为了将来层能直接读；**现在没有任何层读它们**（见 _layer_reads_this）。每条都注明了它对『间隙』的口径要求 —— fits 表里既有直径量也有单边量，混用会差 2 倍，所以口径判不出来的桶一律 unknown，不猜（元规则 3/4）。"
+    PX01_clearance_survives_offset:
+      name: "设计间隙 − 2×offset > 0"
+      expr_diametral: "design_clearance_diametral_mm - 2 * process.xy_offset_mm_per_side.v > 0"
+      expr_per_side: "design_clearance_per_side_mm - process.xy_offset_mm_per_side.v > 0"
+      which_expr_to_use: "看该 fits 条目自己声明的量。声明了 `gate_must_use.quantity`（例如 plain_slide_head_roll 的 radial_clearance_per_side_mm）的用 per_side；`meaning` 里写明『单边』的用 per_side；只给一个直径差的用 diametral。**两者都判不出来的桶 → res.unknown，不许默认按其中一个算**。"
+      failure_meaning: "结果 ≤ 0 表示：切片不做孔径补偿时，这个让位/滑配在实物上是**零间隙或过盈** → 装不进去，或装进去转不动。"
+      marginal_meaning: "per_side 口径：结果 > 0 但 ≤ 0.05 → marginal。diametral 口径：结果 > 0 但 ≤ 0.10 → marginal。两个门槛差一倍是因为直径量吃两倍偏移；0.05 / 0.10 都等于『把 offset 从下界 0.15 换成上界 0.20 之后会翻红』的那段宽度（见 xy_offset_mm_per_side.uncertainty.band_mm_per_side）。marginal 不算绿。"
+    PX02_through_hole_survives_offset:
+      name: "设计Ø − 2×offset > 螺纹外径"
+      expr: "design_hole_d_mm - 2 * process.xy_offset_mm_per_side.v > screw_major_d_mm"
+      screw_major_d_mm:
+        v: 2.0
+        src: "datasheet"
+        src_note: "M2 粗牙外螺纹公称大径 2.0（ISO 261）。**本仓库没有量过实际螺丝**，与 xy_offset 的 measurement_chain 用的是同一个假设 —— 两处一起错时会互相抵消一部分，判据文字里不许说『已按实测螺丝径验证』。"
+      applies_to_feature_types: ["through_hole_m2"]
+      does_not_apply_to: "**底孔（pilot_hole_m2）不适用** —— 自攻底孔本来就必须小于外径，这条准则套上去会把一个正确的设计判红。底孔受 offset 的影响要按『挤压量变大 → 拧入扭矩上升 / 胀裂风险』来判，那是另一条判据，本仓库没有。"
+      failure_meaning: "expr 不成立时（即 design_hole_d_mm − 2×offset **≤** screw_major_d_mm）表示：切片不做孔径补偿时，M2 螺丝**穿不过这个过孔**。注意判失败的条件是这条不等式不成立，**不是『某个差值 ≤ 0』** —— 阈值是螺纹外径 2.0，不是 0。"
+      marginal_meaning: "expr 成立但余量（design_hole_d_mm − 2×offset − screw_major_d_mm）≤ 0.10 → 标 marginal。0.10 = 2×(0.20−0.15)，即换用 offset 区间上界 0.20/边 后会翻红的宽度。"
+  screened_2026-09-10:
+    _what_this_is: "拿上面两条准则在**现有 fits 表的名义值**上手算一遍的结果。只收口径明确、算得出来的条目；口径不明的列在 unscreened 里。这是一张**清单**，不是判据 —— 没有任何层跑过它。"
+    _screening_input_hash_note: "输入是 tolerances.yaml:fits 自身的 nominal_mm.v，不是导出 STL。想绑 STL 哈希得等层实现（元规则 6）。"
+    screened_against_PX02:
+      _note: "**键名是『按 PX02 筛过的条目』，不是『违反 PX02 的条目』** —— 每行自带 verdict，别按键名下结论。（2026-09-10 本键原名 violates_PX02，改名是因为同一节的 PX01 那张表里混着 过/marginal/unknown 三种结果，用 violates_* 当键名会让读的人把整张表当成红名单。）"
+      rows:
+        - key: "fits.pla.m2_through_hole"
+          design_mm: 2.2
+          effective_mm: 1.90
+          threshold_mm: 2.0
+          verdict: "FAIL —— 2.20 − 0.30 = 1.90 < 2.0。**不补偿的话 M2 穿不过我们的 Ø2.2 过孔。** 这一条命中的不是某个件：2026-09-10 从 L5 自己的判据明细里数，15 个件上共 **108 个 Ø2.2 螺丝孔**（gate.py --layers 5 记分卡里 seat_flatness 那条的 detail 逐件报的『N 个 Ø2.2 螺丝孔』求和）。Ø2.2 是 s288.py:22 的 mnt_hole_d / horn_hole_d，也是 fits.pla.m2_through_hole 的名义值。"
+    screened_against_PX01:
+      _note: "**同上：键名是『按 PX01 筛过的条目』。** 本表 3 行的实际结论分别是 FAIL（plain_slide_head_roll discA）/ 过 PX01 但掉出该桶目标区间（general_clearance）/ unknown（key_slot，榫的外轮廓偏移没测）。"
+      rows:
+        - key: "fits.pla.plain_slide_head_roll"
+          quantity: "radial_clearance_per_side_mm（该条 gate_must_use 显式声明）"
+          design_mm: 0.09
+          effective_mm: -0.06
+          verdict: "FAIL —— discA 单边 0.09 − 0.15 = −0.06 → 头横滚 N03 discA 与 H03 半座变成过盈，转不动。这条 Gate 本来就按『0.09 < 目标下限 0.20』判 BLOCK，本次把它从『偏紧』升级为『不补偿则确定抱死』。discB 0.29 − 0.15 = 0.14 > 0 但 < 0.20 目标下限 → marginal。"
+        - key: "fits.pla.general_clearance"
+          quantity: "单边（meaning：『s288.py clr：所有让位的通用间隙』；clr 是单边量已核实：duckstructure/s288.py:54 body_prism 的 docstring 原文『c=单边间隙』，且 s288.py:84 servo_envelope 里 c = S[\"clr\"] + extra 直接喂给它）"
+          design_mm: 0.3
+          effective_mm: 0.15
+          verdict: "**过 PX01，但掉出该桶自己的目标区间。** 0.30 − 0.15 = 0.15 > 0 → PX01 成立，且 0.15 > 0.05 的 marginal 带，所以按 PX01 不算 marginal；但 0.15 低于该条自己的 target_range_mm.min = 0.2 → **按 fits 的目标区间判是红**。两条判据结论不同不是矛盾：PX01 问『装不装得进』，target_range 问『间隙够不够当滑动/让位用』。按 offset 上界 0.20 算只剩 0.10，两条都更差。这一条是 s288.py 的通用让位 clr，命中面最大。"
+        - key: "fits.pla.key_slot"
+          quantity: "单边（meaning：『榫/槽单边间隙』）"
+          design_mm: 0.2
+          effective_mm: 0.05
+          verdict: "**unknown（而不是 FAIL）**。槽是内轮廓、榫是外轮廓，两个方向都在吃这 0.2：槽变小 0.15/边，榫变大**未知量**/边。只算槽这一半：0.20 − 0.15 = 0.05 → PX01 勉强成立但正好落在 marginal 带（≤0.05），且已低于该桶 target_range_mm.min = 0.15；把榫那一半算进来极可能变负。**但榫的偏移本仓库没测**（scope.outer_contour_offset_mm_per_side = null）→ 最终判据只能是 unknown。列在这里是因为它是最可能被这个偏移打掉的配合，不是因为已经判它红了。"
+    affected_but_no_verdict:
+      - key: "fits.pla.m2_counterbore"
+        design_mm: 4.2
+        effective_mm: 3.90
+        why_no_verdict: "M2 盘头直径本身是采用值 3.8~4.0（tolerances.yaml:assumed_values[AV19]，src: assumed，出处只有『复审交接』一句）。头径取 3.8 → 3.90 装得下；取 4.0 → 装不下。**输入是区间不是数，所以结论是区间，不是判决。** 要定案得量一颗真螺丝的头径。"
+      - key: "fits.pla.m2_pilot_hole_self_tap"
+        design_mm: 1.6
+        effective_mm: 1.30
+        why_no_verdict: "底孔不适用 PX02（见该准则 does_not_apply_to）。Ø1.6 底孔实际打成 Ø1.3 意味着 M2 自攻单边要挤 0.35 mm 塑料，拧入扭矩和胀裂风险都上升 —— 但本仓库**没有任何判据**能把『挤压量』变成红绿（既没有 PLA 的许用挤压量，也没有拧入扭矩数据，见 bench.yaml:BN01）。同一条目 status 已经是 inconsistent（Ø1.6 与 Ø1.7 并存）。"
+      - key: "fits.pla.bearing_outer_seat_6704"
+        design_mm: 27.15
+        effective_mm: 26.85
+        why_no_verdict: "轴承座是内轮廓，适用 0.15/边：Ø27 外圈进 Ø26.85 的孔 = **直径 0.15 过盈**。该条目 status 本来就是 mismatch_nominal_vs_target（名义 27.15 是 +0.15 间隙，target 要求 −0.05~+0.05 干涉）—— 偏移恰好把它推进 target 区间的**外侧**（0.15 干涉 > 0.05 上限）。不下判决是因为 TC01_bearing 座孔规（Ø27.0/27.15/27.3/27.45 四个孔）**才是这一条的直接锚点**，比拿 M2 孔规的 0.15 外推到 Ø27 更可信 —— 而它有没有被打印、有没有读数，本仓库都没有记录。Ø2.3 的小孔和 Ø27 的大孔缩量不一定相同（小孔多一份弦高/流量补偿效应）。"
+      - key: "fits.pla.bearing_outer_seat_6700"
+        design_mm: 15.1
+        effective_mm: 14.80
+        why_no_verdict: "同上：Ø15 外圈进 Ø14.80 = 直径 0.20 过盈。该条目 nominal 的 src 是 measured（射线量导出 STL 得 15.093–15.100），但那是**量 CAD**，不是量打印件 —— offset 是 CAD→实物这一段的偏差，两者不冲突、在直径上**相加**（CAD 15.093 已经基本等于名义 15.1，再减 0.30 得 14.80）。直接锚点同样是 TC01_bearing —— 无打印记录、无读数。"
+    unscreened_because_convention_undeclared:
+      _why: "下面这些桶的 nominal 判不出是直径量还是单边量（既没有 gate_must_use.quantity，meaning 里也没写『单边』/『直径』）。按元规则 3/4，判不出口径 = unknown，不许挑一个算了完事。"
+      keys:
+        - "fits.servo.back_clamp"
+        - "fits.servo.cage_clearance"
+        - "fits.servo.overload_stop"
+        - "fits.battery_bay"
+        - "fits.deck.deck_to_L01_gap"
+        - "fits.deck.keyhole"
+        - "fits.snap.b01"
+        - "fits.horn.face_contact"
+        - "fits.pla.bearing_face"
+  what_would_make_it_a_criterion:
+    - "层里写出读 process.xy_offset_mm_per_side 的代码，并逐条 fits 按上面两条 expr 判红绿 —— 现在一行都没有"
+    - "每条 fits 补一个显式的 quantity 字段（diametral / per_side），否则一半的桶只能判 unknown"
+    - "外轮廓与横孔各自的 offset（TC01b / TC02b 已打，回读数即可），否则榫、毂、轴颈、侧壁过孔一律 unknown"
+    - "切片补偿这条路要能被验证：补偿参数写进 tools/gate/slicing/ 的切片配置并留哈希，再打一次 TC02 复量 —— 否则『已补偿』只是一句口头承诺，判据既证实不了也证伪不了"
+  slicer_compensation_decision:
+    decided_by_user_on: "2026-09-10"
+    decision: "不改 CAD，改由打印店在切片里做孔径补偿"
+    slicer_parameter_names: ["Bambu Studio / OrcaSlicer: hole_size_compensation", "Cura: X-Y hole compensation（Hole Horizontal Expansion）", "PrusaSlicer: Hole Horizontal Expansion（XY hole compensation）"]
+    value_to_ask_for_mm: "+0.30（直径）/ 等价 +0.15 单边。切片器里这个参数一般填**直径方向**的增量，填之前跟打印店确认它家 UI 的口径 —— 填成 0.15 只补一半。"
+    verification_status:
+      v: null
+      src: null
+      unknown_class: "not_verified"
+      unknown_reason: "补偿有没有被真的设进切片、设的是哪个数、设完之后孔径回没回到名义值 —— 三件事一件都没有证据。在拿到『补偿后重打的 TC02 读数』之前，上面 screened_2026-09-10 那张表就是这批件的实际状态。"
+  provenance:
+    - "tools/cad/coupons.py:6（TC02_holes 竖直孔 Ø1.6…2.6 步 0.1）"
+    - "V2_S288版发布产物/08_公差试件/README.md:10（TC02 怎么试、记什么）"
+    - "docs/gate/实测公差锚点_2026-09-09.md 第 2 节（TB01 反推 0.15~0.30/边）"
+    - "用户 2026-09-10 口头读数：TC02 从右数第 4 个孔（Ø2.3）恰好能插进 M2（**本仓库唯一有实物读数的公差试件**；其余 9 个 coupon 的 STL 都在 cad/coupons_s288/，打没打、量没量都无记录）"
+feature_check_tolerances:
+  fixation_contact_mm: 1.0      # hr38：元件实体表面到承载件表面的最近距离上限。>这个数 = 声明了固定却没挨着 = 假声明/悬空
+  fixation_reach_mm: 8.0        # hr38：六向射线判"有没有承载件挡着"的探测距离（另加元件半外形）
+  _note: "第 0/2/5 层的通用几何判据（README 第 2 节），按特征种类给，不按件给"
+  datum_vs_mjcf_mm:
+    min: -0.05
+    max: 0.05
+    applies_to: "基准特征（舵盘轴心）落在 MJCF 位置"
+  hole_diameter_mm:
+    min: -0.1
+    max: 0.1
+    applies_to:
+      - "screw_hole"
+      - "pilot_hole"
+      - "bore"
+      - "tool_channel"
+      - "counterbore"
+  hole_depth_mm:
+    min: -0.1
+    max: 0.1
+    applies_to:
+      - "pilot_hole"
+      - "counterbore"
+      - "bore"
+    src: "assumed"
+    src_note: "2026-09-13 补 src：区间由 tools/gate/README.md 第 2 节提出、本文件转录，无试件/手册来源"
+  mirror_error_mm:
+    min: 0.0
+    max: 0.05
+    applies_to: "镜像件（L01–L07 全部 ×2）的特征镜像误差"
+  static_intersection_mm3:
+    min: 0.0
+    max: 0.05
+    applies_to: "第 3 层任意两实体交集"
+  envelope_vs_placed_mm:
+    min: -0.1
+    max: 0.1
+    applies_to: "components.yaml:envelope_solid 声明尺寸 vs placed 占位实体的顶点法尺寸（OBB 三边 / 环的顶点内外径；第 3 层 placed_covers_envelope）"
+    src: assumed
+    src_note: "2026-09-13 新增（审计 F-L3-3：元件实体以前与 CAD 同源）。±0.1 与 hole_diameter_mm 同量级，无试件来源"
+  frozen_dimension_mm:
+    min: -0.1
+    max: 0.1
+    applies_to: "frozen.yaml 冻结尺寸（battery_bay_26 / h01_sbc_posts / imu_pose 安装孔）vs 导出件射线·截面实测（第 3 层 frozen_* 判据）"
+    src: assumed
+    src_note: "2026-09-13 新增（审计 F-数-1：冻结项以前没有任何层核）。与 hole_diameter_mm 同量级 ±0.1，无试件来源"
+  horn_concentricity_mm:
+    min: 0.0
+    max: 0.05
+    applies_to: "driven_disc / horn_hole"
+    src: "assumed"
+    src_note: "2026-09-13 补 src：区间由 tools/gate/README.md 第 2 节提出、本文件转录，无试件/手册来源"
+  horn_clock_deg:
+    min: -5.0
+    max: 5.0
+    applies_to: "horn_hole 相位（抓 60° 倍数错位）"
+    src: "assumed"
+    src_note: "2026-09-13 补 src：区间由 tools/gate/README.md 第 2 节提出、本文件转录，无试件/手册来源"
+  seat_flatness_spread_mm:
+    min: 0.0
+    max: 0.3
+    applies_to: "同一颗螺丝坐面 16 向叠厚极差 —— 这条就是为抓 F15（3.3..6.9 极差 3.6）加的"
+    src: "assumed"
+    src_note: "0.3 是本文件提出的阈值，两份 inventory 都没有这个数"
+  provenance:
+    - "tools/gate/README.md 第 2 节"
+    - "inventory_v2.json:unknowns[2]"
+fits:
+  pla:
+    bearing_outer_seat_6704:
+      material: "PLA"
+      print_orientation: "座轴线 ⟂ 打印床（L01/L03 背板朝下 → 座孔沿层面）"
+      print_orientation_note_2026-09-17: "09-17 起只剩 L03 膝座；L01 髋横滚座随 6704 取消（docs/reports/髋横滚轴承取消_2026-09-17.md），上一行措辞保留历史"
+      feature_type: "bearing_outer_seat"
+      nominal_mm:
+        v: 27.15
+        src: "assumed"
+        src_note: "duck.py:30 写'外圈压进'，但 27.15 相对 Ø27 是 **+0.15 间隙**，不是过盈；target_range 是本文件给出的应有区间，与现值不符"
+      target_range_mm:
+        min: 26.95
+        max: 27.05
+        meaning: "外圈 Ø27 的过盈压入区间（目标：−0.05..+0.05 干涉）"
+        sign_convention: "signed_interference_positive"
+        sign_convention_provenance: "2026-09-09 由本条 meaning 文本推出（命中关键词「过盈」）。contact_profile 的实测口径是**过盈为正、间隙为负**；clearance_magnitude 表示本区间写的是间隙绝对值（正数），层比较前取负。判不出口径的桶不写这个键 → 层按元规则 4 判 unknown，不猜。"
+        src: "assumed"
+        src_note: "2026-09-13 补 src：区间由本文件提出，无试件/手册来源"
+      coupon: "TC01（未打）"
+      status: "mismatch_nominal_vs_target"
+      provenance:
+        - "duck.py:30"
+        - "duck.py:398"
+        - "duck.py:416"
+        - "inventory_v2.json:functional_relations[0]"
+    bearing_inner_hub_6704:
+      material: "PLA"
+      print_orientation: "毂轴线 ⟂ 打印床（L02/L04 盘面朝下）"
+      print_orientation_note_2026-09-17: "09-17 起只剩 L04 膝毂；L02 髋横滚毂随 6704 取消，改 Ø20 盘直接坐法兰（docs/reports/髋横滚轴承取消_2026-09-17.md），上一行措辞保留历史"
+      feature_type: "bearing_inner_hub"
+      nominal_mm:
+        v: 19.85
+        src: "assumed"
+        src_note: "名义 −0.15"
+      target_range_mm:
+        min: 19.85
+        max: 19.95
+        meaning: "内圈 Ø20 套上不晃（−0.15..−0.05 过盈）"
+        sign_convention: "signed_interference_positive"
+        sign_convention_provenance: "2026-09-09 由本条 meaning 文本推出（命中关键词「过盈」）。contact_profile 的实测口径是**过盈为正、间隙为负**；clearance_magnitude 表示本区间写的是间隙绝对值（正数），层比较前取负。判不出口径的桶不写这个键 → 层按元规则 4 判 unknown，不猜。"
+        src: "assumed"
+        src_note: "2026-09-13 补 src：区间由本文件提出，无试件/手册来源"
+      coupon: "TC01b（未打）"
+      status: "placeholder"
+      provenance:
+        - "duck.py:30"
+        - "duck.py:226"
+        - "inventory_v2.json:functional_relations[1]"
+    bearing_outer_seat_6702:
+      material: "PLA"
+      print_orientation: "座轴线 ⟂ 打印床（T01 倒放）"
+      feature_type: "bearing_outer_seat"
+      nominal_mm:
+        v: 21.15
+        src: "assumed"
+        src_note: "09-12 ⑤ lib.P['brg_yaw']['seat_d']：与 6704 座同口径（+0.15 间隙），同样与本桶目标区间不符"
+      target_range_mm:
+        min: 20.95
+        max: 21.05
+        meaning: "外圈 Ø21 的过盈压入区间（目标：−0.05..+0.05 干涉）"
+        sign_convention: "signed_interference_positive"
+        src: "assumed"
+        src_note: "2026-09-13 补 src：区间由本文件提出，无试件/手册来源"
+      coupon: "TC01（未打；要加 Ø21.15 座规）"
+      status: "mismatch_nominal_vs_target"
+      provenance:
+        - "duckstructure/lib.py:P['brg_yaw']"
+    bearing_inner_hub_6702:
+      material: "PLA"
+      print_orientation: "毂轴线 ⟂ 打印床（L01）"
+      feature_type: "bearing_inner_hub"
+      nominal_mm:
+        v: 14.85
+        src: "assumed"
+        src_note: "名义 −0.15（同 6704 毂）"
+      target_range_mm:
+        min: 14.85
+        max: 14.95
+        meaning: "内圈 Ø15 套上不晃（−0.15..−0.05 过盈）"
+        sign_convention: "signed_interference_positive"
+        src: "assumed"
+        src_note: "2026-09-13 补 src：区间由本文件提出，无试件/手册来源"
+      coupon: "TC01b（未打；要加 Ø14.85 毂规）"
+      status: "placeholder"
+      provenance:
+        - "duckstructure/lib.py:P['brg_yaw']"
+    pla_pin_in_pla_bore:
+      material: "PLA"
+      print_orientation: "销立着打（N04），孔沿层面（N03 背板朝下）"
+      feature_type: "pin_in_bore"
+      nominal_mm:
+        v: 0.1
+        src: "assumed"
+        src_note: "09-12 ④ N04 Ø16.0 销 / N03 Ø16.2 孔：径向 0.10"
+      target_range_mm:
+        min: 0.05
+        max: 0.15
+        meaning: "PLA 销在 PLA 孔里的径向间隙（能推入、不晃）"
+        sign_convention: "clearance_magnitude"
+        src: "assumed"
+        src_note: "2026-09-13 补 src：区间由本文件提出，无试件/手册来源"
+      coupon: null
+      status: "placeholder"
+      provenance:
+        - "duckstructure/neck.py:N04_D_GUIDE / YRM_B_BORE"
+    pla_journal_in_bearing_16:
+      material: "PLA"
+      print_orientation: "销立着打（N04）"
+      feature_type: "bearing_inner_hub"
+      nominal_mm:
+        v: 15.9
+        src: "assumed"
+        src_note: "09-12 ④ N04 轴承段 Ø15.9 套 22×16×4 内圈 Ø16（径向 0.05，同 L07 踝轴颈 9.95/Ø10 口径）；打印偏大要实配"
+      target_range_mm:
+        min: 15.85
+        max: 15.95
+        meaning: "内圈 Ø16 套上不晃"
+        sign_convention: "signed_interference_positive"
+        src: "assumed"
+        src_note: "2026-09-13 补 src：区间由本文件提出，无试件/手册来源"
+      coupon: null
+      status: "placeholder"
+      provenance:
+        - "duckstructure/neck.py:N04_D_JRN"
+    bearing_axial_retention:
+      material: "PLA"
+      print_orientation: "任意"
+      feature_type: "bearing_axial_stop"
+      nominal_mm:
+        v: null
+        src: null
+        src_note: null
+      target_range_mm:
+        min: 0.0
+        max: 0.1
+        meaning: "轴承双向轴向游隙上限"
+        sign_convention: "clearance_magnitude"
+        sign_convention_provenance: "2026-09-09 由本条 meaning 文本推出（命中关键词「游隙」）。contact_profile 的实测口径是**过盈为正、间隙为负**；clearance_magnitude 表示本区间写的是间隙绝对值（正数），层比较前取负。判不出口径的桶不写这个键 → 层按元规则 4 判 unknown，不猜。"
+        src: "assumed"
+        src_note: "2026-09-13 补 src：区间由本文件提出，无试件/手册来源"
+      coupon: null
+      status: "unmet"
+      provenance:
+        - "duck.py:221-227"
+        - "duck.py:302"
+        - "inventory_v2.json:functional_relations[2]"
+    bearing_outer_seat_6700:
+      material: "PLA"
+      print_orientation: "座轴线 ∥ 打印床（L07 侧面朝下）"
+      feature_type: "bearing_outer_seat"
+      nominal_mm:
+        v: 15.1
+        src: "measured"
+        src_note: "射线量得 Ø15.093–15.100"
+      target_range_mm:
+        min: 15.05
+        max: 15.1
+        meaning: "外圈 Ø15 的 +0.05~0.1 间隙配合"
+        sign_convention: "clearance_magnitude"
+        sign_convention_provenance: "2026-09-09 由本条 meaning 文本推出（命中关键词「间隙」）。contact_profile 的实测口径是**过盈为正、间隙为负**；clearance_magnitude 表示本区间写的是间隙绝对值（正数），层比较前取负。判不出口径的桶不写这个键 → 层按元规则 4 判 unknown，不猜。"
+        src: "assumed"
+        src_note: "2026-09-13 补 src：区间由本文件提出，无试件/手册来源"
+      coupon: "TC01（未打）"
+      status: "ok"
+      provenance:
+        - "ankle_split.py:51-54"
+        - "inventory_v2.json:functional_relations[3]"
+    journal_slide_6700:
+      material: "PLA"
+      print_orientation: "轴颈轴线 ∥ 打印床（L04 盘面朝下 → 轴颈沿层面悬臂）"
+      feature_type: "journal_slide"
+      nominal_mm:
+        v: 9.95
+        src: "measured"
+        src_note: "射线量得 Ø9.938–9.950"
+      target_range_mm:
+        min: 9.9
+        max: 9.98
+        meaning: "内圈 Ø10 滑配"
+        src: "assumed"
+        src_note: "2026-09-13 补 src：区间由本文件提出，无试件/手册来源"
+      coupon: "TC01（未打）"
+      status: "ok_but_no_axial_stop"
+      provenance:
+        - "duck.py:21"
+        - "duck.py:26-27"
+        - "duck.py:528"
+        - "inventory_v2.json:functional_relations[4]"
+    plain_slide_head_roll:
+      material: "PLA"
+      print_orientation: "座轴线 ∥ 打印床（H01 脚底朝下 / H03 底面朝下）"
+      feature_type: "plain_slide_journal"
+      # ⚠ 2026-09-09 量纲修正：nominal_mm 与 target_range_mm **不是同一个量**
+      #   nominal_mm      = 22.18  → 座孔**直径**
+      #   target_range_mm = 0.2~0.4 → 单边**径向间隙**
+      # 两个原字段一个都没删（Gate 不许静默丢字段），但都加了 *_quantity 说清各自是什么，
+      # 并新增机器可读的 nominal_d_mm / radial_clearance_mm / gate_must_use 三段。
+      nominal_mm:
+        v: 22.18
+        src: "assumed"
+        src_note: "P['seat_d']=22.18 标'实测'；复审量壳座 r10.89 → 实际单边 0.09/0.29，低于目标下限"
+      nominal_mm_quantity: "seat_bore_diameter_mm"
+      nominal_mm_deprecated: true
+      nominal_mm_deprecated_reason: "和同桶的 target_range_mm 不是同一个量（一个是直径、一个是单边间隙），机器读会当成同一个量比较 → 改用下面的 nominal_d_mm 与 radial_clearance_mm"
+      nominal_d_mm:
+        v: 22.18
+        src: "measured"
+        src_note: "duckstructure/lib.py:34 P['seat_d']=22.18。2026-09-14 复审修复 r2：head.py build_head_bottom_shell 新增 seatA 刀（H03_SEAT_A_X0=6.0 → YRM_A2+0.1，Ø seat_d），A/B 下半座与 H01 上半座三处同径；射线量导出 H03_head_bottom_shell.stl x 6.5/8.0/9.8 下半圈 r 11.085..11.088 = Ø22.170..22.176（64 边内接刀）。旧值 assumed（与复审实测 r10.89 冲突）已关闭，见 conflicts.seat_d"
+      target_range_mm:
+        min: 0.2
+        max: 0.4
+        meaning: "N03 discA/discB 与半座的**径向单边间隙**目标（PLA 对 PLA 滑动）"
+        sign_convention: "clearance_magnitude"
+        sign_convention_provenance: "2026-09-09 由本条 meaning 文本推出（命中关键词「间隙」）。contact_profile 的实测口径是**过盈为正、间隙为负**；clearance_magnitude 表示本区间写的是间隙绝对值（正数），层比较前取负。判不出口径的桶不写这个键 → 层按元规则 4 判 unknown，不猜。"
+        src: "assumed"
+        src_note: "2026-09-13 补 src：区间由本文件提出，无试件/手册来源"
+      target_range_mm_quantity: "radial_clearance_per_side_mm"
+      radial_clearance_mm:
+        quantity: "radial_clearance_per_side_mm"
+        target_range_ref: "tolerances.yaml:fits.pla.plain_slide_head_roll.target_range_mm"
+        by_journal:
+          discA:
+            journal_d_mm: {v: 21.6, src: "measured", src_note: "射线量导出 N03_yaw_roll.stl：72/72 向外半径 10.789..10.805（lib.py:34 seat_disc_d=21.6）"}
+            nominal_from_seat_d_22p18_mm: {v: 0.29, src: "assumed", src_note: "(22.18 − 21.6)/2"}
+            measured_from_shell_seat_mm: {v: 0.285, src: "measured", src_note: "2026-09-14 r2 后射线量导出 H03_head_bottom_shell.stl 下半圈 r 11.085..11.088 → 11.085 − 10.800 = 0.285；min_gap(N03,H03) 零位 0.2847、head_roll ±25° 每 1° 最小 0.2717@+14°（build_2026-09-13_manual_dims_r2.log / checks 同名 log [复量] M5）。修前（09-09..09-13）：37/72 向最小 10.9000 → 0.095，取 0.10"}
+            feature_refs: ["N03-F01", "H01-F05", "H03-F01"]
+          discB:
+            journal_d_mm: {v: 21.2, src: "measured", src_note: "射线量导出 N03_yaw_roll.stl：36/36 向外半径 10.589..10.605"}
+            nominal_from_seat_d_22p18_mm: {v: 0.49, src: "assumed", src_note: "(22.18 − 21.2)/2"}
+            measured_from_shell_seat_mm: {v: 0.30, src: "measured", src_note: "10.900 − 10.605 = 0.295，取 0.30"}
+            feature_refs: ["N03-F02", "H01-F05", "H03-F01"]
+      gate_must_use:
+        # conflicts.seat_d 的 resolution 原来只写在散文里（"Gate 必须按 0.09 判"），这里把它变成机器可读字段。
+        why: "2026-09-14 复审修复 r2 前：seat_d 22.18 与复审实测 r10.89 差 0.2 未解决，按元规则 4 取小的那一侧（discA 0.09 → BLOCK）。r2 后 H03 A 下半座已扩到 Ø seat_d（head.py seatA 刀），冲突关闭；仍取**导出件射线实测**而不是名义 0.29（保守）。"
+        quantity: "radial_clearance_per_side_mm"
+        discA_mm: {v: 0.285, src: "measured", src_note: "2026-09-14 r2：射线量导出 H03 下半圈 r 11.085 − N03 A 盘 r 10.800 = 0.285（旧 0.09 = 复审实测原版壳座 r10.89 − 10.8；09-13 导出件 0.10）。全程 min_gap 最小 0.2717@+14°（含斜向/轴向最近点，非纯径向）"}
+        discB_mm: {v: 0.29, src: "measured", src_note: "10.89 − 10.6 = 0.29。本轮射线量得 0.30 → 仍按 0.29 判（B 端 09-12 ④ 已扩 Ø22.18，实测 r 11.085..11.088 → 0.48；保守仍记 0.29）"}
+        verdict: "discA 0.285、discB 0.29 都落在 0.20~0.40 内 → 通过（2026-09-14 r2；修前 discA 0.09 < 0.20 判 BLOCK）"
+        conflict_ref: "tolerances.yaml:conflicts.seat_d"
+        relation_ref: "relations.yaml:R11"
+      coupon: "TC03（未打）"
+      status: "in_target"
+      status_history: "below_target（2026-09-09..09-13，discA 0.09/0.10）→ in_target（2026-09-14 复审修复 r2，H03 A 座扩 Ø22.18）"
+      provenance:
+        - "duck.py:35"
+        - "duck.py:811-817"
+        - "duck.py:882-884"
+        - "inventory_v2.json:functional_relations[10]"
+    key_slot:
+      material: "PLA"
+      print_orientation: "榫沿 x（L05 脚板朝下 / L07 侧面朝下，两件打印方向不同）"
+      feature_type: "key_slot"
+      nominal_mm:
+        v: 0.2
+        src: "assumed"
+        src_note: "名义 0.2（L05 榫 2.2×2×3 vs L07 槽 2.6×2.4×3.4）"
+      target_range_mm:
+        min: 0.15
+        max: 0.3
+        meaning: "榫/槽单边间隙"
+        sign_convention: "clearance_magnitude"
+        sign_convention_provenance: "2026-09-09 由本条 meaning 文本推出（命中关键词「间隙」）。contact_profile 的实测口径是**过盈为正、间隙为负**；clearance_magnitude 表示本区间写的是间隙绝对值（正数），层比较前取负。判不出口径的桶不写这个键 → 层按元规则 4 判 unknown，不猜。"
+        src: "assumed"
+        src_note: "2026-09-13 补 src：区间由本文件提出，无试件/手册来源"
+      coupon: "TC02（未打）"
+      status: "placeholder"
+      provenance:
+        - "ankle_split.py:48-49"
+        - "inventory_v2.json:functional_relations[17]"
+    bearing_face:
+      material: "PLA"
+      print_orientation: "接触面 ⟂ x（L05/L07 桥）"
+      feature_type: "compression_face"
+      nominal_mm:
+        v: 0.2
+        src: "measured"
+        src_note: "接触面 -13.7，缝 0.2 @ -13.5；承压面积来自修复报告"
+      target_range_mm:
+        min: 0.1
+        max: 0.3
+        meaning: "分体缝隙（承压面 57.06 mm^2 靠 2 颗 M2×12 拉合）"
+        src: "assumed"
+        src_note: "2026-09-13 补 src：区间由本文件提出，无试件/手册来源"
+      coupon: null
+      status: "ok"
+      provenance:
+        - "ankle_split.py:38-47"
+        - "inventory_v2.json:functional_relations[18]"
+    general_clearance:
+      material: "PLA"
+      print_orientation: "任意"
+      feature_type: "generic_relief"
+      nominal_mm:
+        v: 0.3
+        src: "assumed"
+        src_note: "clr=0.3（TC03 试 0.2/0.4）"
+      target_range_mm:
+        min: 0.2
+        max: 0.4
+        meaning: "s288.py clr：所有让位的通用间隙"
+        sign_convention: "clearance_magnitude"
+        sign_convention_provenance: "2026-09-09 由本条 meaning 文本推出（命中关键词「间隙」）。contact_profile 的实测口径是**过盈为正、间隙为负**；clearance_magnitude 表示本区间写的是间隙绝对值（正数），层比较前取负。判不出口径的桶不写这个键 → 层按元规则 4 判 unknown，不猜。"
+        src: "assumed"
+        src_note: "2026-09-13 补 src：区间由本文件提出，无试件/手册来源"
+      coupon: "TC03（未打）"
+      status: "placeholder"
+      provenance:
+        - "s288.py:26"
+    min_wall:
+      material: "PLA"
+      print_orientation: "任意"
+      feature_type: "wall_thickness"
+      nominal_mm:
+        v: 2.5
+        src: "assumed"
+        src_note: "wall=2.5，无壁厚检查"
+      target_range_mm:
+        min: 2.5
+        max: null
+        meaning: "结构墙最小厚度（ring_boss 只留一层壁 2.5）"
+        src: "assumed"
+        src_note: "2026-09-13 补 src：区间由本文件提出，无试件/手册来源"
+      coupon: null
+      status: "unchecked"
+      provenance:
+        - "s288.py:26"
+        - "duck.py:406"
+        - "duck.py:414"
+    m2_through_hole:
+      material: "PLA"
+      print_orientation: "任意"
+      feature_type: "through_hole_m2"
+      nominal_mm:
+        v: 2.4
+        src: "assumed"
+        src_note: "我们的过孔，名义。**2026-09-13 由 2.2 → 2.4**（用户拍板『有则改之』）：TC02 孔规实测本机竖直小孔缩 0.15/边（process.xy_offset_mm_per_side），
+                   Ø2.2 打出来 1.90 穿不过 M2；名义 2.4 打出来 ≈2.1，M2 过得去、对位浮动 ±0.2。原版 XL330 版就是 2.2（人家的机器不缩，见 docs/参考对比_2026-09-12_AI-FanGe复刻.md §5-E）。
+                   源码：s288.py horn_hole_d / mnt_hole_d、tools/cad/ankle_split.py through_d；Gate 声明由 tools/gate/retarget_hole_d.py 改（40 处）。"
+      target_range_mm:
+        min: 2.35
+        max: 2.55
+        meaning: "M2 过孔（名义 2.4；打出来按 −0.30 直径估 ≈2.1）"
+        src: "assumed"
+        src_note: "2026-09-13 补 src：区间由本文件提出，无试件/手册来源"
+      coupon: "TC02_holes 已打（Ø2.3 是最小能过 M2 的孔）；TC04（未打）"
+      status: "placeholder"
+      provenance:
+        - "s288.py:22"
+    m2_pilot_hole_self_tap:
+      material: "PLA"
+      print_orientation: "任意"
+      feature_type: "pilot_hole_m2"
+      nominal_mm:
+        v: 1.6
+        src: "assumed"
+        src_note: "Ø1.6（L05/H01/T01 柱/仓底）与 Ø1.7（H01 立柱/T01 IMU/H03 四脚 F22，09-12 I4 head.py H03_PILOT_D）并存，未统一"
+      target_range_mm:
+        min: 1.55
+        max: 1.75
+        meaning: "M2 自攻底孔（duck.py 里同时存在 Ø1.6 与 Ø1.7 两种；H03 四脚 Ø1.7 build #7 射线 Ø1.698..1.700 落在区间内）"
+        src: "assumed"
+        src_note: "2026-09-13 补 src：区间由本文件提出，无试件/手册来源"
+      coupon: "TC04（未打）"
+      status: "inconsistent"
+      provenance:
+        - "ankle_split.py:12"
+        - "duck.py:672"
+        - "duck.py:593"
+        - "duck.py:887"
+        - "duck.py:658"
+        - "duckstructure/head.py:build_head_bottom_shell（H03_PILOT_D=1.7，head.py:18；features.yaml:H03-F02）"
+    m2_counterbore:
+      material: "PLA"
+      print_orientation: "任意"
+      feature_type: "counterbore_m2"
+      nominal_mm:
+        v: 4.4
+        src: "assumed"
+        src_note: "M2 头径 3.8~4.0（复审交接；ISO 7045 M2 盘头 dk max 4.0），工具铣面取 Ø4.6。**2026-09-13 沉孔由 4.2 → 4.4**（用户拍板『有则改之』）：
+                   4.2 叠 TC02 实测缩水 0.15/边 → ≈3.9 < 4.0 坐不进；原版 XL330 版用的就是 Ø4.4（hip_l/yaw2roll 上还有 Ø4.84），见 docs/参考对比_2026-09-12_AI-FanGe复刻.md §5-C。
+                   代价：Ø9.5 分度圆上相邻头窝间距 4.75，壁 0.55→0.35（本来就低于一条线宽，实际连成环槽）；分度圆定案 Ø10.5 则 0.85。
+                   源码：lib.py P.m2_cbore_d（driven/horn_cbore/mount_cut_local/mnt_cut2/head H02/neck 脸颊沉窝/N02 共用沉坑 NP_CB_D 全从它推）、ankle_split.py counterbore_d。"
+      target_range_mm:
+        min: 4.3
+        max: 4.6
+        meaning: "M2 头沉孔（头径 3.8~4.0；名义 4.4，打出来按 −0.30 直径估 ≈4.1）"
+        src: "assumed"
+        src_note: "2026-09-13 补 src：区间由本文件提出，无试件/手册来源"
+      coupon: null
+      status: "placeholder"
+      provenance:
+        - "duck.py:31"
+        - "inventory_v2.json:assumed_values[18]"
+  tpu:
+    sole_min_wall:
+      material: "TPU 95A"
+      print_orientation: "脚底朝下"
+      feature_type: "wall_thickness"
+      nominal_mm:
+        v: 1.5465
+        src: "measured"
+        src_note: "hr15（2026-09-19）鞋底底面刻 0.4 深件号后最薄 1.5465（features.yaml:L06-R01）；刻字前厚度射线 1.763（非 Gate 的一次性检查）"
+      target_range_mm:
+        min: 1.2
+        max: null
+        meaning: "L06 最薄射线（TPU 单独规则，第 1 层）"
+        src: "assumed"
+        src_note: "2026-09-13 补 src：区间由本文件提出，无试件/手册来源"
+      coupon: null
+      status: "unchecked_by_gate"
+      provenance:
+        - "ankle_split.py:89-92"
+        - "inventory_v2.json:printed_parts[5].notes"
+    process:
+      material: "TPU 95A"
+      print_orientation: "脚底朝下"
+      feature_type: "process_params"
+      nominal_mm:
+        v: null
+        src: null
+        src_note: null
+      target_range_mm:
+        min: null
+        max: null
+        meaning: "TPU 层高/速度/回抽/支撑策略"
+      coupon: null
+      status: "not_calibrated"
+      provenance:
+        - "inventory_v2.json:printed_parts[5].supports"
+  horn:
+    clock_phase:
+      material: "PLA"
+      print_orientation: "任意"
+      feature_type: "servo_horn_clocking"
+      nominal_deg:
+        v: 0.0
+        src: "assumed"
+        src_note: "6 孔 @ r5.25（2026-09-14 由 r4.75 改：手册 Ø10.50 + 09-13 实物定案；13 个环在新 STL 上截面实测全 r=5.2500、相邻角全 60.000°），相位从 0° 起，k*60°；未与实物法兰相位核对"
+      # ⚠ 2026-09-09：nominal_deg=0.0 **没有给基准方向**（相对谁的 0°？），所以这条判据以前落不了地。
+      datum:
+        v: null
+        src: null
+        unknown_class: "not_selected"
+        unknown_reason: "没有任何文件声明相位基准。s288.py:92-100 的 k×60° 是**建模坐标里的**相位（features 各 horn_hole 条的 geom.pattern_phase_deg 记的就是这个 0.0），与 S288 实物法兰攻牙孔相位、舵机电零位的关系从未确定。"
+      nominal_deg_quantity: "modeling_phase_deg（建模相位，不是相对实物基准的相位）"
+      blocked_by: "relations.yaml:R23"
+      applies_to_features: ["L01-F04", "L02-F06", "L04-F08", "L05-F04", "T01-F08", "N02-F07", "N02-F08", "N03-F04"]
+      applies_to_features_count: 8
+      target_range_deg:
+        min: -5.0
+        max: 5.0
+        meaning: "零位下从动盘孔阵相位与声明值之差；抓 60° 倍数错位"
+        src: "assumed"
+        src_note: "2026-09-13 补 src：区间由本文件提出，无试件/手册来源"
+      coupon: "TB01–TB03 单舵机测试台（已出件）"
+      status: "declared_not_verified"
+      provenance:
+        - "s288.py:92-100"
+        - "duck.py:334-337"
+        - "inventory_v2.json:functional_relations[5]"
+    face_contact:
+      material: "PLA"
+      print_orientation: "任意"
+      feature_type: "driven_face_contact"
+      nominal_mm:
+        v: 0.2
+        src: "assumed"
+        src_note: "+0.2 重叠"
+      target_range_mm:
+        min: 0.0
+        max: 0.3
+        meaning: "driven_patch 补到 XLF 14.5 的重叠量"
+        src: "assumed"
+        src_note: "2026-09-13 补 src：区间由本文件提出，无试件/手册来源"
+      coupon: null
+      status: "ok"
+      provenance:
+        - "duck.py:317-321"
+        - "inventory_v2.json:functional_relations[6]"
+    concentricity:
+      material: "PLA"
+      print_orientation: "任意"
+      feature_type: "horn_hole_pattern"
+      nominal_mm:
+        v: null
+        src: null
+        unknown_class: "not_audited"
+        unknown_reason: "无同心检查"
+      target_range_mm:
+        min: 0.0
+        max: 0.05
+        meaning: "舵盘 6 孔同心度（README 第 5 层）"
+        src: "assumed"
+        src_note: "2026-09-13 补 src：区间由本文件提出，无试件/手册来源"
+      coupon: null
+      status: "unchecked"
+      provenance:
+        - "duck.py:334-337"
+  servo:
+    back_clamp:
+      material: "PLA"
+      print_orientation: "背板朝下"
+      feature_type: "servo_back_clamp"
+      nominal_mm:
+        v: 0.3
+        src: "assumed"
+        src_note: "整条依赖 step_z=(-7,-12) 采用值"
+      target_range_mm:
+        min: 0.0
+        max: 0.3
+        meaning: "背板内面到厚段背面 -12.85 的留量（薄段靠垫柱/加厚块补）"
+        sign_convention: "clearance_magnitude"
+        sign_convention_provenance: "2026-09-09 由本条 meaning 文本推出（命中关键词「留量」）。contact_profile 的实测口径是**过盈为正、间隙为负**；clearance_magnitude 表示本区间写的是间隙绝对值（正数），层比较前取负。判不出口径的桶不写这个键 → 层按元规则 4 判 unknown，不猜。"
+        src: "assumed"
+        src_note: "2026-09-13 补 src：区间由本文件提出，无试件/手册来源"
+      coupon: "TC05（未打）"
+      status: "depends_on_assumed_step_z"
+      provenance:
+        - "duck.py:17"
+        - "duck.py:126-165"
+        - "duck.py:372-377"
+        - "s288.py:15"
+    cage_clearance:
+      material: "PLA"
+      print_orientation: "脚底朝下"
+      feature_type: "servo_cage"
+      nominal_mm:
+        v: 0.3
+        src: "assumed"
+        src_note: "四面 0.3、背面 0 支撑；旷量 ±0.73°（复审）无 Gate 判据"
+      target_range_mm:
+        min: 0.2
+        max: 0.4
+        meaning: "H01 笼四面间隙（**明确不是夹持**）"
+        sign_convention: "clearance_magnitude"
+        sign_convention_provenance: "2026-09-09 由本条 meaning 文本推出（命中关键词「间隙」）。contact_profile 的实测口径是**过盈为正、间隙为负**；clearance_magnitude 表示本区间写的是间隙绝对值（正数），层比较前取负。判不出口径的桶不写这个键 → 层按元规则 4 判 unknown，不猜。"
+        src: "assumed"
+        src_note: "2026-09-13 补 src：区间由本文件提出，无试件/手册来源"
+      coupon: null
+      status: "no_criterion"
+      provenance:
+        - "duck.py:858-859"
+        - "inventory_v2.json:functional_relations[14]"
+    overload_stop:
+      material: "PLA"
+      print_orientation: "背板朝下"
+      feature_type: "overload_stop"
+      nominal_mm:
+        v: 0.3
+        src: "assumed"
+        src_note: "由 servo_env 切齐，未量"
+      target_range_mm:
+        min: 0.2
+        max: 0.5
+        meaning: "N01 侧墙/前唇作为过载止挡的间隙（不能当无间隙夹持）"
+        sign_convention: "clearance_magnitude"
+        sign_convention_provenance: "2026-09-09 由本条 meaning 文本推出（命中关键词「间隙」）。contact_profile 的实测口径是**过盈为正、间隙为负**；clearance_magnitude 表示本区间写的是间隙绝对值（正数），层比较前取负。判不出口径的桶不写这个键 → 层按元规则 4 判 unknown，不猜。"
+        src: "assumed"
+        src_note: "2026-09-13 补 src：区间由本文件提出，无试件/手册来源"
+      coupon: null
+      status: "unmeasured"
+      provenance:
+        - "duck.py:719-724"
+        - "duck.py:744"
+        - "duck.py:754"
+    pad_contact:
+      material: "PLA"
+      print_orientation: "背板外面朝下"
+      feature_type: "pad_contact"
+      nominal_mm:
+        v: 0.0
+        src: "measured"
+        src_note: "按 T=19.9 [量] 名义接触"
+      target_range_mm:
+        min: -0.1
+        max: 0.1
+        meaning: "H02 垫柱端面与薄段背面 -14.85 的接触（0 = 刚好贴）"
+        sign_convention: "signed_interference_positive"
+        sign_convention_provenance: "2026-09-09 由本条 meaning 文本推出（命中关键词「接触」）。contact_profile 的实测口径是**过盈为正、间隙为负**；clearance_magnitude 表示本区间写的是间隙绝对值（正数），层比较前取负。判不出口径的桶不写这个键 → 层按元规则 4 判 unknown，不猜。"
+        src: "assumed"
+        src_note: "2026-09-13 补 src：区间由本文件提出，无试件/手册来源"
+      coupon: null
+      status: "depends_on_measured_T"
+      provenance:
+        - "duck.py:903"
+        - "duck.py:909"
+  snap:
+    b01:
+      material: "PLA"
+      print_orientation: "B01 竖板面朝下 / T01 轭顶朝床"
+      feature_type: "snap_bead"
+      nominal_mm:
+        v:
+          bead_d: 2.0
+          protrusion: 1.0
+          groove_d: 2.4
+        src: "assumed"
+        src_note: "冻结常量 SNAP_D=2；凸出约 1.0；槽 Ø2.4"
+      target_range_mm:
+        min: 0.6
+        max: 1.0
+        meaning: "咬合深度（凸越过后落进槽的有效量）"
+        sign_convention: "signed_interference_positive"
+        sign_convention_provenance: "2026-09-09 由本条 meaning 文本推出（命中关键词「咬合」）。contact_profile 的实测口径是**过盈为正、间隙为负**；clearance_magnitude 表示本区间写的是间隙绝对值（正数），层比较前取负。判不出口径的桶不写这个键 → 层按元规则 4 判 unknown，不猜。"
+        src: "assumed"
+        src_note: "2026-09-13 补 src：区间由本文件提出，无试件/手册来源"
+      # ⚠ 2026-09-09：nominal_mm.v 是复合结构（三个量），target_range_mm 却是单一"咬合深度"，
+      #   以前没说拿哪一项去比 → 补 compare_field。
+      target_range_mm_quantity: "engagement_depth_mm"
+      compare_field: "protrusion"
+      compare_value_mm:
+        v: 1.0
+        src: "measured"
+        src_note: "射线量导出 T01_trunk.stl：卡珠在 (世界 -43.8, ±14.05, 144) 是**整根 Ø2 圆柱**（72/72 向外半径 0.999..1.000），轴线正落在仓口面 x=BX0=-43.8 上 → 向 -x 凸出正好等于半径 1.000"
+      compare_note: "bead_d(2.0) 是卡珠直径、groove_d(2.4) 是仓门槽径，两者都**不是**咬合深度：咬合深度 = 卡珠越过仓口面之后落进槽里的那一段 = protrusion。B01 槽从竖板内面 -43.8 往里 1.2 深（Ø2.4 半径），> protrusion 1.0 → 不会顶底，咬合量由 protrusion 决定。"
+      derived_pair_clearance_mm: {v: 0.2, src: "assumed", src_note: "(groove_d 2.4 − bead_d 2.0)/2，卡珠落进槽后的单边侧隙"}
+      feature_refs: ["T01-F14", "B01-F05"]
+      coupon: null
+      status: "unchecked"
+      provenance:
+        - "duck.py:576"
+        - "duck.py:587"
+        - "duck.py:612"
+        - "inventory_v2.json:functional_relations[12]"
+  battery_bay:
+    material: "PLA"
+    print_orientation: "T01 轭顶朝床倒放"
+    feature_type: "slide_cavity"
+    nominal_mm:
+      v: 0.6
+      src: "assumed"
+      src_note: "冻结（frozen.yaml:battery_bay_26.BAT_CLR）"
+    target_range_mm:
+      min: 0.6
+      max: 0.6
+      meaning: "BAT_CLR 单边间隙 —— **冻结值，不是可调公差**"
+      sign_convention: "clearance_magnitude"
+      sign_convention_provenance: "2026-09-09 由本条 meaning 文本推出（命中关键词「间隙」）。contact_profile 的实测口径是**过盈为正、间隙为负**；clearance_magnitude 表示本区间写的是间隙绝对值（正数），层比较前取负。判不出口径的桶不写这个键 → 层按元规则 4 判 unknown，不猜。"
+      src: "assumed"
+      src_note: "2026-09-13 补 src：冻结采用值 BAT_CLR（frozen.yaml:battery_bay_26），无试件/手册来源"
+    coupon: null
+    status: "frozen"
+    provenance:
+      - "duck.py:41-48"
+      - "inventory_v2.json:functional_relations[13]"
+  deck:
+    keyhole:
+      material: "PLA"
+      print_orientation: "T01 轭顶朝床倒放"
+      feature_type: "flange_keyhole"
+      nominal_mm:
+        v: 2.35
+        src: "assumed"
+        src_note: "几何推得 2.35，侧滑槽 Ø14.9"
+      target_range_mm:
+        min: 2.0
+        max: 3.0
+        meaning: "甲板 Ø18.99 钥匙孔对髋偏航法兰 Ø13.9 的单边间隙"
+        sign_convention: "clearance_magnitude"
+        sign_convention_provenance: "2026-09-09 由本条 meaning 文本推出（命中关键词「间隙」）。contact_profile 的实测口径是**过盈为正、间隙为负**；clearance_magnitude 表示本区间写的是间隙绝对值（正数），层比较前取负。判不出口径的桶不写这个键 → 层按元规则 4 判 unknown，不猜。"
+        src: "assumed"
+        src_note: "2026-09-13 补 src：区间由本文件提出，无试件/手册来源"
+      coupon: null
+      status: "ok"
+      provenance:
+        - "duck.py:627-628"
+        - "duck.py:659"
+    deck_to_L01_gap:
+      material: "PLA"
+      print_orientation: "T01 轭顶朝床倒放"
+      feature_type: "min_gap"
+      nominal_mm:
+        v: 0.5
+        src: "assumed"
+        src_note: "注释值 0.50，只有交集检查没有数值检查"
+      target_range_mm:
+        min: 0.3
+        max: null
+        meaning: "甲板底 119.15 到 L01 顶面的最小间隙（第 6 层运动最小距离）"
+        sign_convention: "clearance_magnitude"
+        sign_convention_provenance: "2026-09-09 由本条 meaning 文本推出（命中关键词「间隙」）。contact_profile 的实测口径是**过盈为正、间隙为负**；clearance_magnitude 表示本区间写的是间隙绝对值（正数），层比较前取负。判不出口径的桶不写这个键 → 层按元规则 4 判 unknown，不猜。"
+        src: "assumed"
+        src_note: "2026-09-13 补 src：区间由本文件提出，无试件/手册来源"
+      coupon: null
+      status: "unchecked"
+      provenance:
+        - "duck.py:646-647"
+  # ── 2026-09-09 新建：relations.yaml:R12 的 target_ref 一直指着 fits.axis.concentricity，
+  #    但 fits 下从来就没有 axis 这个桶（悬空引用）。这里把桶补上，**区间直接引用已经存在的
+  #    feature_check_tolerances.datum_vs_mjcf_mm（±0.05），没有新编任何数**。
+  axis:
+    concentricity:
+      material: "PLA"
+      print_orientation: "座轴线 ∥ 打印床（H01 脚底朝下 / H03 底面朝下）；N03 的 A/B 轴颈轴线 ∥ 打印床"
+      feature_type: "journal_axis_concentricity"
+      quantity: "轴颈/轴承座实际轴线 与 冻结关节轴线（frozen.yaml:joint_axes）之间的径向偏移"
+      nominal_mm:
+        v: null
+        src: null
+        unknown_class: "not_audited"
+        unknown_reason: "从来没跑过同心检查。N03 A/B 两个轴颈与 H01+H03 两个半座都是照 head_roll 轴 (·,0,235.6146) 画的（几何上必然同心），但没有任何一次实测/射线核验去证明导出件上确实同心。"
+      target_range_mm:
+        min: -0.05
+        max: 0.05
+        meaning: "轴线径向偏移上限；**区间不是本条新编的**，直接沿用 feature_check_tolerances.datum_vs_mjcf_mm（基准特征落在 MJCF 位置 ±0.05）"
+      target_range_source_ref: "tolerances.yaml:feature_check_tolerances.datum_vs_mjcf_mm"
+      applies_to_features: ["N03-F01", "N03-F02", "H01-F05", "H03-F02"]
+      applies_to_relations: ["R12"]
+      coupon: null
+      status: "unchecked"
+      provenance:
+        - "relations.yaml:R12"
+        - "duck.py:801"
+        - "duck.py:821"
+        - "duckstructure/neck.py:92 YRM_AXZ=235.61"
+        - "duckstructure/head.py:46-47"
+        - "tools/gate/README.md 第 2 节 第 0/5 层"
+load:
+  servo_output_bearing:
+    rated_radial_N:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "S288 输出轴承径向额定未在手册摘录里"
+      # 2026-09-09 复核：仍然填不了，不是没找，是找过了确实没有。
+      what_it_is: "**S288 自己输出轴上那颗轴承**的额定载荷 —— 不是我们外购的 6704/6700。relations.yaml:C2_missing_bearing_load 说的是相对原版少掉的 7 颗外部轴承（髋偏航×2 髋俯仰×2 头偏航×1 头横滚 A/B×2 —— 与 relations.yaml:C2.joints_actually_dropped 和 bench.yaml:BN08.corrected_2026-09-09 一致；髋横滚与膝那 4 颗 6704 是**留着的**，不在这 7 颗里），这 7 处现在整根悬臂都压在 S288 自带输出轴承上，所以要拿这个额定去比。"
+      searched_2026-09-09:
+        - "V2_S288版发布产物/04_电机到货测试/S288实测尺寸记录.md:55-56（2026-09-08 客服参数表）—— 只有 19.5 g / 0.6 N·m 堵转 / 0.32 A / 0.27 A 空载 / 16.5 rad/s / 6.4–12.6 V / 0.554 N·m/A / 15 bit 编码器 / 6 Mbps；**没有任何轴承载荷条目**"
+        - "docs/six_checks_2026-09-08/policy/第6项_离线验证报告.md:106 —— 明确写『没有找到 S288 负载轨迹…辨识 JSON』"
+      what_would_unblock: "① 宇树给出 S288 输出端径向/轴向承载规格；或 ② bench.yaml:BN08 实测 7 处旷量增量，用『旷量不超标』代替『载荷不超额定』作为判据（README 第 2 节把耐久明确划给 bench）"
+      bench_ref: "bench.yaml:BN08"
+      cs_reply_2026-09-17:
+        asked: "输出轴支承方式（滚珠/衬套）；法兰允许径向力/弯矩，我们最坏 0.38 N·m 侧向弯矩能否长期承受；回差；编码器分辨率；14 节点总线一轮 ms；持续扭矩"
+        answer_verbatim: "0.38 N·m 长期工作应该没问题；输出轴的支承找相关同事确定下后反馈；其余看 support.unitree.com/home/zh/J288-S288 Servo/About_J288-S288"
+        how_to_read: "**仍不填 v**：客服那句是口头结论，没给额定值，且没法确认对方把 0.38 N·m 读成了侧向弯矩还是输出扭矩（S288 堵转 0.6，0.38 当扭矩看也『没问题』）。支承方式待回。文档页给的新数：输出端绝对值编码器 8192 步/圈（0.044°/步）、转子端 15 bit、ID 15 广播无返回、齿轮工程塑料；**没有**回差、径向载荷、总线周期。"
+        status: "claim（客服口头）；支承方式已答"
+        support_reply_2026-09-17_1729: "「输出端轴承，另一个侧是衬套」（工程师小齐）：输出端=滚珠轴承，背面惰轮侧=衬套。仍无径向/弯矩额定值 → v 继续 null，BN08 旷量实测仍是放行依据；惰轮侧衬套 = 惰轮只可传扭不可当承弯支点（idlercheck/loadcheck 口径不变）"
+    rated_axial_N:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "同上"
+      what_would_unblock: "同 rated_radial_N"
+      bench_ref: "bench.yaml:BN08"
+    static_torque_margin:
+      v: null
+      src: null
+      unknown_class: "not_selected"
+      unknown_reason: "README 第 7 层要求'每关节静扭矩 < S288 额定 × 系数'，系数未定；S288 额定扭矩也没抄进 inventory"
+      # ── 2026-09-09：额定扭矩已经抄进本文件了（见下面 rated_stall_torque_Nm / load.servo_rated_torque_Nm），
+      #    但**系数本身继续拒填**。下面把拒填的理由写成机器可读的，免得后面有人随手填个 0.5 就把 14 个关节判绿。
+      corrected_2026-09-09: "原 unknown_reason 后半句『S288 额定扭矩也没抄进 inventory』已不再成立 —— 名义堵转 0.6 N·m 已写进 tolerances.yaml:load.servo_rated_torque_Nm.stall_torque_Nm 与本桶 rated_stall_torque_Nm。前半句（系数未定）依然成立，且是**主动拒填**，不是漏填。旧值 null 保持不变。"
+      refused_2026-09-09: "**拒填**。本系数的物理含义是『静态保持时允许占堵转的比例』，也就是 S288 的连续/保持扭矩降额。这个量在本仓库和手册里都不存在（load.servo_rated_torque_Nm.continuous_torque_Nm = null）。任何具体数字都会变成一个凭空的门槛，而它直接决定 14 个关节判绿判红 —— 按元规则 4，宁可留红。"
+      forbidden_derivations:
+        - id: "FD1"
+          what: "拿 0.32 A（最大线电流）× 0.554 N·m/A（扭矩常数）= 0.177 N·m 当连续扭矩"
+          why_forbidden: "第6项_离线验证报告.md:108 明令禁止：『还需澄清名义最大线电流 0.32 A 和扭矩常数 0.554 N·m/A 分别指电源侧/相电流/转子侧还是输出侧；不能把不同口径的电流与 0.6 N·m 堵转值直接套同一公式』。而且 0.177 ≠ 0.6 本身就证明两个口径对不上（若都在输出侧，堵转应当就是 0.177）。"
+        - id: "FD2"
+          what: "取 margin = 1.0（『静态保持不可能超过堵转』这个物理上界）"
+          why_forbidden: "1.0 只是必要条件，不是通过条件。填 1.0 会让 14 个关节的 torque_criteria 直接消失、static_torque 判 PASS —— 那正是本体系立意里最危险的一类：『检查了、通过了、但查的东西不对』。层现在就是按 margin=1 只报必要条件，并同时留一条红，这是对的。"
+        - id: "FD3"
+          what: "拿离线回放峰值（≤0.396 N·m）除以 0.6 声称有裕量"
+          why_forbidden: "第6项_离线验证报告.md:63 原句就是在禁止这件事：『不能用本次 0.396 N·m 以下的峰值除以 S288 名义堵转 0.6 N·m，声称有实际扭矩裕量。持续扭矩、温升和负载下扭矩-转速曲线均未知』。"
+      what_would_unblock: "bench.yaml:BN13 实测堵转 → 回填 load.servo_rated_torque_Nm.measured_stall_torque_Nm；bench.yaml:BN03 温升 → 给出可持续保持的扭矩水平 → 填 continuous_torque_Nm；系数 = continuous_torque_Nm ÷ stall_torque_Nm，那时才是有出处的数。"
+      bench_ref:
+        - "bench.yaml:BN13"
+        - "bench.yaml:BN03"
+    # ── 2026-09-09 新增：额定扭矩必须住在本文件里（层原来是从 docs 的散文里 grep 0.6 的）─────────
+    # 为什么必须搬进来：docs/ 不在 core.SOURCE_GLOBS 里，grep 出来的阈值不受 hash 绑定（元规则 6/7），
+    # 改一句散文就能悄悄改掉 14 个关节的判据。搬进 data/*.yaml 之后它的 sha256 进记分卡。
+    # ── 2026-09-13（审计 F-L7-5）：本桶原有的镜像键 `rated_stall_torque_Nm`（v 0.6 / src datasheet）**已删除**。
+    #    它自己的 duplication_note 写着『唯一权威定义在 load.servo_rated_torque_Nm……要把层改成读那里、把本键删掉』；
+    #    层（l7_mass.py:_rated_torque_Nm）现在只读 load.servo_rated_torque_Nm.stall_torque_Nm，也不再退回 docs/ 散文 grep。
+    #    若有人把本键写回且与权威值不等，L7/_load.torque_source_consistent 判 FAIL(BLOCK, measured=差值)。
+    #    原 provenance（S288实测尺寸记录.md:55 / 第6项_离线验证报告.md:106 / bench.yaml:BN13）已在权威桶里，不重复。
+    applies_to_ref: "relations.yaml:C2_missing_bearing_load"
+    provenance:
+      - "comparison_original_vs_v2.md:C2"
+  min_section_and_rib:
+    min_load_section_mm2:
+      v: null
+      src: null
+      unknown_class: "not_selected"
+      unknown_reason: "承力最小截面阈值未决定"
+      # ── 2026-09-09：**主动拒填**，理由不是"没人定"，是"层量的不是这个量"。
+      refused_2026-09-09: "拒填。层（l7_mass.py:_sections）量的是『沿世界 z 每 1 mm 切一刀，整件最小的那一层水平截面积』——那不是承力截面：① 它把装饰性的顶/底边缘也算进去（H03 的 7.611 mm² 出现在 z=238.18，是下头壳最上沿的一圈唇边，一克载荷都不过；L06 鞋底的 256.897 mm² 反倒是整件最大的实心块）；② 只沿重力方向切，L04 踝副轴颈那种层间剪切根本不在这个方向上（layer_vs_load_rule 说的就是它）；③ 只切了镜像对里的一个实例，且是**零位姿**，home 姿态下腿件还要再转几十度。把一个标量门槛套在这个量上，只会产生两类错判：给低了 17 件全绿（假绿），给高了 H03 先红（假红）。"
+      why_a_single_scalar_cannot_work: "承力截面的门槛是 F/σ_allow，F 逐处不同（踝要过整机重量、H03 下头壳只托自己）。按元规则『阈值不许给通用数』，它至少要按 **材料 × 打印方向 × 该处载荷** 分桶；本键是标量，装不下。"
+      what_would_unblock:
+        - "层侧：把『整件最小水平截面』换成『沿声明的受力路径切的截面』——受力路径要先在 relations.yaml:C3_L03_stiffness 里写成机器可读的（起点/终点/方向），现在只有一句散文。"
+        - "数据侧：PLA 打印件的**层间(Z 向)**许用应力。本仓库没有任何拉伸/剪切试件数据（tolerances.yaml:deliberately_added 里 TC01–TC05 五个试件也都不测强度，coupons_printed: 0）。"
+      measured_today_for_reference:
+        note: "下面是 2026-09-09 跑 `gate.py --layers 7` 量到的现值，**只是量，不是判据**，放在这里免得下次又从零量一遍。单位 mm²，零位姿、世界 z、1 mm 步距。"
+        values_mm2: {H03: 7.611, T02: 11.182, T03: 11.442, L01: 14.763, L04: 16.42, B01: 20.4, L02: 21.21, H02: 22.5, L07: 23.282, L03: 27.964, N02: 44.969, L05: 48.602, N03: 49.183, N01: 55.474, H01: 65.073, T01: 78.0, L06: 256.897}
+        src: "measured"
+        src_note: "tools/gate/out/scorecard.json:L7/<件>.min_section（2026-09-09 那次 --layers 7 --skip-negatives）"
+    max_rib_slenderness:
+      v: null
+      src: null
+      unknown_class: "not_selected"
+      unknown_reason: "薄筋长厚比上限未决定；已知 H02 孔间窄筋 1.434 mm"
+      # ── 2026-09-09：**主动拒填**，理由比上面还硬 —— 填了等于凭空删掉一条红。
+      refused_2026-09-09: "拒填。层里**根本没有量筋的代码**：l7_mass.py:_sections 只有 `if rib is None: res.unknown(...)`，rib 一旦不是 None，那条 unknown 消失，而**没有任何检查接上去**。也就是说填这个数的唯一效果是让一个红格变绿、判据数为 0。这正是元规则 2（『0 碰撞 / 0 对 = 没跑，不是通过』）要抓的东西，反过来的版本。"
+      also_missing_the_input: "就算层会算，data 里也没有任何一条筋的长/厚。全仓库只有一句散文：『H02 沉孔窄筋射线厚度 1.434 mm，替代原 0.444 mm 薄筋；新增 L07 后鞋底最薄约 1.763 mm』（V2_S288版发布产物/01_整鸭打印件/打印清单与参数.md 打印参数与薄处），既没有对应的『长』，也没有 features.yaml 条目。长厚比是两个数的比，我们只有一个数。"
+      what_would_unblock:
+        - "features.yaml 里把每条承力薄筋建成一条特征（kind: rib，给长/厚/所在件/受力方向）"
+        - "l7_mass.py 里真的写出量筋的代码"
+        - "两件都做完，这个阈值才有意义；在那之前填任何数都是假绿"
+    layer_vs_load_rule: "层向 vs 受力方向：L04 踝副轴颈是从背板悬臂长出的光轴，层间剪切是最危险方向 —— 无判据"
+    layer_vs_load_refused_2026-09-09: "同样拒填。层里这条 unknown 是**无条件发的**（l7_mass.py:_sections 里没有任何 if），本文件填什么都不影响它。要清它得同时有：① parts.yaml:print_orientation 从自由文本（『偏航盘朝下』）变成打印坐标系变换矩阵；② 每个承力面声明受力方向。两件都不在本次改动范围（parts.yaml 不许动）。"
+    # ── 2026-09-13（审计 §2.6）：实测筋厚/筋长 vs features.yaml 声明值的允许差，以前是 l7_mass.py 里写死的 ±0.1 ──
+    rib_declared_vs_measured_tol_mm:
+      v: 0.1
+      src: "assumed"
+      src_note: "2026-09-13 从 l7_mass.py:_ribs 的 `abs(th - d_th) <= 0.1` 逐字搬入，数值未动；没有试件/量具来源。它不是强度门槛（那是 max_rib_slenderness），只是『data 和几何脱不脱节』的一致性容差。层把 src 写进 criterion；src=assumed → L7/_section.threshold_assumed:rib_declared_vs_measured_tol_mm FAIL(WARN)。"
+      applies_to: "L7 rib_thickness / rib_length（features.yaml:kind=rib 的 thickness_mm / length_mm vs 导出 STL 实测）"
+    applies_to_ref: "relations.yaml:C3_L03_stiffness"
+    provenance:
+      - "comparison_original_vs_v2.md:C3"
+      - "duck.py:495"
+      - "duck.py:528"
+      - "duck.py:915"
+  density_g_cm3:
+    v: 1.27
+    src: "assumed"
+    src_note: "打印清单假设值，用于第 7 层质量估算"
+    # ── 2026-09-10 新增：与上游 MJCF <inertial> 的**密度口径差**（独立复算过，不是抄复审结论）──
+    vs_upstream_mjcf_implied_density:
+      _why_this_is_here: "L7 的逐 body 质量/惯量漂移是拿『我们的 CAD 质量』去比 upstream/microduck_rl/.../robot_walk.xml 的 <inertial mass>。但那份 XML 的质量不是称出来的，是 onshape-to-robot 用**它自己的**材料密度从 CAD 算的。两边密度口径不同的话，漂移里有一份**系统偏置**，跟几何差异混在一起。本条把这个偏置量化出来，让『漂移 = 我们的件真的不一样』这句话不再包含一个没被说出口的密度假设。"
+      implied_plastic_density_g_cm3:
+        v: 1.0521
+        src: "measured"
+        src_note: "**本轮独立复算得到，不是引用复审数字。** 方法：解析 upstream/microduck_rl/src/mjlab_microduck/robot/microduck/robot_walk.xml 的 15 个 <body>，每个 body 按 (mesh, pos, quat) 去重收集 <geom type=\"mesh\">（visual / collision / self_collision_only 同姿态同网格算一个实体），用 trimesh 读 assets/*.stl 求体积（STL 单位是 m，×1e6 得 cm³），对每个 body 列一条方程 mass_g = ρ·Σ(打印件体积) + n_xl330·m_xl330 + n_bearing22x16x4·m_bearing，三个未知数用 numpy.linalg.lstsq 最小二乘解。"
+        solved_together_with:
+          xl330_g: 18.0011
+          bearing_22x16x4_g: 1.4166
+        residual_max_g: 0.01715
+        src_is_measured_means: "本键 src 写 measured 沿用本仓库既有口径：『从文件里量出来的』（同 fits.* 里那些『射线量导出 STL』的条目）。**不是**拿秤称的，也**不是**宇树/上游给的数据表值 —— 它是从上游 XML 的 <inertial mass> 和 assets/*.stl 体积反解出来的。"
+        why_1_0521_and_not_1_0522: "复审报 1.0522，本轮独立复算报 1.0521。差 0.0001 来自取哪一组 7 body（hip_l 与 hip_l_2、yaw2roll 与 bearing_roll、leg 与 leg_2 互为镜像，穷举时存在多组并列解）。这个差比 residual 还小一个量级，对 +20.7% 的结论没有任何影响。"
+        fitted_bodies_n: 7
+        fitted_bodies: ["yaw2roll", "hip_l", "leg", "neck", "neck_pitch", "bearing_roll", "leg_2"]
+        fitted_bodies_note: "这 7 条里 bearing_roll 是 yaw2roll 的镜像、leg_2 是 leg 的镜像，网格与元件构成完全相同 → **独立方程其实只有 5 条**（yaw2roll / hip_l / leg / neck / neck_pitch），解 3 个未知数。残差 0.017 g 说明拟合很紧，但『独立方程 5 条』这个事实必须写出来，不许拿 7 报成 7 个独立证据（元规则 2）。"
+        how_the_7_were_chosen: "在 11 个『非打印件只有 xl330 + 22x16x4 轴承』的 body 里穷举子集，取**最大的、残差 <0.02 g 的**那一组。不是先挑好再报残差 —— 全 11 条一起解会得到 ρ = −0.80 g/cm³（负密度，物理上不可能），说明有 body 带着模型外的质量，见 bodies_that_do_not_fit。"
+      bodies_that_do_not_fit:
+        _what: "拿上面解出的 (1.0521, 18.0011, 1.4166) 回代**全部 15 个 body**，剩下这些对不上。它们的差值不能用密度解释，说明上游 XML 里这些 body 挂着 mesh 之外的质量（电池、树莓派、屏、摄像头、扬声器等，或干脆是人工填的圆数）。"
+        rows:
+          - {body: "trunk_base",      mjcf_g: 199.2240, explained_g: 129.8754, unexplained_g: 69.3486, note: "np_f970 电池网格已计入打印件体积（51.6 cm³），却仍差 69 g —— 电池实体重量显然不是按塑料密度算的"}
+          - {body: "jaw_soft",        mjcf_g: 188.7660, explained_g: 158.6100, unexplained_g: 30.1560, note: "头部：树莓派 / 屏 / 摄像头 / 扬声器 / 镜头都在这个 body 上"}
+          - {body: "yaw_roll_motion", mjcf_g:  48.6000, explained_g:  25.6276, unexplained_g: 22.9724, note: "48.6000 是个可疑的圆数，差出整整一颗 xl330 多一点"}
+          - {body: "upper_leg_left",  mjcf_g:  48.2067, explained_g:  42.5715, unexplained_g:  5.6352}
+          - {body: "upper_leg_right", mjcf_g:  48.2067, explained_g:  42.5719, unexplained_g:  5.6348}
+          - {body: "ankle_left",      mjcf_g:  30.0246, explained_g:  27.6775, unexplained_g:  2.3471, note: "鞋底 sole_left 在上游是 TPU，按 1.0521 的塑料密度算必然偏轻"}
+          - {body: "ankle_right",     mjcf_g:  30.0251, explained_g:  27.6774, unexplained_g:  2.3477}
+        what_this_limits: "**1.0521 只是 5 条独立方程约束出来的数，不是『上游全机的塑料密度』。** 上面 7 个 body 占 MJCF 总质量 737.24 g 的一大半，它们对密度没有提供任何约束（未知量太多）。所以下面那个 +20.7% 的偏置，严格讲只对『构成干净的那几个 body』成立；对 trunk_base / jaw_soft 这种电子件为主的 body，密度口径差不是它们漂移的主要成因。"
+      caliber_gap_vs_our_1_27:
+        ratio: 1.207079
+        percent: 20.708
+        statement: "拿我们的质量去比上游 <inertial> 时，**含 +20.7% 的系统偏置** —— 同样的几何、同样的实心假设，我们会算得比上游重 20.7%。这个偏置是密度口径造成的，不是件不一样造成的。"
+        vs_pla_tds_1_24: "就算把我们的 1.27 换成 PLA TDS 的 1.24（density_by_material.pla.solid_g_cm3），偏置仍有 +17.86% —— 说明**上游用的根本不是 PLA 的实心密度**（1.05 更接近 ABS 1.04，或者是 PLA 打了 ~85% 有效填充后的等效密度），不是我们的 1.27 挑错了牌号。"
+      how_to_use_this:
+        do: "读 L7 的逐 body 质量漂移时，先记住其中有一份 +20.7% 的口径偏置；判『这个 body 的几何真的变了吗』要把偏置扣掉再看。"
+        do_not: "**不许拿 1.0521 去替换 density_g_cm3。** 1.0521 是『能让上游 XML 自洽』的数，不是我们这批件的真实密度 —— 我们的件是不同的几何、不同的材料、不同的填充率。用它只会把 L7 变成『我们的 CAD 反推出的上游密度 → 再乘回去比上游』这种同义反复（元规则 10）。"
+        do_not_2: "**也不许把 L7 的比较基准从上游 robot_walk.xml 改指向 sim/duck_s288/robot_walk_s288.xml。** 后者的 <inertial> 是 tools/sim/make_mjcf.py 用**和 L7 同一批 CAD 网格、同一个 density_g_cm3** 生成的，指过去会让漂移恒等于 0，是更隐蔽的假绿。"
+        the_real_fix: "bench.yaml:BN15 逐件称重 → density_by_material.*.effective_g_cm3 落地。称完之后我们这边就不再有密度假设，届时与上游的差就是纯几何差 + 上游自己的密度假设，可以只讨论一边。"
+      reproduce: "./.venv/bin/python 读 robot_walk.xml + trimesh 读 assets/*.stl，按 src_note 的方法重跑即可。复审（2026-09-10）用同样方法报的是 1.0522 / 18.001 / 1.415 / 残差 0.017 —— 本轮独立复算得 1.0521 / 18.0011 / 1.4166 / 0.01715，两者在 4 位有效数字内一致，**结论采信**。"
+      provenance:
+        - "upstream/microduck_rl/src/mjlab_microduck/robot/microduck/robot_walk.xml（15 个 <inertial mass>）"
+        - "upstream/microduck_rl/src/mjlab_microduck/robot/microduck/assets/*.stl（体积）"
+        - "tools/sim/make_mjcf.py:48（我们这边用的 1.27）"
+        - "tools/gate/data/tolerances.yaml:load.density_g_cm3（1.27 的源头，src: assumed）"
+  # ── 2026-09-09 新增：密度按材料分桶 ────────────────────────────────────────
+  # 上面的 density_g_cm3 **一个字节都没动**（改它会连带改 17 件质量、并和已发布的
+  # 01_整鸭打印件/打印清单与参数.md 的重量表对不上）。下面是按材料的真实出处值 + 与 1.27 的差。
+  density_by_material:
+    _note: "层现在只读标量 density_g_cm3，还读不到本桶（l7_mass.py:_mass_items 里是 `num(load.get('density_g_cm3'))`）。所以本桶暂时只是数据，不是判据；L7/_layer 的 density_per_material 那条红要靠改层才能清，不是靠填数据。"
+    pla:
+      material: "PLA"
+      applies_to_parts: ["B01", "H01", "H02", "H03", "L01", "L02", "L03", "L04", "L05", "L07", "N01", "N02", "N03", "T01", "T02", "T03"]
+      solid_g_cm3:
+        v: 1.24
+        src: "datasheet"
+        src_note: "PLA 长丝技术数据表典型值 1.24 g/cm³（ASTM D792 / ISO 1183 实心试样）。多家 TDS 一致；本项目没有指定具体品牌牌号，取这个通用 TDS 值。"
+      source_limitation_2026-09-09: "本值来自 2026-09-09 的网页检索结果摘要（多份 PLA 长丝 TDS 一致），**没有逐份打开 PDF 核对**（本机网络策略拦截了直接抓取）。而且本项目**没有指定品牌牌号** —— 不同厂牌 PLA 在 1.20–1.30 之间都有。它的作用是给 1.27 一个参照，不是替换它。"
+      vs_current_scalar: "本文件在用的 1.27 比 TDS 高 2.4%。1.27 的出处只有『打印清单假设值』，没有 TDS 支撑 —— 也就是说现在 16 个 PLA 件的质量是**偏重**的（保守方向：静扭矩/漂移都往坏里算）。差值：专用件 PLA 合计 270.2 g → 按 1.24 算 263.8 g，−6.4 g。"
+    tpu95a:
+      material: "TPU 95A"
+      applies_to_parts: ["L06"]
+      solid_g_cm3:
+        v: 1.22
+        src: "datasheet"
+        src_note: "TPU 95A TDS 典型值 1.22 g/cm³（Ultimaker TPU 95A TDS，ASTM D792；Hi3DP TPU 95A TDS，ISO 1183）。厂商区间 1.20–1.24。"
+      source_limitation_2026-09-09: "同 PLA：来自 2026-09-09 网页检索结果摘要（Ultimaker / Hi3DP 等 TPU 95A TDS），未逐份打开 PDF 核对；本项目也没指定 TPU 品牌牌号，厂商区间 1.20–1.24。"
+      why_it_matters: "L06 鞋底现在按 PLA 的 1.27 算 —— **这是错的**，L7/_layer.density_per_material 那条红说的就是它。按 1.22 算：6009.036 mm³ × 1.22 = 7.331 g/只（现值 7.6315），单只 −0.30 g、两只 −0.60 g，相对 −3.9%。"
+      also_wrong_for_L06: "L06 材料错的不只是密度：TPU 95A 的模量、摩擦和层间强度都和 PLA 不是一回事，min_section / 层向判据（如果将来真做出来）也不能和 PLA 共用一档。"
+    infill_upper_bound_note:
+      what: "**上面两个都是实心料密度。『实心体积 × 材料密度』只是质量上界，不是打印件重量。**"
+      print_process:
+        v: "0.4 mm 喷嘴 / 0.2 mm 层高 / 3 道墙 / 4 层顶底 / 40% 填充（L03·L04·L05·L07·T01 为 60%）/ 自动支撑 / 3 mm 裙边；N02 用 Classic，其余 Arachne"
+        src: "measured"
+        src_note: "V2_S288版发布产物/01_整鸭打印件/打印清单与参数.md『打印参数与薄处』——是本轮实际切片用的配置（G-code 标 analysis_only，未上机）"
+      why_upper_bound: "壁厚 3×0.4=1.2 mm 的实体外皮 + 4 层顶底之外才是 40%/60% 填充。薄壁小件（H02 1.0 cm³、L07 4.0 cm³）几乎全是墙，接近上界；大块件（T01 28.0 cm³、H03 23.7 cm³、H01 20.0 cm³）会明显低于上界。**具体低多少，只有切片报的耗材量或称重能给**，本仓库两个都没有（G-code 是 analysis_only）。"
+      effective_g_cm3:
+        v: null
+        src: null
+        unknown_class: "not_measured"
+        unknown_reason: "有效密度 = 实际件重 ÷ 实心体积。没有称过任何一个打印件，也没有可信的切片耗材量。**故意不按填充率反推** —— 填充率不是体积占比（墙/顶底/走线宽度都参与），拿 0.4 乘一下会得到一个看起来精确的假数。"
+        bench_ref: "bench.yaml:BN15"
+      direction_of_error: "现在的模型偏重（实心 + 1.27>1.24）。对静扭矩和站稳判据是保守方向；对**逐 body 漂移**不是 —— 15 个 body 里有 11 个 CAD 比 MJCF 重，其中一部分就是这个偏重造成的，称重之后漂移会变小但不会消失（jaw_soft −55 g、yaw_roll_motion −20 g、trunk_base −25 g 是**偏轻**，方向相反，不可能靠密度解释）。"
+    provenance:
+      - "V2_S288版发布产物/01_整鸭打印件/打印清单与参数.md"
+      - "tools/gate/data/parts.yaml:parts[].material"
+      - "duck.py:946"
+  # ── 2026-09-09 新增：质量/惯量漂移桶（README 第 2 节 L7『与 MJCF <inertial> 逐 body 比漂移』）──
+  # 阈值的出处不是拍脑袋，是**训练时真正用过的域随机化范围**：策略只见过这个范围内的机器人，
+  # 超出去就等于策略没见过 → README 第 5 节 DoD：更新 MJCF <inertial> 并标注是否重训。
+  mass_drift_vs_mjcf:
+    mass_g:
+      v: 0.286
+      src: "datasheet"
+      src_note: "= MJCF 里最小 body（neck_pitch，5.720 g）的 5%。5% 的出处：upstream/microduck_rl@5946fd9 src/mjlab_microduck/tasks/microduck_velocity_env_cfg.py:73 `MASS_INERTIA_RANDOMIZATION_RANGE = (0.95, 1.05)  # ±5% applied to BOTH mass and inertia together`。"
+      why_absolute_and_why_the_smallest_body: "训练里的判据是**相对**的（±5%），层读的是**绝对**克数（`abs(d_m) <= drift_m`）。把相对退化成绝对时只能取最小 body 上的绝对值 —— 否则拿 trunk_base 的 5%（9.96 g）当全局阈值，会把 neck_pitch 放行到 174%。取 0.286 g 是保守方向。"
+      robustness_check_2026-09-09: "这个退化不影响结论：逐 body 按**相对** 5% 重算，15 个 body 一个都不满足（最小的是 upper_leg_left/right 的 +4.420/48.207 = 9.2%，最大的是 yaw_roll_motion 的 −19.810/48.600 = 40.8%）。所以无论用 0.286 g 绝对判据还是 ±5% 相对判据，结果都是 15/15 红。"
+      harsher_reading: "而且 ±5% 这条本身**只对 trunk_base 生效** —— 同一个文件 line 452-469 里 `dr.pseudo_inertia` 的 `body_names=(\"trunk_base\",)`。其余 14 个 body 在训练里质量/惯量随机化是 **0**，严格讲它们的容差是 0 g。0 没法当工程门槛（浮点噪声就过不了），所以本键取了『最小 body 的 5%』这个已经放宽过的值。"
+    com_mm:
+      v: 3.0
+      src: "datasheet"
+      src_note: "= 训练里质心随机化的**基线**幅度 ±3 mm。出处：同一文件 line 57 `COM_RANDOMIZATION_RANGE = 0.003  # ±3mm initial, ramped to ±8mm via curriculum` 与 line 65 `HEAD_COM_RANDOMIZATION_RANGE = 0.003`。注意那句注释里的『±8mm』**是过时的**：实际 range_stages（cfg:855-868 / 877-883）trunk 爬到 0.015、head 爬到 0.01。基线 0.003 两处一致，是可用的。"
+      why_the_baseline_not_the_ramped_value: "curriculum（line 850-880）会把 trunk 爬到 ±15 mm、头部爬到 ±10 mm，但**没有证据证明 baseline_xl330 那次训练跑满了 curriculum**（第6项_离线验证报告.md:26 只记了 ONNX 的 sha256 和接口，没记训练步数）。跑没跑满不知道 → 按元规则 4 取 step 0 的 ±3 mm。"
+      cross_check: "本仓库自己的敏感性实验给出同一量级：第6项_离线验证报告.md:73-78，打印材料 1.0×→0.4× 均匀缩放，HOME 重心水平移动 2.676 mm；CAD 模型与原 XML 的 HOME 重心水平差 2.605 mm。两个独立来源都指向『几 mm』。"
+    by_body:
+      _note: "上面那对标量是层现在能读的全部。真判据应该按 body 分桶，因为训练里的随机化本来就是分组施加的。等层支持了，用下面这张表。"
+      trunk_base:
+        mass_rel: {v: 0.05, src: "datasheet", src_note: "dr.pseudo_inertia body_names=('trunk_base',)，alpha_range 由 (0.95,1.05) 推出（cfg:452-469）"}
+        com_mm: {v: 3.0, src: "datasheet", src_note: "randomize_com 只作用在 trunk_base（cfg:413-422）；curriculum 上限 15 mm（cfg:855-868，2026-07 审计从 30 mm 砍到 15 mm，理由是『超出脚支撑多边形，脚跟只在踝后 20 mm』）"}
+        com_mm_if_curriculum_completed: 15.0
+      head_group:
+        grouping_is_the_training_configs_not_ours: true
+        bodies: ["neck", "neck_pitch", "yaw_roll_motion", "jaw_soft", "bearing_roll"]
+        bodies_src: "cfg:66-72 HEAD_BODY_NAMES = (neck, neck_pitch, yaw_roll_motion, (bottom_head_shell|jaw_soft), bearing_roll) —— **逐字照抄训练配置**，不是我们按解剖学分的组。"
+        caveat_2026-09-09: "**这一组的第 5 个名字对不上。** 训练配置把 `bearing_roll` 当头部 body，但在 robot_walk.xml 里 `bearing_roll` 是**右腿髋横滚载体**（本层算出它计入 yaw2roll_R + servo__bearing_roll_hip_l_2，是 yaw2roll 的镜像对侧），根本不在头上。两种可能：① 训练用的模型与 robot_walk.xml body 命名不一致；② 上游配置本身把一个髋 body 误列进 HEAD_BODY_NAMES，于是头部质心随机化被施加到了右髋上、而左髋(yaw2roll)没有。**在查清之前，head_group / leg_group 这两行的分组不能当结论用**；上面那对全局标量（0.286 g / 3.0 mm）不依赖这个分组，不受影响。"
+        mass_rel: {v: 0.0, src: "datasheet", src_note: "**训练里这几个 body 一个质量随机化都没有** —— dr.pseudo_inertia 只挂 trunk_base"}
+        com_mm: {v: 3.0, src: "datasheet", src_note: "randomize_head_com（cfg:424-434）"}
+        com_mm_if_curriculum_completed: 10.0
+      leg_group:
+        bodies: ["yaw2roll", "hip_l", "upper_leg_left", "leg", "ankle_left", "hip_l_2", "upper_leg_right", "leg_2", "ankle_right"]
+        note_bearing_roll: "`bearing_roll` 物理上是本组的第 10 个（右髋横滚载体，yaw2roll 的镜像），但训练配置把它列进了 HEAD_BODY_NAMES —— 见 head_group.caveat_2026-09-09。这里按训练配置放在 head_group，不重复列。"
+        mass_rel: {v: 0.0, src: "datasheet", src_note: "训练里腿部 body 既没有质量随机化也没有质心随机化"}
+        com_mm: {v: 0.0, src: "datasheet", src_note: "同上 —— 腿部质心漂移在训练里是完全没见过的方向"}
+        note: "严格按训练范围，腿部的容差是 0/0。层用的全局 0.286 g / 3.0 mm 对腿部**已经是放宽**，判红是下限结论。"
+    what_it_means_when_red: "README 第 5 节 DoD：『质量漂移超阈值就更新 MJCF <inertial> 并标注是否重训』。第6项_离线验证报告.md:102 对同一批数已经下过同样的结论：『这已足以否定「轴线不变，所以旧策略一定不用改」的推论』。"
+    provenance:
+      - "upstream/microduck_rl@5946fd9 src/mjlab_microduck/tasks/microduck_velocity_env_cfg.py:57,65,73,413-469,850-880"
+      - "docs/six_checks_2026-09-08/policy/第6项_离线验证报告.md:73-78,102"
+      - "tools/gate/README.md 第 2 节 L7 / 第 5 节 DoD"
+  # ── 2026-09-09 新增：惯量**分布**漂移桶（补 FG20：L7 此前一个字节都没读过 <inertial> 的惯量项）──
+  # 上面的 mass_drift_vs_mjcf 只管"多重、质心在哪"。质量对上、质心对上、而料从中间挪到两端，
+  # 惯量可以差一倍，策略训练时用的转动惯量和实物分家 —— 那正是这一桶要管的。
+  # 层（l7_mass.py:_inertia_body）两边都对角化成主惯量三元组（坐标系无关）再逐个比，另比主轴夹角。
+  inertia_drift_vs_mjcf:
+    _what_the_layer_measures: "CAD 侧：每个 body 上的打印件实体（trimesh.moment_inertia × density_g_cm3）+ 该 body 挂的元件（placed 包络实体配 components.yaml:mass_g 反算的均匀密度），按平行轴定理搬到该 body 的 CAD 质心相加，得到关于质心、body 轴下的全张量；MJCF 侧：robot_walk.xml 的 <inertial fullinertia>（本模型 15 个 body 全是这种写法）或 <inertial diaginertia + quat>，kg·m² × 1e9 → g·mm²。两边各自 numpy.linalg.eigh 对角化，主惯量升序逐个比相对差，主轴逐个比夹角（特征向量符号任意 → 取 |cos|）。"
+    principal_moment_rel:
+      v: null
+      src: null
+      unknown_class: "not_selected"
+      unknown_reason: "主惯量相对漂移上限未决定。"
+      refused_2026-09-09: "**拒填**，理由和 static_torque_margin 同一类，但更硬：唯一看起来像出处的东西 —— upstream/microduck_rl@5946fd9 microduck_velocity_env_cfg.py:73 `MASS_INERTIA_RANDOMIZATION_RANGE = (0.95, 1.05)  # ±5% applied to BOTH mass and inertia together` —— **约束不了这个量**。它经 cfg:452-469 落到 `dr.pseudo_inertia`，注释写得很清楚：`alpha scales BOTH mass and inertia by e^(2*alpha) with the CoM unchanged`。e^(2α) 是**各向同性标量缩放**：三个主惯量同乘一个数、主轴朝向一动不动、主惯量之比一动不动。也就是说训练见过的是『整体重一点轻一点』，从来没见过『分布变了』。拿 ±5% 当分布容差，等于把一个缩放容差当成形状容差用，是典型的『查的东西不对』。"
+      also_only_trunk_base: "而且 dr.pseudo_inertia 的 `body_names=('trunk_base',)` —— 其余 14 个 body 在训练里连这个各向同性缩放都没有，严格讲容差是 0。"
+      what_would_unblock:
+        - "训练侧：把域随机化换成**各向异性**的惯量随机化（例如对主惯量三元组独立缩放，或直接随机化 fullinertia 的 6 个分量），那时它的范围才是这一条的合法出处。"
+        - "或者：跑一次 sim2sim / 策略回放敏感性实验 —— 把 MJCF 的 <inertial> 换成本层算出来的 CAD 张量，看策略跟踪误差退化多少，用『退化到不可接受』那一点反推容差。本仓库有现成的离线回放通道（docs/six_checks_2026-09-08/policy/第6项_离线验证报告.md），但那次只跑了质量均匀缩放，没跑惯量。"
+        - "在那之前留 null 判红。填任何数都会让 15 个 body 的 inertia_criteria 一起变绿，而绿的依据是编的。"
+      measured_today_for_reference:
+        note: "2026-09-09 首次量到的现值，**只是量，不是判据**。见本轮 scorecard.json:L7/body:*.principal_inertia_vs_mjcf。"
+        src: "measured"
+    principal_axis_deg:
+      v: null
+      src: null
+      unknown_class: "not_selected"
+      unknown_reason: "主轴朝向偏差上限未决定。"
+      refused_2026-09-09: "**拒填**。同上：e^(2α) 缩放保持主轴不变，所以训练里主轴的容差恰好是 **0°**。0° 不能当工程门槛（对角化的数值噪声就过不了），而任何非 0 的数都没有出处。另外这条判据本身有一个必须一起看的限制：当某个 body 的两个主惯量接近简并时，主轴在那个平面内本来就不唯一，夹角再大也不代表分布错 —— 层里已经把 MJCF 主惯量的相对间隔一起报出来（间隔 < 2% 时明说『不可解释』），定阈值时必须把简并 body 单独处理。"
+      what_would_unblock: "同 principal_moment_rel。"
+    modeling_caveats_2026-09-09:
+      - "元件（舵机、电池、原版件）在 CAD 侧是按 placed 里的**包络实体 + 均匀密度**建的模，包络里的真实分布（S288 的转子/减速箱、电池的卷芯、主板的元器件）没有任何数据。层每条 principal_inertia_vs_mjcf 都同时报出『把所有项退化成质点后主惯量会变多少』，那个数就是本判据自身的建模不确定度 —— 定阈值前必须先确认它比阈值小。"
+      - "打印件按**实心**体积算（见 density_by_material.infill_upper_bound_note），实际是壳+填充。实心假设对惯量的影响方向和对质量的不一样：填充在中性面附近，实心会同时高估质量和高估回转半径。"
+      - "CAD 侧还漏着一批没有 mass_g 的元件（6 颗轴承、主板、摄像头、屏、麦），它们进不了张量。"
+    provenance:
+      - "upstream/microduck_rl@5946fd9 src/mjlab_microduck/tasks/microduck_velocity_env_cfg.py:73,452-469"
+      - "upstream/microduck_rl/src/mjlab_microduck/robot/microduck/robot_walk.xml:<inertial fullinertia>"
+      - "tools/gate/README.md 第 2 节 L7（『与 MJCF <inertial> 逐 body 比漂移』）"
+      - "tools/gate/layers/l7_mass.py:_mjcf_inertial / _inertia_body"
+  # ── 2026-09-09 新增：静态稳定余量 ──────────────────────────────────────────
+  static_stability_margin_mm:
+    v: 3.0
+    src: "assumed"
+    src_note: "重心水平投影到支撑多边形边界的最小允许距离。"
+    assumption_basis: "两个互不相干的来源都落在 3 mm：① 训练时施加在 trunk_base / 头部的质心随机化基线就是 ±3 mm（microduck_velocity_env_cfg.py:57,65）——策略被训练成能容忍这么大的质心不确定度，反过来说余量小于它，『重心在多边形内』这个结论就淹没在训练自己的噪声里；② 本仓库的质量模型不确定度也是这个量级（第6项_离线验证报告.md:73-78：打印材料 1.0×→0.4× 均匀缩放，HOME 重心水平移动 2.676 mm；CAD 与原 XML 的 HOME 重心水平差 2.605 mm）。取 3.0 = 两者的公共量级。"
+    what_would_overturn_it:
+      - "称重（bench.yaml:BN15）把质量模型的不确定度压到 1 mm 以内 → 可以下调"
+      - "把现在缺的 17 类元件（尤其头部电子件，力臂最长）补进 CAD 并重算重心 → 不确定度重新评估"
+      - "证明 baseline_xl330 训练跑满了 com curriculum（trunk 到 ±15 mm）→ 上调到 15 mm"
+      - "**任何动态判据都不能用这个数** —— 它是静态保持的余量，走路/落地要另立（README 第 2 节把动态明确划给 bench）"
+    not_a_dynamic_criterion: true
+    provenance:
+      - "upstream/microduck_rl@5946fd9 src/mjlab_microduck/tasks/microduck_velocity_env_cfg.py:57,65"
+      - "docs/six_checks_2026-09-08/policy/第6项_离线验证报告.md:73-78"
+      - "tools/gate/README.md 第 2 节 L7"
+  # ── 2026-09-09 新增：S288 额定扭矩的**唯一权威定义**（bench.yaml:BN13 的回填目标）──────────
+  servo_rated_torque_Nm:
+    authoritative: true
+    unit: "N·m（输出端）"
+    applies_to: "components.yaml:servo_s288（14 颗行走舵机，qty_purchase 15）"
+    stall_torque_Nm:
+      v: 0.6
+      src: "datasheet"
+      src_note: "名义**堵转**扭矩。2026-09-08 宇树客服参数表，转录在 V2_S288版发布产物/04_电机到货测试/S288实测尺寸记录.md:55。同表还有：19.5 g、最大线电流 0.32 A、空载 0.27 A / 16.5 rad/s @12 V、电压 6.4–12.6 V、扭矩常数 0.554 N·m/A、15 bit 编码器、6 Mbps 半双工。"
+      is_stall: true
+      not_sustainable: "堵转 ≠ 可持续输出。塑料齿 + 塑料壳（对照 J288：钢齿铝壳 1.5 N·m），长时间保持在堵转附近的后果（温升、齿变形）在 bench.yaml:BN03。"
+    continuous_torque_Nm:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "**可持续输出扭矩完全没有数据。** 第6项_离线验证报告.md:63 原句：『持续扭矩、温升和负载下扭矩-转速曲线均未知』；:106 又说『没有找到 S288 负载轨迹、实际总线延迟分布、15 机通信丢包、持续保持温升或辨识 JSON』。手册摘录里也只有堵转一个扭矩数。"
+      do_not_derive_from: "不许由 0.32 A × 0.554 N·m/A = 0.177 N·m 推得 —— 见 servo_output_bearing.static_torque_margin.forbidden_derivations.FD1（口径未澄清，且 0.177 与 0.6 自相矛盾）。"
+      bench_ref:
+        - "bench.yaml:BN13"
+        - "bench.yaml:BN03"
+    measured_stall_torque_Nm:
+      v: 0.66
+      src: "bench_2026-09-16"
+      src_note: "测试台 TB01–TB03 吊瓶抬臂：摆臂末端吊 960 g（秤称），kp=12 位置模式 30 s 匀速抬向水平，两次都在离垂直 46.9° 处停住、目标继续走摆臂不动；该处重力矩 (0.960+0.00725/2)·g·0.096·sin46.9° = 0.66 N·m。垂直零点取 09-15 目视标定的 zero.json（重装摆臂用同一组孔），并用未饱和段『回报扭矩 = 重力矩 + 0.065 齿轮摩擦』反验（例 −29.3° 算 0.51 / 报 0.514）。原始数据 04_电机到货测试/data_raw/push/lift_m960_1789491817.json、lift_m960_1789492048.json。"
+      caveats:
+        - "同日先做的手扶堵转（push_cap_ramp_1789488786.json）里舵机**回报** 0.996 N·m 封顶——那只是固件指令上限，吊瓶证明轴上实际只有 0.66；回报扭矩在 ≤0.5 N·m 时准（对得上重力+摩擦），饱和后是指令回声、虚报 1.5×。**不许拿 1.0 当上限。**"
+        - "条件：母线 12.0 V 台架电源，饱和时掉到 11.5 V；绕组 45→90 ℃（停滞段每秒 +4 ℃）。BN13 写的 12.6 V 未满足；满电 12.6 V 冷态可能略高，按 0.66 用是保守侧。"
+        - "这是瞬时上限，不是可持续扭矩：顶死 6 s 绕组就从 55 到 80 ℃（continuous_torque_Nm 仍 null，靠 BN03 或整机走行温度观测）。固件过热报警到 90 ℃ 还没响。"
+        - "与 datasheet 0.6 一致（+10%）；与第一轮 BAM 位置数据拟出的电压极限 0.56 一致。BAM 最终参数里上限由吊瓶日志参与拟合（04_电机到货测试/params/s288/）。"
+      bench_ref: "bench.yaml:BN13"
+      acceptance: "BN13 判据：实测堵转 ≥ 手册额定的 90%（即 ≥0.54 N·m）→ 0.66 满足"
+    # ── 2026-09-10 新建：BN17 的回填位。建它是因为 bench.yaml:BN17 的 backfill_to 必须指向一个
+    #    **真实存在**的键 —— BN13 当初就踩过这个坑（criterion 指定的回填目标不存在，2026-09-09 才补出来）。
+    torque_speed_curve:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "**负载下的扭矩-转速曲线完全没有数据。** ① 宇树没给：docs/reference/s288/给宇树客服的问题清单_2026-09-10.md:34 第 3 问明确要了『扭矩-转速曲线或效率曲线』，2026-09-10 未回。② 本仓库没测：bench.yaml:BN17 是本轮才提出来的实测项，checked=false。③ 手册摘录里只有堵转 0.6 N·m 和空载 16.5 rad/s @12 V 两个**端点**，中间是空的。"
+      why_two_endpoints_are_not_a_curve: "堵转（转速 0）与空载（扭矩 0）是曲线的两端。**不许在这两点之间连一条直线当曲线用** —— 无刷电机加驱动器之后，中段被电流环上限削平，形状取决于母线电压和驱动器设置，不是理想直线。而行走工况（forward 回放峰值 0.396 N·m）恰好整段落在中间。"
+      do_not_derive_from: "不许由 stall_torque_Nm 与空载转速线性插值得到；也不许由 0.32 A × 0.554 N·m/A = 0.177 N·m 反推（同 continuous_torque_Nm.do_not_derive_from）。"
+      expected_shape_when_filled: "≥6 条 {speed_rad_s, torque_Nm, bus_current_A, bus_voltage_V, case_temp_C, n_repeats, spread} 记录，另加测试条件（母线电压、驱动器设置、样品编号 ×2）。"
+      bench_ref: "bench.yaml:BN17"
+      blocks_what: "① 『S288 能不能走这套步态』这个**选型**结论 —— 现在只有堵转一个端点，答不了；② 重训用的 MJCF actuator forcerange 与 BAM 拟合的先验：没有曲线就只能继续沿用上游 XL330 的执行器参数，而 2026-09-09 的权威方向已经倒转成 CAD + 实测生成 MJCF，沿用上游等于把已经作废的权威请回来。"
+      note_this_is_not_continuous_torque: "本键是『瞬时能出多少』；『长时间不过热能出多少』是 continuous_torque_Nm，靠 BN03。两个 null 不许互相填。"
+    derating_factor:
+      v: null
+      src: null
+      unknown_class: "not_selected"
+      unknown_reason: "= continuous_torque_Nm ÷ stall_torque_Nm。分子是 null，所以它也是 null。这就是 servo_output_bearing.static_torque_margin 拒填的根。"
+    mirrored_into: "（无）2026-09-13 起镜像键 load.servo_output_bearing.rated_stall_torque_Nm 已删除，层只读本桶 stall_torque_Nm（审计 F-L7-5）"
+    provenance:
+      - "V2_S288版发布产物/04_电机到货测试/S288实测尺寸记录.md:55-56"
+      - "docs/six_checks_2026-09-08/policy/第6项_离线验证报告.md:63,106,108"
+      - "bench.yaml:BN13"
+  # ── 2026-09-09 新增：头部可加质量预算（components.yaml 里未选型件的 budget_g 的来源）────────
+  head_added_mass_budget_g:
+    v: 509.8
+    src: "measured"
+    src_note: "本仓库 Gate L7 自己算出来的：tools/gate/out/scorecard.json 的 L7/_load.head_mass_budget（2026-09-09 那次 `gate.py --layers 7 --skip-negatives`）。附加质量假设放在头部 body jaw_soft 现有质心 (5.4, −1.9, −21.8) mm（本体系），当前头部 133.6 g。卡脖子的关节是 neck_pitch（空载全程峰值 0.1565 N·m）；其余承载关节的预算 head_pitch=1410 g、head_roll=15092 g、head_yaw 不限（轴与重力平行）。"
+    computed_at_margin: 1.0
+    upper_bound_only: "**这是 margin=1 的上界，不是可用预算。** 层是拿名义堵转 0.6 N·m 当门槛二分出来的；0.6 是堵转不是可持续输出（见 servo_rated_torque_Nm）。"
+    sensitivity_illustration:
+      note: "**这是灵敏度演示，不是阈值，别拿去当判据。** neck_pitch 的静扭矩对附加质量近似线性：τ ≈ 0.1565 + m_add × (0.6−0.1565)/509.8 = 0.1565 + m_add × 8.70e-4 N·m/g。"
+      formula: "budget(margin) ≈ (0.6 × margin − 0.1565) ÷ 8.70e-4  [g]"
+      examples: ["margin=1.00 → 509.8 g（层现在报的数）", "margin=0.50 → 165 g", "margin=0.30 → 27 g", "margin≤0.261 → 0 g（空载就已经超了）"]
+      why_it_matters: "主控 Radxa ZERO 3W 一件就 14 g（占位值，借 Orange Pi 规格）。如果 S288 的可持续扭矩只有堵转的三成，头部电子件的总预算就只剩几十克，摄像头+麦+转接板+UBEC 必须一起算（**屏已取消**，见 docs/README.md 顶部横幅；原文『摄像头+屏+麦+基准板四件』作废）。**在 continuous_torque_Nm 测出来之前，509.8 g 这个数不能拿去做选型决策。**"
+      margin_is_null_today: true
+    consumed_by: "components.yaml 里未选型头部件的 budget_g（camera_csi / display_lcd / mic_inmp441 / sensor_small_boards）"
+    bench_ref:
+      - "bench.yaml:BN13"
+      - "bench.yaml:BN15"
+    provenance:
+      - "tools/gate/out/scorecard.json:L7/_load.head_mass_budget"
+      - "tools/gate/README.md 第 4 节 mass_budget.md"
+assumed_values:
+  - id: "AV01"
+    name: "step_z"
+    value:
+      v: "(-7.0,-12.0)"
+      src: "assumed"
+    where: "s288.py:15"
+    affects:
+      - "servo_envelope 改用 (2,-1) 保守"
+      - "carrier step 加厚块 z_st=-6.5"
+      - "N01/T01 垫柱高 2.9"
+      - "所有背孔叠厚"
+    provenance:
+      - "s288.py:15"
+      - "inventory_v2.json:assumed_values[0]"
+  - id: "AV02"
+    name: "flange_h"
+    value:
+      v: "2.9（实测 3.0）"
+      src: "assumed"
+    where: "s288.py:18"
+    affects:
+      - "所有 x0=12.85 从动面"
+      - "叠厚 +0.1 偏松"
+    provenance:
+      - "s288.py:18"
+      - "inventory_v2.json:assumed_values[1]"
+  - id: "AV03"
+    name: "rear_boss_h"
+    value:
+      v: "2.9（实测 2.8）"
+      src: "assumed"
+    where: "s288.py:21"
+    affects:
+      - "背板副轴让位"
+    provenance:
+      - "s288.py:21"
+      - "inventory_v2.json:assumed_values[2]"
+  - id: "AV04"
+    name: "L"
+    value:
+      v: "34.0（手册）"
+      src: "assumed"
+    where: "s288.py:13"
+    affects:
+      - "载体端墙 z_lo=-27.3"
+      - "N01 rear_z"
+    provenance:
+      - "s288.py:13"
+      - "inventory_v2.json:assumed_values[3]"
+  - id: "AV05"
+    name: "mnt_dx/mnt_z"
+    value:
+      v: "8.0 / (7.5,-22.5)（官方图；卡尺 14.7×28.1 作废）"
+      src: "assumed"
+    where: "s288.py:22"
+    affects:
+      - "全部背孔位置（TC05 试件验证）"
+    provenance:
+      - "s288.py:22"
+      - "inventory_v2.json:assumed_values[4]"
+  - id: "AV06"
+    name: "horn_depth/mnt_depth"
+    value:
+      v: "3.0 MAX（官方图）"
+      src: "assumed"
+    where: "s288.py:24"
+    affects:
+      - "螺丝长度选择上限"
+    provenance:
+      - "s288.py:24"
+      - "inventory_v2.json:assumed_values[5]"
+  - id: "AV07"
+    name: "conn_z / conn_x"
+    value:
+      v: "conn_z (-13.9,-4.7)、conn_x (-10.0,-3.4)：厂家尺寸图像素反推 ±0.3（2026-09-11）；7a/7b/7c 卡尺仍未量"
+      src: "datasheet"
+      was_until_2026-09-11: "(-16.5,-5.5) 未量 7a/7b/7c（assumed）"
+    where: "s288.py:25"
+    affects:
+      - "carrier 侧墙分段"
+      - "N01 NK_WALL_Z 上限 184.5"
+      - "asmcheck 插头占位"
+    provenance:
+      - "s288.py:25"
+      - "inventory_v2.json:assumed_values[6]"
+  - id: "AV08"
+    name: "插头包络"
+    value:
+      v: "6×6×11 方块"
+      src: "assumed"
+    where: "asmcheck.py:69"
+    affects:
+      - "所有 PH2.0 禁入判断"
+    provenance:
+      - "asmcheck.py:69"
+      - "inventory_v2.json:assumed_values[7]"
+  - id: "AV09"
+    name: "clr / wall"
+    value:
+      v: "0.3 / 2.5"
+      src: "assumed"
+    where: "s288.py:26"
+    affects:
+      - "所有让位、墙厚（TC03 试件 0.2/0.4 待试）"
+    provenance:
+      - "s288.py:26"
+      - "inventory_v2.json:assumed_values[8]"
+  - id: "AV10"
+    name: "mass_g"
+    value:
+      v: "19.5 官方（未称）"
+      src: "assumed"
+    where: "s288.py:30"
+    affects:
+      - "质量/重心估计（未进 CAD）"
+    provenance:
+      - "s288.py:30"
+      - "inventory_v2.json:assumed_values[9]"
+  - id: "AV11"
+    name: "P.brg seat_d/hub_d"
+    value:
+      v: "27.15 / 19.85"
+      src: "assumed"
+    where: "duck.py:30"
+    affects:
+      - "L01/L03 座，L02/L04 毂（TC01/TC01b）"
+    provenance:
+      - "duck.py:30"
+      - "inventory_v2.json:assumed_values[10]"
+  - id: "AV12"
+    name: "P.bat"
+    value:
+      v: "(18,25,72) 商品页"
+      src: "assumed"
+    where: "duck.py:32"
+    affects:
+      - "仓腔（冻结）"
+    provenance:
+      - "duck.py:32"
+      - "inventory_v2.json:assumed_values[11]"
+  - id: "AV13"
+    name: "P.brd / brd_h"
+    value:
+      v: "(65,32)/(58,23) Zero 2W"
+      src: "assumed"
+    where: "duck.py:33"
+    affects:
+      - "H01 立柱（冻结）"
+    provenance:
+      - "duck.py:33"
+      - "inventory_v2.json:assumed_values[12]"
+  - id: "AV14"
+    name: "P.seat_d"
+    value:
+      v: "22.18（'实测'，复审量 r10.89=Ø21.78）"
+      src: "assumed"
+    where: "duck.py:35"
+    affects:
+      - "H01 A/B 座、N03 盘 21.6 间隙 0.09~0.29"
+    provenance:
+      - "duck.py:35"
+      - "inventory_v2.json:assumed_values[13]"
+  - id: "AV15"
+    name: "P.m2_head_d/h"
+    value:
+      v: "4.0 / 1.6"
+      src: "assumed"
+    where: "duck.py:31"
+    affects:
+      - "N02 头检查；沉孔 Ø4.2"
+    provenance:
+      - "duck.py:31"
+      - "inventory_v2.json:assumed_values[14]"
+  - id: "AV16"
+    name: "ANK_COL / 6700 座 15.1 / 轴 9.95"
+    value:
+      v: "19.6 / 15.1 / 9.95"
+      src: "assumed"
+    where: "duck.py:21；s288.py:29"
+    affects:
+      - "L07/L04"
+    provenance:
+      - "duck.py:21；s288.py:29"
+      - "inventory_v2.json:assumed_values[15]"
+  - id: "AV17"
+    name: "电池线"
+    value:
+      v: "17AWG OD 2.8、长 55"
+      src: "assumed"
+    where: "duck.py:42"
+    affects:
+      - "出线口尺寸（未验）"
+    provenance:
+      - "duck.py:42"
+      - "inventory_v2.json:assumed_values[16]"
+  - id: "AV18"
+    name: "密度"
+    value:
+      v: "1.27 g/cm³"
+      src: "assumed"
+    where: "duck.py:946；打印清单"
+    affects:
+      - "重量表"
+    provenance:
+      - "duck.py:946；打印清单"
+      - "inventory_v2.json:assumed_values[17]"
+  - id: "AV19"
+    name: "M2 头径"
+    value:
+      v: "3.8~4.0"
+      src: "assumed"
+    where: "复审交接"
+    affects:
+      - "Ø4.2 沉孔/Ø4.6 通道"
+    provenance:
+      - "复审交接"
+      - "inventory_v2.json:assumed_values[18]"
+  - id: "AV20"
+    name: "ANK_SWEEP"
+    value:
+      v: "37（HEAD/现 STL） vs 62（工作区未重建）"
+      src: "assumed"
+    where: "duck.py:25（工作区）"
+    affects:
+      - "L05/L07 让位量，踝无碰撞区间"
+    provenance:
+      - "duck.py:25（工作区）"
+      - "inventory_v2.json:assumed_values[19]"
+deliberately_added:
+  - id: "tolerance_coupons_TC01_TC05"
+    comparison: "B9"
+    what: "公差试件 TC01–TC05"
+    reason: "原版无 print guide，我们所有配合尺寸都是名义值"
+    status: "未打（⬜）"
+    coupons:
+      - id: "TC01"
+        measures: "6704 座 Ø27.15 / 6700 座 Ø15.1 / 轴颈 Ø9.95 的打印收缩"
+        measures_note_2026-09-17: "6704 座 09-17 起只对膝 L03 有效（髋横滚 L01 座取消，docs/reports/髋横滚轴承取消_2026-09-17.md）；试件规格不改"
+        status: "未打"
+        unblocks:
+          - "fits.pla.bearing_outer_seat_6704"
+          - "fits.pla.bearing_outer_seat_6700"
+          - "fits.pla.journal_slide_6700"
+      - id: "TC01b"
+        measures: "6704 毂 Ø19.85 过盈"
+        measures_note_2026-09-17: "09-17 起只对膝 L04 毂有效（髋横滚 L02 毂取消，docs/reports/髋横滚轴承取消_2026-09-17.md）；试件规格不改"
+        status: "未打"
+        unblocks:
+          - "fits.pla.bearing_inner_hub_6704"
+      - id: "TC02"
+        measures: "榫/槽 0.2 间隙 + Ø1.6 底孔自攻咬入"
+        status: "未打"
+        unblocks:
+          - "fits.pla.key_slot"
+      - id: "TC03"
+        measures: "通用间隙 clr 0.2 / 0.3 / 0.4 三档 + PLA 滑动配合"
+        status: "未打"
+        unblocks:
+          - "fits.pla.general_clearance"
+          - "fits.pla.plain_slide_head_roll"
+      - id: "TC04"
+        measures: "M2 过孔 2.2 / 底孔 1.6 与 1.7 / 沉孔 4.2"
+        status: "未打"
+        unblocks:
+          - "fits.pla.m2_through_hole"
+          - "fits.pla.m2_pilot_hole_self_tap"
+      - id: "TC05"
+        measures: "S288 背孔位 mnt_dx/mnt_z 与 step_z 斜坡"
+        status: "未打"
+        unblocks:
+          - "fits.servo.back_clamp"
+    provenance:
+      - "comparison_original_vs_v2.md:B9"
+      - "inventory_v2.json:unknowns[10]"
+conflicts:
+  - id: "seat_d"
+    what: "P['seat_d'] = 22.18 标注'实测'，复审量壳座 r10.89 = Ø21.78，差 0.2"
+    effect: "N03 A/B 与半座的径向单边间隙从名义 0.29/0.49 变成 0.09/0.29，低于 fits.pla.plain_slide_head_roll 的目标下限 0.20"
+    resolution: "已解决（2026-09-14 复审修复 r2）—— 不是改数，是改件：duckstructure/head.py build_head_bottom_shell 新增 seatA 刀（H03_SEAT_A_X0=6.0−0.02 → YRM_A2+0.1，Ø P['seat_d']=22.18，只扩槽段、不动 x 5.4..6.0 的 r 9.3 唇），H03 A 下半座从原版 r 10.895 扩到 r 11.085..11.088（射线量导出件 x 6.5/8.0/9.8），与 H01 上半座 / B 端同径。discA 径向 0.285（零位 min_gap 0.2847，±25° 全程 ≥0.2717）。mechanical_audit._review_r2 不变量：H03 seat A d = seat_d ±0.02（16 向）+ min_gap(N03,H03) ≥0.25 零位与 ±25° 每 1°。旧 resolution：未解决，Gate 按 0.09 判"
+    resolved_on: "2026-09-14"
+    resolved_by: "duckstructure/head.py:build_head_bottom_shell seatA（H03_SEAT_A_X0）；build_2026-09-13_manual_dims_r2.log [09-14 复审 r2 不变量] H03 A 座 Ø22.173"
+    gate_must_use_ref: "tolerances.yaml:fits.pla.plain_slide_head_roll.gate_must_use"
+    gate_must_use:
+      quantity: "radial_clearance_per_side_mm"
+      discA_mm: {v: 0.285, src: "measured", src_note: "2026-09-14 r2 导出件射线实测（旧 0.09）"}
+      discB_mm: {v: 0.29, src: "measured"}
+      note: "2026-09-09：原来这条 resolution 只有一句散文，没有任何机器可读字段，Gate 落不了地。现在同一组数在 fits.pla.plain_slide_head_roll.gate_must_use 里有完整版（含 src_note 与 verdict），本条只放指针 + 两个值。本轮射线量导出件得 0.10/0.30（H03 半座最小内半径 10.9000，不是 10.89），比 0.09/0.29 松 0.01 → 仍按 0.09/0.29 判。"
+    relation_ref: "relations.yaml:R11"
+    feature_refs: ["N03-F01", "N03-F02", "H01-F05", "H03-F01"]
+    provenance:
+      - "duck.py:35"
+      - "inventory_v2.json:unknowns[18]"
+      - "inventory_v2.json:assumed_values[13]"
+  - id: "deck_keyhole_clearance"
+    what: "relations.yaml:R21 与 fits.deck.keyhole 说腹面甲板给髋偏航法兰 Ø13.9 留的是『Ø18.99 钥匙孔、单边 2.35 间隙』（2.35 其实是按 Ø18.6 算的，duck 源码里 Ø18.6 与 Ø18.99 两个数并存），但成品件上根本不是这个数"
+    effect: "射线量导出 T01_trunk.stl：在 (世界 6, ±17.5) 沿 z 从 119.2 扫到 121.2，最小内半径恒为 7.441 → 有效孔是 Ø14.88 ≈ Ø14.9 的**法兰侧滑槽**（lib.py:385-390 flange_slot），单边间隙 0.49，不是 2.35。原因：载体前板（T01-F03，世界 z 119.15..121.25）正好盖在甲板那一层上，把原版甲板的大孔堵住了，只剩它自己那条 Ø14.9 槽"
+    resolution: "未解决 —— fits.deck.keyhole 的 nominal 2.35 与 target 2.0~3.0 对成品件不成立（0.49 会判 BLOCK）。要么把判据改成对 Ø14.9 滑槽判（单边 0.5），要么承认这一层的定位件是前板不是甲板。本轮只登记冲突，不改判据（改判据要人签字）"
+    measured: {v: 0.49, src: "measured", src_note: "(7.441×2 − 13.9)/2；射线量导出 T01_trunk.stl"}
+    feature_refs: ["T01-F03", "T01-F05", "T01-F09"]
+    provenance:
+      - "duck.py:627-628"
+      - "duck.py:659"
+      - "duckstructure/trunk.py:68-71,92-94,102"
+      - "relations.yaml:R21"
+  - id: "L01_hiproll_counterbore_d"
+    what: "features.yaml:L01-F09 声明髋横滚背孔的沉孔是 Ø4.2 深 1.25（我们那把 mnt_cut2 的刀），但 L01 是照原版 yaw2roll 重雕的，原版件在同一位置**自带 Ø4.84 沉孔**"
+    effect: "射线量导出 L01_yaw2roll.stl：舵机帧 x −14.5..−13.4 一整段 36/36 向命中 r=2.4200（Ø4.84），到 x≈−13.25 之后才转成 Ø2.2。我们那把 Ø4.2 的刀整个落在 Ø4.84 里面，一点新坐面都不产生 → 第 2 层若按『沉孔直径 Ø4.2 ±0.1』量这一条会判失败，而件其实是对的"
+    resolution: "未解决 —— 需要决定 L01-F09 的名义直径按谁写（我们的刀 4.2 / 成品实际 4.84）。本轮在 features.yaml:L01-F09.geom 里加了 effective_counterbore_d_mm=4.84（measured）并登记本冲突，没有改 spec_verbatim"
+    measured: {v: 4.84, src: "measured", src_note: "射线量导出 L01_yaw2roll.stl 得 r=2.4200；与 duckstructure/legs.py:11-12 注释里的『实测 Ø4.84 沉孔』一致"}
+    feature_refs: ["L01-F09"]
+    fastener_refs: ["F03_hiproll_back"]
+    provenance:
+      - "duckstructure/legs.py:11-12"
+      - "duckstructure/lib.py:436-437"
+  - id: "pilot_hole_d"
+    what: "M2 自攻底孔同时用 Ø1.6（L05/H01 座/T01 柱/仓底）与 Ø1.7（H01 立柱/T01 IMU/H03 四脚）"
+    effect: "同一种连接类型两个底孔径，咬入力不一样"
+    resolution: "未统一；TC04 待打。2026-09-13：H03 四脚接收孔（F22，09-12 I4）选 Ø1.7 与 H01 香橙派立柱同径（head.py:10-12 注释：孔4 +x 壁只有 1.15，自攻挤压 0.15/边比 Ø1.6 的 0.20 少 25%），Ø1.7 阵营 +1"
+    provenance:
+      - "ankle_split.py:12"
+      - "duck.py:672"
+      - "duck.py:887"
+      - "duck.py:658"
+      - "duckstructure/head.py:build_head_bottom_shell（H03_PILOT_D=1.7，head.py:18）"

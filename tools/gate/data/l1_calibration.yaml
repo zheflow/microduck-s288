@@ -1,0 +1,613 @@
+# 由 tools/gate/calibrate_l1.py 生成，不要手改；判据/层代码/网格一变就要重跑（指纹校验）。
+l1_calibration:
+  date: 2026-09-25 12:27
+  runner: tools/gate/calibrate_l1.py
+  fingerprint: 24be93afa8da334b732e9fb65facd14152c939c6850842191325da398c3326a2
+  fingerprint_note: sha256(printability.yaml 的 process/criteria/materials/calibration_set 规范 JSON + layers/l1_printable.py 源码)；L1 对不上判红
+  max_block_fail_fraction: 0.5
+  checks_in_scope:
+  - min_wall_geometric
+  - min_wall_sliced
+  - min_hole_dia
+  - overhang_area
+  - support_model_brackets_slicer
+  - support_in_no_support_zone
+  - support_reachable
+  - first_layer_area
+  checks:
+    print_orientation:
+      severity: BLOCK
+      n_eval: 8
+      n_fail: 8
+      failed_parts:
+      - CAL_top_head_shell
+      - CAL_bottom_head_shell
+      - CAL_left_shell
+      - CAL_upper_leg
+      - CAL_neck_pitch
+      - CAL_yaw2roll
+      - CAL_face_part
+      - CAL_rigidity_plate
+      fail_fraction: 1.0
+    slice_freshness:
+      severity: BLOCK
+      n_eval: 8
+      n_fail: 8
+      failed_parts:
+      - CAL_top_head_shell
+      - CAL_bottom_head_shell
+      - CAL_left_shell
+      - CAL_upper_leg
+      - CAL_neck_pitch
+      - CAL_yaw2roll
+      - CAL_face_part
+      - CAL_rigidity_plate
+      fail_fraction: 1.0
+    min_wall_geometric:
+      severity: WARN
+      n_eval: 8
+      n_fail: 5
+      failed_parts:
+      - CAL_top_head_shell
+      - CAL_bottom_head_shell
+      - CAL_left_shell
+      - CAL_upper_leg
+      - CAL_neck_pitch
+      fail_fraction: 0.625
+    min_wall_sliced:
+      severity: BLOCK
+      n_eval: 0
+      n_fail: 0
+      failed_parts: []
+      fail_fraction: null
+    min_hole_dia:
+      severity: BLOCK
+      n_eval: 0
+      n_fail: 0
+      failed_parts: []
+      fail_fraction: null
+    overhang_area:
+      severity: INFO
+      n_eval: 8
+      n_fail: 0
+      failed_parts: []
+      fail_fraction: 0.0
+    support_model_brackets_slicer:
+      severity: BLOCK
+      n_eval: 0
+      n_fail: 0
+      failed_parts: []
+      fail_fraction: null
+    support_in_no_support_zone:
+      severity: BLOCK
+      n_eval: 0
+      n_fail: 0
+      failed_parts: []
+      fail_fraction: null
+    support_in_removable_zone:
+      severity: WARN
+      n_eval: 0
+      n_fail: 0
+      failed_parts: []
+      fail_fraction: null
+    support_reachable:
+      severity: WARN
+      n_eval: 8
+      n_fail: 4
+      failed_parts:
+      - CAL_bottom_head_shell
+      - CAL_left_shell
+      - CAL_upper_leg
+      - CAL_yaw2roll
+      fail_fraction: 0.5
+    first_layer_area:
+      severity: INFO
+      n_eval: 8
+      n_fail: 0
+      failed_parts: []
+      fail_fraction: 0.0
+  parts:
+    CAL_top_head_shell:
+      mesh_sha256: bc64288c0d54e13ec907256c2b99535937d370af1410de498905ec3cf8d7c3df
+      down:
+      - 0
+      - -1
+      - 0
+      seconds: 38.8
+      findings:
+        print_orientation:
+          state: FAIL
+          severity: BLOCK
+          unknown: false
+          measured: '[0, -1, 0]'
+        slice_freshness:
+          state: FAIL
+          severity: BLOCK
+          unknown: false
+          measured: STALE
+        min_wall_geometric:
+          state: FAIL
+          severity: WARN
+          unknown: false
+          measured: '0.721'
+        min_wall_sliced:
+          state: FAIL
+          severity: BLOCK
+          unknown: true
+          measured: null
+        min_hole_dia:
+          state: PASS
+          severity: BLOCK
+          unknown: true
+          measured: null
+        overhang_area:
+          state: PASS
+          severity: INFO
+          unknown: false
+          measured: '2085.6'
+        support_model_brackets_slicer:
+          state: FAIL
+          severity: BLOCK
+          unknown: true
+          measured: null
+        support_in_no_support_zone:
+          state: FAIL
+          severity: BLOCK
+          unknown: true
+          measured: null
+        support_in_removable_zone:
+          state: FAIL
+          severity: WARN
+          unknown: true
+          measured: null
+        support_reachable:
+          state: PASS
+          severity: WARN
+          unknown: false
+          measured: '0.0'
+        first_layer_area:
+          state: PASS
+          severity: INFO
+          unknown: false
+          measured: '23.471'
+    CAL_bottom_head_shell:
+      mesh_sha256: 3ce9532854a712c93e00e0fd2bbc2ce6b1c45f9418fd29d6e82f6ad8af8fc1af
+      down:
+      - 0
+      - 0
+      - -1
+      seconds: 24.2
+      findings:
+        print_orientation:
+          state: FAIL
+          severity: BLOCK
+          unknown: false
+          measured: '[0, 0, -1]'
+        slice_freshness:
+          state: FAIL
+          severity: BLOCK
+          unknown: false
+          measured: STALE
+        min_wall_geometric:
+          state: FAIL
+          severity: WARN
+          unknown: false
+          measured: <0.04 ｜ 固定噪声底口径 0.642
+        min_wall_sliced:
+          state: FAIL
+          severity: BLOCK
+          unknown: true
+          measured: null
+        min_hole_dia:
+          state: PASS
+          severity: BLOCK
+          unknown: true
+          measured: null
+        overhang_area:
+          state: PASS
+          severity: INFO
+          unknown: false
+          measured: '6619.99'
+        support_model_brackets_slicer:
+          state: FAIL
+          severity: BLOCK
+          unknown: true
+          measured: null
+        support_in_no_support_zone:
+          state: FAIL
+          severity: BLOCK
+          unknown: true
+          measured: null
+        support_in_removable_zone:
+          state: FAIL
+          severity: WARN
+          unknown: true
+          measured: null
+        support_reachable:
+          state: FAIL
+          severity: WARN
+          unknown: false
+          measured: '4987.4248'
+        first_layer_area:
+          state: PASS
+          severity: INFO
+          unknown: false
+          measured: '79.193'
+    CAL_left_shell:
+      mesh_sha256: efc16f55a4c32d21d74bf834faba27346788f154e29b40850cbcc69fda2f2396
+      down:
+      - 1
+      - 0
+      - 0
+      seconds: 18.0
+      findings:
+        print_orientation:
+          state: FAIL
+          severity: BLOCK
+          unknown: false
+          measured: '[1, 0, 0]'
+        slice_freshness:
+          state: FAIL
+          severity: BLOCK
+          unknown: false
+          measured: STALE
+        min_wall_geometric:
+          state: FAIL
+          severity: WARN
+          unknown: false
+          measured: <0.04 ｜ 固定噪声底口径 0.727
+        min_wall_sliced:
+          state: FAIL
+          severity: BLOCK
+          unknown: true
+          measured: null
+        min_hole_dia:
+          state: PASS
+          severity: BLOCK
+          unknown: true
+          measured: null
+        overhang_area:
+          state: PASS
+          severity: INFO
+          unknown: false
+          measured: '2203.49'
+        support_model_brackets_slicer:
+          state: FAIL
+          severity: BLOCK
+          unknown: true
+          measured: null
+        support_in_no_support_zone:
+          state: FAIL
+          severity: BLOCK
+          unknown: true
+          measured: null
+        support_in_removable_zone:
+          state: FAIL
+          severity: WARN
+          unknown: true
+          measured: null
+        support_reachable:
+          state: FAIL
+          severity: WARN
+          unknown: false
+          measured: '94.5163'
+        first_layer_area:
+          state: PASS
+          severity: INFO
+          unknown: false
+          measured: '156.631'
+    CAL_upper_leg:
+      mesh_sha256: b84e46d681cb971029e421c252de85e2f31e8858abee610dc26cd18037ef0224
+      down:
+      - -1
+      - 0
+      - 0
+      seconds: 14.1
+      findings:
+        print_orientation:
+          state: FAIL
+          severity: BLOCK
+          unknown: false
+          measured: '[-1, 0, 0]'
+        slice_freshness:
+          state: FAIL
+          severity: BLOCK
+          unknown: false
+          measured: STALE
+        min_wall_geometric:
+          state: FAIL
+          severity: WARN
+          unknown: false
+          measured: '0.753'
+        min_wall_sliced:
+          state: FAIL
+          severity: BLOCK
+          unknown: true
+          measured: null
+        min_hole_dia:
+          state: PASS
+          severity: BLOCK
+          unknown: true
+          measured: null
+        overhang_area:
+          state: PASS
+          severity: INFO
+          unknown: false
+          measured: '1810.25'
+        support_model_brackets_slicer:
+          state: FAIL
+          severity: BLOCK
+          unknown: true
+          measured: null
+        support_in_no_support_zone:
+          state: FAIL
+          severity: BLOCK
+          unknown: true
+          measured: null
+        support_in_removable_zone:
+          state: FAIL
+          severity: WARN
+          unknown: true
+          measured: null
+        support_reachable:
+          state: FAIL
+          severity: WARN
+          unknown: false
+          measured: '4020.0892'
+        first_layer_area:
+          state: PASS
+          severity: INFO
+          unknown: false
+          measured: '48.044'
+    CAL_neck_pitch:
+      mesh_sha256: b9aed695e03da3819d244ecc66f1ad2d3c5c435f759403bb9e0f3b9ca2876453
+      down:
+      - 0
+      - 0
+      - 1
+      seconds: 4.7
+      findings:
+        print_orientation:
+          state: FAIL
+          severity: BLOCK
+          unknown: false
+          measured: '[0, 0, 1]'
+        slice_freshness:
+          state: FAIL
+          severity: BLOCK
+          unknown: false
+          measured: STALE
+        min_wall_geometric:
+          state: FAIL
+          severity: WARN
+          unknown: false
+          measured: '0.68'
+        min_wall_sliced:
+          state: FAIL
+          severity: BLOCK
+          unknown: true
+          measured: null
+        min_hole_dia:
+          state: PASS
+          severity: BLOCK
+          unknown: true
+          measured: null
+        overhang_area:
+          state: PASS
+          severity: INFO
+          unknown: false
+          measured: '532.8'
+        support_model_brackets_slicer:
+          state: FAIL
+          severity: BLOCK
+          unknown: true
+          measured: null
+        support_in_no_support_zone:
+          state: FAIL
+          severity: BLOCK
+          unknown: true
+          measured: null
+        support_in_removable_zone:
+          state: FAIL
+          severity: WARN
+          unknown: true
+          measured: null
+        support_reachable:
+          state: PASS
+          severity: WARN
+          unknown: false
+          measured: '0.0'
+        first_layer_area:
+          state: PASS
+          severity: INFO
+          unknown: false
+          measured: '157.381'
+    CAL_yaw2roll:
+      mesh_sha256: 56ce1110e43c2279c6580f79a2a8c9e3f91b3bf5cdf8cf00b1caa3cab127a6a7
+      down:
+      - 0
+      - 1
+      - 0
+      seconds: 5.0
+      findings:
+        print_orientation:
+          state: FAIL
+          severity: BLOCK
+          unknown: false
+          measured: '[0, 1, 0]'
+        slice_freshness:
+          state: FAIL
+          severity: BLOCK
+          unknown: false
+          measured: STALE
+        min_wall_geometric:
+          state: PASS
+          severity: WARN
+          unknown: false
+          measured: '0.91'
+        min_wall_sliced:
+          state: FAIL
+          severity: BLOCK
+          unknown: true
+          measured: null
+        min_hole_dia:
+          state: PASS
+          severity: BLOCK
+          unknown: true
+          measured: null
+        overhang_area:
+          state: PASS
+          severity: INFO
+          unknown: false
+          measured: '362.28'
+        support_model_brackets_slicer:
+          state: FAIL
+          severity: BLOCK
+          unknown: true
+          measured: null
+        support_in_no_support_zone:
+          state: FAIL
+          severity: BLOCK
+          unknown: true
+          measured: null
+        support_in_removable_zone:
+          state: FAIL
+          severity: WARN
+          unknown: true
+          measured: null
+        support_reachable:
+          state: FAIL
+          severity: WARN
+          unknown: false
+          measured: '93.7514'
+        first_layer_area:
+          state: PASS
+          severity: INFO
+          unknown: false
+          measured: '236.106'
+    CAL_face_part:
+      mesh_sha256: 30eaa56fc38129ba16e2b4e247ac419b0ae9e5b0fe9e748697f4838d338b952e
+      down:
+      - 0
+      - -1
+      - 0
+      seconds: 12.9
+      findings:
+        print_orientation:
+          state: FAIL
+          severity: BLOCK
+          unknown: false
+          measured: '[0, -1, 0]'
+        slice_freshness:
+          state: FAIL
+          severity: BLOCK
+          unknown: false
+          measured: STALE
+        min_wall_geometric:
+          state: PASS
+          severity: WARN
+          unknown: false
+          measured: '0.951'
+        min_wall_sliced:
+          state: FAIL
+          severity: BLOCK
+          unknown: true
+          measured: null
+        min_hole_dia:
+          state: PASS
+          severity: BLOCK
+          unknown: true
+          measured: null
+        overhang_area:
+          state: PASS
+          severity: INFO
+          unknown: false
+          measured: '3078.32'
+        support_model_brackets_slicer:
+          state: FAIL
+          severity: BLOCK
+          unknown: true
+          measured: null
+        support_in_no_support_zone:
+          state: FAIL
+          severity: BLOCK
+          unknown: true
+          measured: null
+        support_in_removable_zone:
+          state: FAIL
+          severity: WARN
+          unknown: true
+          measured: null
+        support_reachable:
+          state: PASS
+          severity: WARN
+          unknown: false
+          measured: '0.0'
+        first_layer_area:
+          state: PASS
+          severity: INFO
+          unknown: false
+          measured: '3077.345'
+    CAL_rigidity_plate:
+      mesh_sha256: 41a4f826b5badfb75a1c0a6d26527c49761de88597d67c25ad731df2cdab7995
+      down:
+      - 1
+      - 0
+      - 0
+      seconds: 2.1
+      findings:
+        print_orientation:
+          state: FAIL
+          severity: BLOCK
+          unknown: false
+          measured: '[1, 0, 0]'
+        slice_freshness:
+          state: FAIL
+          severity: BLOCK
+          unknown: false
+          measured: STALE
+        min_wall_geometric:
+          state: PASS
+          severity: WARN
+          unknown: false
+          measured: '1.501'
+        min_wall_sliced:
+          state: FAIL
+          severity: BLOCK
+          unknown: true
+          measured: null
+        min_hole_dia:
+          state: PASS
+          severity: BLOCK
+          unknown: true
+          measured: null
+        overhang_area:
+          state: PASS
+          severity: INFO
+          unknown: false
+          measured: '747.79'
+        support_model_brackets_slicer:
+          state: FAIL
+          severity: BLOCK
+          unknown: true
+          measured: null
+        support_in_no_support_zone:
+          state: FAIL
+          severity: BLOCK
+          unknown: true
+          measured: null
+        support_in_removable_zone:
+          state: FAIL
+          severity: WARN
+          unknown: true
+          measured: null
+        support_reachable:
+          state: PASS
+          severity: WARN
+          unknown: false
+          measured: '0.0'
+        first_layer_area:
+          state: PASS
+          severity: INFO
+          unknown: false
+          measured: '747.788'

@@ -1,0 +1,125 @@
+# 本文件由 docs/gate/inventory_v2.json + inventory_original.json + comparison_original_vs_v2.md 机械转换而来。
+# 字段约定见 tools/gate/data/README.md：
+#   · 每条记录必须有 provenance（duck.py:行 / s288.py:行 / ankle_split.py:行 / mechanical_audit.json:键 /
+#     inventory_original.json:路径 / inventory_v2.json:路径 / MJCF:行 / comparison_original_vs_v2.md:编号）
+#   · 数值字段统一写成 {v: <值>, src: measured|datasheet|assumed}
+#   · 搬不过来的值写 v: null，并在同条记录里给 unknown_class + unknown_reason
+# 单位：mm / mm^3 / g / N / degC，除非字段名另有后缀。不四舍五入。
+# waivers.yaml —— 豁免。**现在是空的，没有预先豁免任何东西。**
+# 只有 WARN 可豁免；豁免绑定输入 hash，输入一变自动失效（元规则 7 / 9）。
+
+schema_version: 1
+policy:
+  waivable_severity:
+    - "WARN"
+  not_waivable:
+    - "BLOCK"
+  note: "只有 WARN 可豁免（元规则 9）。豁免绑定输入 hash：任何一个绑定的 hash 变了，这条豁免自动失效，格子变回红/灰。"
+  provenance:
+    - "tools/gate/README.md 元规则 9"
+    - "tools/gate/README.md 元规则 6"
+    - "tools/gate/README.md 元规则 7"
+schema:
+  cell_id: "**必须精确到判据**：<件号>.<层号>.<检查名>（例 H02.5.pla_self_tap_engagement）或 L<层>/<件号>:<检查名>（例 L5/H02:pla_self_tap_engagement）。只写到格子（H02.5 / L5/H02）的豁免会被 core.apply_waivers 拒绝并记进 waiver_notes —— 那会把该格全部 WARN 判据一起放行（审计 2026-09-13 F-核-4）。"
+  layer: "0–7，必须与 cell_id 里的层号一致"
+  severity: "只能是 WARN"
+  reason: "为什么可以放行 —— 要写清楚'风险由什么承担'，不是'看起来没事'"
+  issued_by: "签发人（真名或 git 用户名）"
+  date: "YYYY-MM-DD"
+  bound_input_hashes: "**映射 {仓库相对路径: sha256}**，键与 scorecard.json:source_manifest 同一口径（例 'duckstructure/s288.py'、'cad/duck_s288/L01_yaw2roll.stl'、'tools/gate/data/tolerances.yaml'）。至少绑定：该件导出 STL、duckstructure/*.py、12 个 data/*.yaml。任何一个键的 sha256 与当前 manifest 不同，或键不在 manifest 里，豁免自动失效。2026-09-13 之前这里写的 duck_py_sha256/stl_sha256:{件号} 那套嵌套键永远匹配不上 manifest，按旧文档写的豁免从来没生效过。"
+  expires_when: "失效条件（自然语言 + 可判定条件），例如 'TC01 试件打完并回填 fits.pla.bearing_outer_seat_6704' 或 'bench.yaml:BN09 打勾'"
+  linked_bench: "可选：如果这条豁免是'先放行、到货实测'，填 bench.yaml 的验证项 id"
+example_non_binding:
+  _warning: "**这只是格式示例，不是生效的豁免。** 它在 example_non_binding 里，不在 waivers 列表里，Gate 不读它。"
+  cell_id: "L5/<件号>:<检查名>"
+  layer: 5
+  severity: "WARN"
+  reason: "<为什么可以放行，风险由谁/什么承担>"
+  issued_by: "<签发人>"
+  date: "<YYYY-MM-DD>"
+  bound_input_hashes:
+    "cad/duck_s288/<件号>_<名>.stl": "<64 hex>"
+    "duckstructure/s288.py": "<64 hex>"
+    "tools/gate/data/tolerances.yaml": "<64 hex>"
+  expires_when: "<可判定的失效条件>"
+  linked_bench: null
+# ── 生效豁免（2026-09-14，Gate 数据同步到 r3 件时签发）─────────────────────────
+# 两条都来自 2026-09-14 第三轮对抗复审（r3）：一条是 L01 偏航端毂的径向韧带，一条是 H01 右前脚起子槽。
+# 两条都**不改几何**：CHANGELOG「2026-09-14 复审修复 r3」第 3 条（豁免）与第 2 条（修到唯一交点）。
+waivers:
+  - cell_id: "L2/L01:L01-F04:wall"
+    layer: 2
+    severity: "WARN"
+    criterion_waived: "孔周最小壁厚 ≥ 2.5（fits.pla.min_wall）。本件这 6 个孔的壁厚判据在几何上不可能满足：孔开在 Ø14.85 的 6702 内圈毂上，毂半径 7.425 一共就那么多料。复审用的实际判据是『径向韧带 ≥1.2』，实测 0.968 也不过 —— 本条豁免针对的就是这个 0.968，不是把 min_wall 2.5 在别处也放行。"
+    measured_mm:
+      hub_web_ligament: 0.968
+      hub_web_ligament_nominal: 0.975
+      hub_web_ligament_how: "径向射线，左右件 × x 13.3..16.8 八站位 × 6 孔，取最小（tools/cad/mechanical_audit.py:_review_r3 c，断言 ≥0.9）"
+      nominal_derivation: "毂 Ø14.85/2 = 7.425 − (horn_r 5.25 + horn_hole_d 2.4/2) = 0.975"
+      cbore_layer_breakout_depth: 0.025
+      cbore_layer_breakout_width: 0.82
+      cbore_layer_how: "沉窝层 x 17.0..17.5：Ø4.4 头窝外缘 r 7.45 > 该层毂外圆 7.4125 → 6 处各破出 0.025 深 × 0.82 宽的豁口"
+    reason: "① 这 6 个是**过孔不是攻牙孔**：M2 拧进的是舵机法兰上的金属攻牙孔，螺丝预紧后过孔壁不受拉，不产生径向胀力，韧带不是被撑开的那一层。② 毂外圆对 6702 是**间隙配合不是压装**：6702 内孔 Ø15 对毂 Ø14.85 是 0.075 单边间隙（lib.P['brg_yaw']['hub_d'] 就是按 15−0.15 定的），装配时不靠毂胀紧内圈。③ 扭矩的剪切路径走的是**周向腹板 3.10**（孔与孔之间那圈料），不过这道径向韧带 —— 径向韧带断了关节也不会失扭。④ 三个上游尺寸都不许动：毂 OD 由 6702 内径 15 定死、过孔 Ø2.4 是 09-13 用户按 TC02 孔规定案（Ø2.2 打出来只有 1.90，M2 穿不过）、分度圆 5.25 是手册 Ø10.50 + 09-13 实物定案；毂 x 13.0..17.0 整段都是内圈区，没有『轴承不套的 x 段』可以加厚。⑤ 打印后竖直小孔缩 0.15/边，实物韧带 ≈1.1。**另附**：沉窝层（x 17.0..17.5）Ø4.4 头窝外缘 r 7.45 已经超出该层毂外圆 7.4125，6 处各破出 0.025 深 × 0.82 宽的豁口 —— 这 6 个豁口落在**轴承座区之外**（轴承坐 x 13.0..17.0，沉窝层在它上面），M2 螺丝头外缘 r 7.25 仍然全部落在毂料上，头的承压面不缺角，该处非承力。"
+    issued_by: "owner"
+    date: "2026-09-14"
+    bound_input_hashes:
+      "cad/duck_s288/L01_yaw2roll.stl": "6b620f20c79c158847ba2733e677ae4c0606c3fa9734dd7d66fcc0bbee15f46e"
+      "duckstructure/s288.py": "d8a332a38ce00e0ff9715dd7063a7f71db7c3908159f724e8d21221c9cbafb48"
+      "duckstructure/lib.py": "41a1bd6aaf68e395e337cda95552ddc3dd66178ddd1efbe0f16a27290ef864db"
+      "duckstructure/legs.py": "5b71600fb56271f8be3c68417db48773c2ca715cede3252aaf5251817504f216"
+      "tools/gate/data/features.yaml": "7291d162f1d3f79bc70448a12ecd5217699c82dfb70f43610d260301dcfb5759"
+      "tools/gate/data/tolerances.yaml": "3c8b27a2cf90969d962a45ae488fd4bdb24b42c577cae0d504a51dbf94d119e5"
+    expires_when: "以下任一成立即失效：(a) s288.py 的 horn_r / horn_hole_d 再改；(b) lib.P['brg_yaw']['hub_d'] 再改（换轴承或换配合）；(c) TC02/TC03 试件量到本机竖直小孔的收缩 ≠ 0.15 mm/边（那时 ⑤ 的『实物 ≈1.1』不成立）；(d) L01 重出后 mechanical_audit._review_r3 c 的径向韧带 <0.9。"
+    linked_bench: null
+    rebind_2026-09-15: "features.yaml 的 sha 由 4610432…重绑为 7291d16：2026-09-15 新几何特征声明补齐（新增 10 条、改 3 条 sweep_cut，见 CHANGELOG 同日节）改了 features.yaml，本条豁免对象 L01-F04 的声明一字未动，L2 子集复跑 L01-F04 present 6/6、Ø2.4000 不变；只重绑 hash，理由/量值/失效条件不变"
+
+  - cell_id: "L5/H01:foot_tool_slot_d4p5_clearance"
+    layer: 5
+    severity: "WARN"
+    gate_cell_note: "**Gate 目前没有这个格子**：H01 右前脚的 6 条 Ø4.5 起子槽在 features.yaml 里没有独立特征条目（最近的是 H01-F08 tool_channel，描述的是 Ø4.6 大通道 + Ø6.4×1.7 承压圈回填，不是这 6 条槽）。判据现在只活在 tools/cad/mechanical_audit.py:365-372（N03 tool corridors：∩ ≤0.05 且 H01/H02 min_gap ≥ 0.15·cos(π/64)−1e-4）。本条先按 waivers.yaml 的 schema 记在案，等 features.yaml 补出该特征、L2/L5 长出对应判据后把 cell_id 指过去。"
+    criterion_waived: "N03 A 端 6 颗 Ø4.2×45 起子刀路对 H01 的 min_gap ≥ 0.15，同时右前脚承压圈孔壁到削面 ≥ 1.2。两条同时卡在边界上。"
+    measured_mm:
+      tool_clearance_true_circle: 0.1473
+      tool_clearance_criterion: 0.15
+      tool_clearance_shortfall: 0.0027
+      tool_clearance_mesh_64gon: 0.149817
+      wall_to_cut_face_true_circle: 1.2034
+      wall_to_cut_face_criterion: 1.2
+      wall_to_cut_face_mesh_64gon: 1.21
+      how: "真圆值为几何解析值（2026-09-14 用户给定）；64 边值是 mechanical_audit 在导出网格上实测的（0.149817 = 0.15·cos(π/64)，正是『64 边刀对同相位 64 边槽』这一项差出来的 0.0027）。5 条不碰脚的刀路余量 1.94..2.00 不受影响。"
+    reason: "差的 0.0027 是**网格离散差，不是几何差**：判据算的是 64 边内接多边形刀对同相位 64 边槽，同相位时两组多边形的平边相对，量到的是 0.15·cos(π/64) = 0.149817；真圆对真圆就是 0.15，本次真圆解析值 0.1473 也只差 0.0027。更重要的是：**这两个数是同一把刀的两端**——槽做大一点，起子余量涨、孔壁减；槽做小一点，孔壁涨、起子余量减。Ø4.3 时起子余量只剩 0.048（r3 的 MAJOR），Ø4.5 时起子余量 0.1473、孔壁 1.2034，两条判据（0.15 / 1.2）已经把它夹在**唯一一个交点**上，再往任何一边动都会让另一条穿底。所以：**Ø4.5 与分度圆站位（horn_r 5.25 决定的 6 条刀路位置）都不许再动。** 承压圈本身非主承力（H01→H03 的 4 颗 M2×8 自攻靠的是脚厚 1.70 的整片脚盘，不是圈内那 1.2 的孔壁），复审 review_r1 e 的『4 个最薄壁 ≥1.2』仍 PASS。"
+    issued_by: "owner"
+    date: "2026-09-14"
+    bound_input_hashes:
+      "cad/duck_s288/H01_head_bracket.stl": "8427c1bddf7db16458618cc74e6da82fd2ca2c01d09069e0bc81e476ecca99dd"
+      "duckstructure/s288.py": "d8a332a38ce00e0ff9715dd7063a7f71db7c3908159f724e8d21221c9cbafb48"
+      "duckstructure/head.py": "51a33ace8db9ab62bd6fd255d11324cb6a9ca609e238b0abdbe5a9e0704af07e"
+      "tools/gate/data/features.yaml": "7291d162f1d3f79bc70448a12ecd5217699c82dfb70f43610d260301dcfb5759"
+      "tools/gate/data/tolerances.yaml": "3c8b27a2cf90969d962a45ae488fd4bdb24b42c577cae0d504a51dbf94d119e5"
+    expires_when: "以下任一成立即失效：(a) head.py:43 H01_FOOT_TOOL_D ≠ 4.5；(b) s288.py horn_r ≠ 5.25（6 条刀路的位置从它推）；(c) N03 A 端螺丝规格/起子直径由 Ø4.2 改；(d) H01 重出后 mechanical_audit N03 tool corridors 的 min_gap < 0.15·cos(π/64)−1e-4 或 review_r1 e 的最薄壁 <1.2。"
+    linked_bench: null
+    rebind_2026-09-15: "features.yaml 的 sha 重绑（理由同上一条）。**特征现在有了：H01-F15**（tool_channel ×6，6 条 Ø4.5 刀的内接方柱按『刀内无料』判，L2 子集跑 66/66 点 PASS）—— 但 L2 对它不判起子真圆余量 0.15 / 孔壁 1.2，这两条仍只活在 mechanical_audit.py:365-372，Gate 仍没有可指的格子，cell_id 暂不改"
+
+  - cell_id: "L6/L03:real_pose_collisions:trunk_base×upper_leg_left"
+    layer: 6
+    severity: "WARN"
+    criterion_waived: "真实姿态对比（policy_pose_compare，绝对判据 0.05 mm³）：body 对 trunk_base×upper_leg_left 在 1/5601 个姿态有 0.10 mm³ 交叠（实体对 servo__trunk_base_yaw2roll × upper_leg）。"
+    measured_mm3:
+      union_over_defect_poses: 0.099
+      poses: 1
+      pose_deg: {left_hip_yaw: 28.49, left_hip_roll: 25.53, left_hip_pitch: 27.41}
+      location_export_local_L03: [[-12.77, 0.26, -5.6], [-12.27, 2.5, -4.75]]
+      how: "scratch region_servo_L03.py（hr10 几何 + policy_steps_2026-09-17_hr10/poses.jsonl，只取该实体对）；记录.md 16"
+    reason: "① 该姿态左髋横滚 25.53°，超出关节区间 ±22°（frozen.yaml joint_axes left_hip_roll target_range = 上游 MJCF range [-22, 22]；能力包络 [-23.8, 26.2] 夹到它）——训练 MJCF 与实机都到不了这个角度，它是原版仿真样本里软限位越界的一个点；② 位置在 L03 6703 座壁外表面，座壁 1.275，要让开需挖 0.5 深 → 剩 0.78 < printability min_wall（2 圈 ×0.45=0.9）与轴承座壁 ≥1.1 规则，修它会让座壁不合格；③ 真发生也只是舵机塑料外壳与座壁外皮 0.5 mm 的顶碰，关节在 25.4° 处被挡住，不损伤轴承/螺丝。风险承担：训练限位 ±22°（frozen.yaml）+ BN08 实机横滚到限位不卡。用户 2026-09-17 拍板：接受、不改件。"
+    issued_by: "owner"
+    date: "2026-09-17"
+    bound_input_hashes:
+      "duckstructure/legs.py": "79b11cda74eb02b91264dfc9c161212c8c194a0917d02bccdccc9eb17f9c6092"
+      "duckstructure/hip_pitch_bearing_rebuild.py": "fabe61a043ab4c7cb08fb74435a3f882bea5f8e3ccf2c16b7a189b5cfa3c37e6"
+      "duckstructure/trunk.py": "95306db5c3e26a892c0a42518830686aae5851590c57998ac38810630988e21e"
+      "tools/gate/data/frozen.yaml": "c784e088bd73bae1f9e884ba424ecb444f0922f6e55c204e4a56b6526bc37e19"
+      "cad/duck_s288/L03_upper_leg.stl": "0bd5412b4a48f28bdcb92d776153a5fe670d1b0f5bd4178b64d56c30921e87c9"
+      "cad/duck_s288/T01_trunk.stl": "b2c35a1e13f8ce7c4edd212aa08f278247a00093c448af709bdb8d1fa6d035fa"
+    rebind_note: "STL sha 于 hr12 build（2026-09-17 22:20）绑定；hr12 真实姿态对比（tools/gate/out/policy_steps_2026-09-17_hr12/compare.json）该 body 对 = 1 姿态 / 0.10 mm³，与本条一致。"
+    expires_when: "以下任一成立即失效：(a) frozen.yaml 髋横滚区间放宽到 >|22|°；(b) HP['seat_od'] 或髋偏航舵机位置（s288/lib SERVO_SHIFT）再改；(c) hr12 真实姿态对比该 body 对出现第 2 个姿态或 >0.2 mm³。"
+    linked_bench: "BN08"

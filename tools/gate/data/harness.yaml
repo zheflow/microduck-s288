@@ -1,0 +1,1156 @@
+# 本文件由 docs/gate/inventory_v2.json + inventory_original.json + comparison_original_vs_v2.md 机械转换而来。
+# 字段约定见 tools/gate/data/README.md：
+#   · 每条记录必须有 provenance（duck.py:行 / s288.py:行 / ankle_split.py:行 / mechanical_audit.json:键 /
+#     inventory_original.json:路径 / inventory_v2.json:路径 / MJCF:行 / comparison_original_vs_v2.md:编号）
+#   · 数值字段统一写成 {v: <值>, src: measured|datasheet|assumed}
+#   · 搬不过来的值写 v: null，并在同条记录里给 unknown_class + unknown_reason
+# 单位：mm / mm^3 / g / N / degC，除非字段名另有后缀。不四舍五入。
+# harness.yaml —— 9 束线。每束：折线 + 直径 + 最小弯折半径 + 两端插头 + 长度预算 + 跨哪个关节。
+# 关节角度范围不在这里重复写，一律 ref 到 frozen.yaml:joint_axes（换策略只改冻结表）。
+# 现状：9 束里 4 束 unmodeled / 3 束 placeholder / 2 束 partially_modeled —— 第 6 层的线束扫管目前**没有输入**，这是已知的最大空洞。
+# 2026-09-11：HB01 从 unmodeled → partially_modeled（总线树 / ID / 每颗用哪一口 / 逐跳全行程 d_max / 分点注入供电）；od / min_bend_r / pin_order 仍是显式 unknown。
+# 2026-09-20：HB01 拓扑改回串联 5 条链（插座实为背插，背板开让位后 12 颗两口可用）；pin_order 转接板侧已实测。
+# 2026-09-21 hr28：根改在头里 → 6 条链 / 一分二 ×5（S1 头、S2 顶板口袋、S3–S5 侧腔）；2026-09-22 hr30：IMU 线 HB05 = QT→杜邦公 150 + 杜邦母母 40 cm（优信），5 V 线 = 杜邦公对母 40 cm，尾部模块相关旧文已标作废。
+# 2026-09-23_hr39c：头等比放大后重布线（hr39c_work/wires/，24 根线实体，线∩件零位 0 / 线∩线 0 / 头横滚·偏航·俯仰、颈俯仰扫掠 0）：嘴改到头链中间 S1 → 14 → 8 → 7 → 6、hr38 的 S6 取消（一分二 5）；新买 PH2.0 3P 双头 10 cm ×1；CSI（HB06）/ USB-C2→转接板 两根没建（4b 时）。4a 终版（09-23 21:51）补上这两根：26 根线建成 28 段（CSI、USB 各因一道 45° 折分两段），线∩件 0 / 线∩线 0 / 扫掠 0，总长 1904 mm（4c 登记）
+
+schema_version: 1
+counts:
+  bundles: 12
+  bundles_was_until_2026_09_29_hr52: 11
+  unmodeled: 2
+  placeholder: 4
+  partially_modeled: 3
+  deliberately_absent: 2
+  other_status: 3
+  other_status_was_until_2026_09_29_hr52: 2
+  counts_note_2026-09-29_hr52: "+ HB12_tof_i2c（ToF「v6-VL53L5CX 雷达」4 根，status = modeled_unverified_physical → other_status：HB05 / HB06 / HB12）"
+  counts_note_2026-09-25_hr44reg: "按各束 status 重数：unmodeled = HB03 / HB04；placeholder = HB07 / HB08 / HB10 / HB11；partially_modeled = HB01 / HB02 / HB09（HB09 hr44 起按 wiring_body 模型建两支，v1 未通过）；other_status = HB05 / HB06（自由文本状态）。旧值 unmodeled 4 / placeholder 3 / partially_modeled 2 早与各束 status 对不上"
+bundles:
+  - id: "HB01_servo_bus"
+    name: "S288 单总线（PH2.0 3P）—— 串联：转接板（头里）1 口 → 5 根一分二 → 6 条链，链内用舵机原配 200 mm 线首尾相接（线长 2026-09-22 用户卡尺，原写 150 作废；2026-09-20；09-21 颈俯仰单挂；09-21 hr28 根改在头里）"
+    bench_2026-09-30: "台架（主控板会话）：15 颗 S288 串一条总线只读点名 200/200 零丢包、每颗自报 12.0 V；ID 0–14 表见 components.yaml:servo_s288.bench_ids_2026-09-30。宇树上位机「查询 ID」多颗在线时漏号，不可信"
+    from: "bus_adapter（宇树单总线串口转 USB 模块，PH2.0 座 = 信号+12 V+地；hr28 起装在头里 H03 口袋 / Radxa 排针下（原版 HAT 的位置），CAD 见 head.py H03_ADP_*）"
+    to: "14 颗 S288：左腿链 4 颗（髋横滚→髋俯仰→膝→踝）/ 右腿链 4 颗 / 左髋偏航单挂 / 右髋偏航单挂 / 颈俯仰单挂 / 头链 3 颗（hr28：头横滚→头偏航→头俯仰，根在头里）"
+    # ── 2026-09-21 hr28：转接板从尾部托架 B02 搬进头里（用户定；B02 又丑又没进过训练 MJCF）。根在头里 → S1 在头里：一腿喂头链（头横滚→头偏航→头俯仰，顺序反过来，
+    #   头横滚与转接板同刚体、不跨关节），另一腿经 PH2.0 公母延长线（≥250，新购 ×1）下颈到顶板口袋的 S2 → 颈俯仰单挂 + S3（躯干侧腔）→ S4/S5 → 两腿 + 两髋偏航。
+    #   一分二仍 5 根、原配线仍 14 用 1 备；过颈只剩 12 V 上行 + 5 V 上行 + 总线下行（USB 留在头里）。代价：腿链多经一根 250 延长线 + 两级一分二，链尾压降 +0.3 V（见 drop_per_hop）。
+    # ── 2026-09-21：线翘 4 mm（用户实物）→ 背板一律通窗（keepouts.yaml:KO01）。踝后口被 L07 后臂 +90° 扫过、颈俯仰 −y 口被 T03/T01 扫过 → 这三颗只剩 1 口：
+    #   踝本来就是链尾（改用前口）；颈俯仰不能再当链中节点 → 单挂，头链（头俯仰→头偏航→头横滚）另起，一分二 4→5 根（S5 放顶板口袋，由 S4 的一条腿喂）。
+    # ── 2026-09-20：架构从『总线 + 每颗 1 口 Y 分接』改回**串联**（宇树/原版方式）。09-11 改成 Y 分接的三个理由里，① "14 颗只有 4 颗两侧都能插" 是
+    #   侧插模型的结论 —— 用户实物照片证明插座在背面两角、插头沿 x 背插、插到底与 23 面齐平，盖住插座的只是我们自己的背板 → 背板开让位槽/通窗后
+    #   12 颗两口可用、2 颗（髋偏航，外侧口压在冻结壳柱下）1 口（keepouts.yaml:KO01.availability_table）。② 1-Wire 并联总线，串联与 Y 分接电气等价。
+    #   ③ 电流过 PH 触点 —— 宇树自己的转接板就是 1 个 PH 口串 15 颗，按宇树设计接受；BN02 实测后若单颗 >0.3 A 再按 power_injection.fallback 分链注电。
+    #   Y 线（一母分二公 ×14）不再需要；只买 5 根『一公分二母』（09-21 4→5）（比地亚：公=壳 插转接板/上级母口，母=针头 接舵机原配线的壳）。
+    topology: "daisy_chain_6_branches"
+    topology_superseded: "daisy_chain_5_branches（09-20 → 09-21：颈俯仰 −y 口不可用）；bus_tree_y_tap（2026-09-11 → 09-20；前提『10 颗只有 1 口』被实物推翻）；更早 linear_daisy_chain（单链 14 颗，线太长且 2 颗 1 口）"
+    conductors:
+      v: 3
+      src: "datasheet"
+    segment_len_mm:
+      v: 200.0
+      src: "measured"
+      src_note_2026-09-22: "用户卡尺实测 **200 mm**（『可折叠』）；此前 v: 150.0 / src: datasheet 作废。依据 docs/design_2026-09-17_bearing_rebuild/hr38_待办交接.md §2.4。**注意**：下面 slack_model.formula / worst_hop_check_mm / line_length_margin / 各 hop note 仍写 150 —— 200 只会更宽松，150 是偏严的下界，本轮没动那些推导文字，整链复算时一并改（数据冲突审计_2026-09-22.md）"
+      src_note: "舵机原配 PH2.0 3P 壳-壳线（每颗 1 根，共 15 根含备用颗）。串联后每跳正好用 1 根：14 跳（8 跳链内 + 6 个链头接一分二的母口）= 14 根，余 1（09-21）；hr28 头→口袋那一跳是一分二腿 + 公母延长线，不占原配线"
+    segments_purchased:
+      v: 15
+      src: "datasheet"
+      src_note: "随舵机附；另购 5 根『PH2.0 一公分二母』（见 components.yaml:bus_splitter；09-21 4→5）+ 1 根『PH2.0 3P 公母延长线 ≥250』（hr28，components.yaml:cable_ph20_ext）。09-17 那 20 根 150 mm 成品线/14 根一母分二公不再需要"
+    od_mm:
+      v: null
+      src: null
+      unknown_class: "not_applicable"
+      unknown_reason: "**这根不是圆线，是扁排线**（2026-09-22 用户卡尺：三芯并排 4.5 × 1.5 mm，软）。圆外径对它没有意义，一律用下面的 cross_section_mm；外接圆 Ø4.74 只会把过孔算得过于悲观。"
+    cross_section_mm:
+      v: [4.5, 1.5]
+      src: "measured"
+      src_note: "2026-09-22 用户卡尺，三芯并排扁线，软；截面积 6.75 mm²/根。扁线能叠放，过孔按实际排布算而不是按圆外接"
+    flat_cable: true
+    min_bend_r_mm:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "最小弯折半径未量。09-21 用户目测原配线出插头先直立 ≈4 再弯（KO01 wire_out=4.0）—— 背板已全部改通窗，这个数现在只影响 slack_model 的 R_BEND"
+    connector_ends:
+      - "PH2.0 3P 壳（PHR-3）×2 —— 舵机原配线两端同型，一端插本颗、一端插下一颗（或一分二的母针头）"
+      - "转接板侧（头里）：PH2.0 座（信号–电源–地）← 一分二 S1 的公壳；S1 母针头 ① ← 头横滚原配线壳（头链头），② ← 公母延长线公壳；延长线母端 ← S2 公壳（S2 在顶板口袋）；S2 母针头 ← 颈俯仰原配线壳 / S3 公壳；S3（躯干侧腔）母针头 ← S4 / S5 公壳；S4 ← 左髋偏航线 / 左腿链头线；S5 ← 右髋偏航线 / 右腿链头线"
+    pin_order:
+      v: "① SIGNAL ② VCC(12 V) ③ GND —— 手册 B 版"
+      src: "measured"
+      src_note: "2026-09-20 用户万用表量转接板 PH 座（电池接入、未接 USB）：只有中间针 12 V；两边针 0 V，其中远离 XT30 拓展口那根与电池负极导通（GND），靠近拓展口那根不导通（SIGNAL，逻辑电由 USB 5 V 供）。与手册 B 版一致，A 版作废。舵机端未量：原配线两端同型直插，端序由座定；BN16 到货时在舵机座上再确认一次"
+      superseded: "unknown_class conflicting_sources（09-10）：A 版 ① SIGNAL ② GND ③ VCC / B 版 ① SIGNAL ② VCC ③ GND"
+      pinout_ref: "components.yaml:servo_s288.pinout / components.yaml:bus_adapter.ph_pin_order"
+      bench_ref: "bench.yaml:BN16"
+    plug_envelope_mm:
+      v: "PHR-3 壳体 4.5(舵机局部 y 厚) × 7.8(z，沿针排) × 6.85(x，拔插方向)；插到底外端与厚段背面 x=−13 齐平，线再凸 ~2"
+      crosscheck_2026-09-23: "用户卡尺量同一个插头：沿针排 **7.4**、厚 **4.0**（插入深度没量）。比 JST PHR-3 官方目录各小 0.4/0.5 —— 卡尺夹注塑件、有脱模斜度，偏小属正常。
+        **2026-09-23 用户定：按官方目录走**（『那你就按官方的走就可以』）→ 让位几何维持 4.5（KO01 socket_local_mm、lib.conn_cut），**一个数都不改**；4.5 是偏大=偏安全的一侧。
+        本条只作交叉校验留痕，不作为几何依据。"
+      src: "measured"
+      src_note: "方向与齐平：2026-09-20 用户实物；壳体尺寸：JST ePH.pdf PHR-3。让位实体见 keepouts.yaml:KO01"
+      measured_2026-09-22: "用户卡尺报 **插头 7.4 × 4.0（硬）**（hr38_待办交接.md §2.4）—— 比本条采用的 PHR-3 目录值 7.8(沿针排) × 4.5(厚) 各小 0.4/0.5。**哪一维对哪个轴用户没说**，所以 KO01 的让位几何（socket_local_mm 用 4.5/2、lib.conn_cut）本轮**不动**（4.5 是偏大=偏安全的一侧）。要不要按 4.0 收紧让位 → 待用户确认轴向对应"
+      superseded: "『插合方向 ±y、插合后外露 2.0』（09-11 侧插模型）"
+    bus_tree:
+      superseded_note_2026-09-25_hr44: "本块（hr28–hr39c 的 hub / splitters / branches / hops / slack_model / totals）是定案前的推导，**以 HB01.chains_2026-09-25_hr44 / trunk_2026-09-25_hr44 / splitters_2026-09-25_hr44 为准**；ID / 端口规则（id_rule / port_rule / socket_local_mm）仍有效"
+      socket_local_mm:
+        v: [-13.0, "±7.75", -9.3]
+        src: "datasheet+measured"
+        src_note: "插头顶面中心（舵机局部）：x = plug_top_x −13.0（实物齐平）；|y| = W/2 − 5.0 + 4.5/2 = 7.75（缺口开到侧面、插头外面贴侧面，假设）；z = conn_z 中心 −9.3（像素反推 ±0.3）"
+      hub:
+        where: "bus_adapter PH 座 + S1 在头里（H03 口袋，板 x 54.3..63.3 × |y|≤20 × z 226.8..256.8，PH 座在 30 mm 短边侧出 ±y 一侧，装配时定哪侧）；S2 在顶板口袋；S3–S5 在电池仓两侧腔（hr28）"
+        nominal_world: [58.8, 20.0, 241.8]
+        nominal_world_2026-09-23_hr39c: [77.0, 16.0, 241.4]
+        nominal_world_note_2026-09-23_hr39c: "hr39c 转接板在 Radxa 前面竖放（x 72.5..81.5 × y −24..16 × z 235.4..265.4），A 边 PH2.0 在 +y 短边、中心离下长边 6.0（components.yaml:bus_adapter.port_positions_2026-09-22，±1.5）→ ≈ (77.0, 16, 241.4)，assumed"
+        src: "assumed"
+        src_note: "板 +y 边中点（若 PH 座在 −y 边则镜像）；链头线长按『一分二母针头 + 1 根 150 原配线』算"
+        pass_through: "（09-20 尾部方案，hr28 起根在头里：S3/S4/S5 在侧腔、S2 在口袋，下同）S3 侧腔 → 髋横滚（x −11.2, z 88..98，插座朝后对着电池仓前壁前面的空腔）：绕电池仓两侧 |y| 16.6..30（壳下方 z<120 无壳）；口袋 S2 ↔ 头（hr28 公母延长线）：经顶板后缘中央的既有开口（= KO18 出线口本身，hr38 2026-09-22 放大后：x −25.1..−21.1，上段 |y|≤10 × z 137.9..147.9、下段 |y|≤6 × z 124.9..137.9；旧值 |y|≤7, z>124.5 是 hr15 placed 实测）上到顶板口袋再向前到 x 16"
+      id_rule: "ID = 上游 robot_walk.xml <actuator> 序号（0 起）= 策略 action 向量下标：左腿 0–4、颈/头 5–8、右腿 9–13。串联后 ID 与链内顺序无关（1-Wire 按地址寻址），装配时按下表贴标即可。**14 = 嘴舵机**（hr38 第 15 颗，装回原版嘴位；用户 2026-09-23 拍板 15 颗全装）—— 上游 robot_walk.xml 里下颚不是关节，所以 14 不在 actuator 序号里，是我们自己占的；15 = 广播地址，**不能用作舵机 ID**"
+      id_rule_src: "upstream/microduck_rl/src/mjlab_microduck/robot/microduck/robot_walk.xml <actuator> 顺序；docs/reference/s288/manual.txt:152（地址 0–14，15 广播）"
+      port_rule: "两口的中间节点：进一口、出一口，选零位直线距离短且出线方向朝下一颗的那对（下表）；链尾只用 1 口；1 口的颗（髋偏航 ×2 内侧口、踝 ×2 前口、颈俯仰 +y 口）只能当链尾/单挂（keepouts.yaml:KO01 rows 1/2/9/10/11，09-21）"
+      splitters:
+        S1: {in: "bus_adapter PH 座（头里，hr39c 转接板在 Radxa 前面竖放，A 边 PH 朝 +y）", out: ["腿① → 转接块 conn__s1_junction1 → PH2.0 3P 双头 10 cm → 14 jaw 下口（链 F 头）", "腿② → 出头口 R → PH 公母延长线 → S2"], where: "头腔前部转接板 +y 边 PH 座旁（盘线区 stow_bus_plus_y）", was_until_2026-09-23_hr39c: "out: head_roll[+y]（链 F 头）+ 延长线 → S2；在 H03 口袋 ±y 侧"}
+        S2: {in: "S1 经延长线（过颈下行，跨头横滚/偏航/俯仰 + 颈俯仰）", out: ["neck_pitch[+y]（链 E，单颗）", "S3"], where: "顶板口袋 |y|≤10 那条（真实姿态无运动件）"}
+        S3: {in: "S2（腿从口袋经电池顶上方空腔进侧腔）", out: ["S4", "S5"], where: "电池仓 +y 侧腔"}
+        S4: {in: "S3", out: ["left_hip_yaw[-y]（链 A，单颗）", "left_hip_roll[-y]（链 B 头）"], where: "+y 侧腔"}
+        # S6（hr38 一分二 ×1：8 上口 → 7 / 14）2026-09-23_hr39c 取消 —— 嘴两口都能用，改到头链中间
+        S5: {in: "S3", out: ["right_hip_yaw[+y]（链 C，单颗）", "right_hip_roll[+y]（链 D 头）"], where: "−y 侧腔"}
+      branches_note_2026-09-23_hr39c: "hr39c：嘴舵机两口都 free（新嘴轴）→ 头链改为 S1 → 14 → 8 → 7 → 6，**一分二回到 5 根（S6 取消）**；链数仍 6。线长（hr39c_work/wires/summary.log，实体线沿航点）：S1 腿① 8/100、bus_jaw_ph 66.2/100（新买 PH2.0 3P 双头同向 10 cm，60 不够）、bus_jaw_roll 101.2/200（嘴原配扁线）、腿② bus_s1_leg2_ext 63/100（→ 出头口 R 接延长线）"
+      branches_note_2026-09-23_hr38: "hr38 加 G_jaw 分支：嘴舵机（ID 14）只有上插座可用（KO01 row 15）→ 只能当链尾。头链原来的链尾是 6 head_pitch，两个链尾要两条腿 → 在 head_roll 出口加一个一分二 S6（**采购 一分二 5 → 6**）。S6 与 head_roll/jaw 同刚体，这条腿不跨任何关节。"
+      branches:
+        A_left_hip_yaw:
+          - {id: 0, joint: "left_hip_yaw",   body: "trunk_base[0]",      in: "-y", out: null, socket_world_zero: {"-y": [-3.3, 9.75, 144.5]}, why: "KO01 #1：只有内侧口（顶板通窗）"}
+        B_left_leg:
+          - {id: 1, joint: "left_hip_roll",  body: "yaw2roll[0]",        in: "-y", out: "+y", socket_world_zero: {"-y": [-11.2, 9.75, 93.2], "+y": [-11.2, 25.25, 93.2]}, why: "两口都 free。进内侧（线从侧腔 S4/S5 经电池仓前壁前的空腔来（hr28；原写尾部）），出外侧（离大腿近）"}
+          - {id: 2, joint: "left_hip_pitch", body: "upper_leg_left[1]",  in: "-y", out: "+y", socket_world_zero: {"-y": [-5.3, 68.0, 110.25], "+y": [-5.3, 68.0, 94.75]}, why: "两口都 window（大腿外侧面）。进上口（离髋横滚 46.4），出下口（离膝前口 19.4）"}
+          - {id: 3, joint: "left_knee",      body: "upper_leg_left[0]",  in: "-y", out: "+y", socket_world_zero: {"-y": [-24.03, 68.0, 89.8], "+y": [-39.53, 68.0, 89.8]}, why: "两口都 window。进前口，出后口（09-21：踝改用前口，3→4 斜跨 44.8）"}
+          - {id: 4, joint: "left_ankle",     body: "leg[0]",             in: "+y", out: null, socket_world_zero: {"+y": [-24.03, 37.0, 47.8]}, why: "09-21 window，链尾。只能用**前口**（局部 +y = 世界 +x；后口被 L07 后臂 +90° 扫过，KO01 row 9）。线从小腿内侧面（世界 −y）的通窗翘出 4，绕小腿前缘上到膝后口"}
+        C_right_hip_yaw:
+          - {id: 9, joint: "right_hip_yaw",  body: "trunk_base[1]",      in: "+y", out: null, socket_world_zero: {"+y": [-3.3, -9.75, 144.5]}, why: "KO01 #2：镜像"}
+        D_right_leg:
+          - {id: 10, joint: "right_hip_roll",  body: "bearing_roll[0]",    in: "+y", out: "-y", socket_world_zero: {"+y": [-11.2, -9.75, 93.2], "-y": [-11.2, -25.25, 93.2]}, why: "镜像 B"}
+          - {id: 11, joint: "right_hip_pitch", body: "upper_leg_right[1]", in: "+y", out: "-y", socket_world_zero: {"+y": [-5.3, -68.0, 110.25], "-y": [-5.3, -68.0, 94.75]}, why: "镜像 B"}
+          - {id: 12, joint: "right_knee",      body: "upper_leg_right[0]", in: "+y", out: "-y", socket_world_zero: {"+y": [-24.03, -68.0, 89.8], "-y": [-39.53, -68.0, 89.8]}, why: "镜像 B"}
+          - {id: 13, joint: "right_ankle",     body: "leg_2[0]",           in: "-y", out: null, socket_world_zero: {"-y": [-24.03, -37.0, 47.8]}, why: "镜像 B，链尾（右踝局部 −y = 世界 +x 前口，09-21）"}
+        E_neck_pitch:
+          - {id: 5, joint: "neck_pitch",  body: "neck[0]",             in: "+y", out: null, socket_world_zero: {"+y": [33.75, -13.0, 161.72]}, why: "09-21 window，单挂。只能用 +y（世界 +x 前）口：−y 口（x 18.25）T03 在颈 +35° 起 7.1 mm³、T01 +60° 0.9 mm³ 扫过（KO01 row 11）。线翘出 4 后向上（z>162 壳顶以上是空的）绕到脖子后面下到口袋接 S5"}
+        F_head:
+          # hr39c（2026-09-23）：S1 → 14 嘴 → 8 头横滚 → 7 头偏航 → 6 头俯仰（hr38 的 G_jaw 链尾 + S6 作废）
+          - {id: 14, joint: "jaw",        body: "jaw_soft[0]",         in: "+y", out: "-y", socket_world_zero: {"+y": [41.69, 21.75, 238.59], "-y": [40.34, 21.75, 254.03]}, why: "hr39c 新嘴轴 (31.75, y, 245.5)、ψ 5°：两口都 free（KO01 row 15）。进局部 +y = 世界下口（S1 腿① → 转接块 → PH2.0 3P 双头 10 cm，线长 66.2/100），出局部 −y = 上口 → 嘴原配 200 扁线 → 8 下口（101.2/200）。坐标 = 插头顶面中心（duckstructure/wiring_head.JAW_PLUG，servo_R 实算），线沿世界 −y 翘 4.4 到 y 17.35"}
+          - {id: 8, joint: "head_roll",   body: "jaw_soft[1]",         in: "+y", out: "-y", socket_world_zero: {"+y": [-17.7, -9.3, 227.86], "-y": [-17.7, -9.3, 243.36]}, why: "进下口 ROLL_IN（嘴上口来的 200 扁线），出上口 → 头偏航后窗 37.4（同 hr28）"}
+          - {id: 7, joint: "head_yaw",    body: "yaw_roll_motion[0]",  in: "+y", out: "-y", socket_world_zero: {"+y": [18.25, -9.3, 253.61], "-y": [33.75, -9.3, 253.61]}, why: "两口都 window（N03 背板上方头腔内）。进后窗（对头横滚上口 37.4），出前窗（对头俯仰前口 60.6）"}
+          - {id: 6, joint: "head_pitch",  body: "neck[1]",             in: "-y", out: null, socket_world_zero: {"-y": [33.75, -13.0, 193.12], "+y": [18.25, -13.0, 193.12]}, why: "链尾：只用前口（x 33.75，离头偏航前窗 60.6）；后口空着（hr28 起）"}
+        G_jaw_was_until_2026-09-23_hr39c: "hr38：嘴（id 14）只有上口可用 → 链尾，挂在 8 上口后的 S6 一分二上（8[-y] → S6 → 7 / 14）；hr39c 新嘴轴后两口都 free，并进 F_head 中间"
+      hops:
+        # d_zero = 零位姿两插头顶面中心直线距离（09-20 新插座位置，lib.sfw + socket_local_mm）。全行程 d_max 未按新位置重扫：
+        # 插头顶面中心比 09-11 的侧插参考点挪了 ≤ 9 mm（局部 (−6.6,±10,−9.5) → (−13,±7.75,−9.3)），跨关节的跳按旧 d_max + 9 估上界。
+        # 每跳 1 根 150 mm 原配线：最坏上界 62.6 + 9 + 余量（bend 2×(5+0.571·6)=16.85 + route 10%）≈ 95 < 150，全部够。多出的 50–90 mm 第一版用胶带/扎带缠在本颗舵机机身上。
+        - {hop: "S1 腿① → 转接块 → PH 10 cm → 14 jaw[+y 下口]", crosses: "无（转接板、S1、嘴舵机同在 jaw_soft）", d_zero_mm: null, route_len_mm: 74.2, note: "hr39c：腿① 8 + PH2.0 3P 双头 10 cm 实走 66.2（relax3_exact 后的航点长度）；bus_jaw_ph 下段宽向锁嘴插头针排向 ≈x"}
+        - {hop: "14[-y 上口] → 8 head_roll[+y 下口]", crosses: "无（同在 jaw_soft）", d_zero_mm: null, route_len_mm: 101.2, note: "hr39c：嘴原配 200 扁线，从上插头顶面起沿 H01 上方向 −x 再下到头横滚下口 ROLL_IN；余量进盘线区 stow_jaw_top"}
+        - {hop: "8[-y] → 7[+y] head_yaw",       crosses: "head_roll（滚 ±25）",                   d_zero_mm: 37.4, d_max_est_mm: 47, basis: "= 旧 7→8 反向：零位 37.4 + 9（hr39c 起不经 S6）"}
+        - {hop: "7[-y] → 6[-y] head_pitch",     crosses: "head_yaw（扭 ±170）+ head_pitch（弯 −54.2..90）", d_zero_mm: 60.6, d_max_est_mm: 71, route_unverified: true, basis: "旧 6→7 反向", note: "**走线路径未验证（hr26 复审 F-03）**：前窗直下走廊零位就有 N02 前缘/顶盒与 N03，head_pitch/yaw 各角度 H03/N03/偏航舵机轮流占 → 线要贴 N02 前缘 x>35 绕下去（与原版 XL330 线同类）。实物用原配 150 线走一遍拍照回填"}
+        - {hop: "S1 → S2（PH 公母延长线）",      crosses: "head_roll + head_yaw + head_pitch + neck_pitch（四个关节）", d_zero_mm: 116.5, route_unverified: true, note: "hr28：头里口袋 (58.8, ±20, 242) → 顶板口袋 (−10, 0, 150) 直线 116.5，绕行 ≥150 → 延长线 ≥250（components.yaml:cable_ph20_ext）。**路径未验证**：要沿头腔内侧 → 颈开口（N02/N03 旁）→ N01 后面下到口袋，与 5 V/12 V 线同束（HB09）；颈俯仰 ≥ +30° 时 N01 −y 面外侧被 T03 壳顶压住（hr26 复审探针），线只能走壳外或口袋正上方 |y|≤10。实物试装定路径，必要时 T03/N01 回炉"}
+        - {hop: "S2 → 5 neck_pitch[+y]",        crosses: "neck_pitch（弯 −90..60）",              d_zero_mm: 47.1, route_unverified: true, note: "口袋 (−10,0,150) → 前口 (33.75, −13, 161.7)：折线 ≈70（S2 腿 + 150 原配线，够）。路径未验证同上（沿 N01 −y 面外侧向前那段 neck_pitch ≥ +30° 被 T03 壳顶压住，壳内壁离 N01 只 0.8）"}
+        - {hop: "S2 → S3",                      crosses: "无",                                   d_zero_mm: null, note: "hr39f（2026-09-23）：口袋 → 沿前壁顶 link（T01 x −24.6..−20、顶面 z 147.8）→ +y 侧腔，**不再经电池顶上方**（那条通道让给电池顶的 XT30 对插头，顶盖 B03 下面）；S3 公壳插 S2 母腿（腿 100）。新路线长度未复算", note_was_until_2026-09-23_hr39f: "口袋 → 电池顶上方空腔 → +y 侧腔（≈60），S3 公壳插 S2 母腿（腿 100）"}
+        - {hop: "S3 → S4 / S3 → S5",            crosses: "无",                                   d_zero_mm: null, note: "S3 → S4 侧腔内；S3 → S5 hr39f（2026-09-23）改沿前壁顶 link（T01 x −24.6..−20、顶面 z 147.8）跨到 −y 侧腔，**不再经电池顶上方**（让出 XT30 对插头通道）；一分二腿 100。跨腔长度未按新路线复算", note_was_until_2026-09-23_hr39f: "侧腔内 / 跨到 −y 侧腔（经电池顶上方，≈50）；一分二腿 100"}
+        - {hop: "S4 → 0 left_hip_yaw[-y]",     crosses: "无",                                   d_zero_mm: null, note: "+y 侧腔 → 顶板通窗 (−3.3, 9.75, 144.5)：直线 ≈30，原配线 150 够（多出的缠在髋偏航舵机上）"}
+        - {hop: "S4 → 1 left_hip_roll[-y]",    crosses: "left_hip_yaw（扭）",                    d_zero_mm: null, note: "+y 侧腔 → 电池仓前壁前空腔 (−11.2, 9.75, 93.2)：≈60"}
+        - {hop: "1[+y] → 2[-y] left_hip_pitch", crosses: "left_hip_roll（滚 ±22）+ left_hip_pitch（弯 ±90）", d_zero_mm: 46.4, d_max_est_mm: 68, basis: "旧 1→2 d_max 59.01 + 9"}
+        - {hop: "2[+y] → 3[-y] left_knee",      crosses: "无（同在 upper_leg_left 刚体）",         d_zero_mm: 19.4}
+        - {hop: "3[+y] → 4[+y] left_ankle",     crosses: "left_knee（弯 −47.5..86.2）",           d_zero_mm: 44.8, d_max_est_mm: 66, basis: "09-21 踝改前口：零位 44.8（膝后口 (−39.5, 89.8) → 踝前口 (−24.0, 47.8)）；全行程未重扫，按旧 3→4 57 + 9"}
+        - {hop: "S5 → 9 right_hip_yaw[+y]",    crosses: "无", d_zero_mm: null, note: "镜像 S4→0"}
+        - {hop: "S5 → 10 right_hip_roll[+y]",  crosses: "right_hip_yaw（扭）", d_zero_mm: null, note: "镜像 S4→1"}
+        - {hop: "10[-y] → 11[+y]",              crosses: "right_hip_roll + right_hip_pitch", d_zero_mm: 46.4, d_max_est_mm: 68}
+        - {hop: "11[-y] → 12[+y]",              crosses: "无", d_zero_mm: 19.4}
+        - {hop: "12[-y] → 13[-y]",              crosses: "right_knee", d_zero_mm: 44.8, d_max_est_mm: 66, note: "镜像 3→4（09-21 前口）"}
+      slack_model:
+        formula: "cable = 150（原配线，固定）；校验 d_max_est + 2·(L_EXIT + (π/2 − 1)·R_BEND) + Σ_弯关节 R_WRAP·(θ_max − 2·sin(θ_max/2)) + max(5, 0.10·d_max) ≤ 150"
+        L_EXIT_mm:   {v: 4.0,  src: "measured", src_note: "背插：线出插头顶面先直立 wire_out=4.0（09-21 用户目测，原配线硬）再弯（KO01）"}
+        R_BEND_mm:   {v: 6.0,  src: "assumed", src_note: "**HB01.min_bend_r_mm 未量**。26AWG 三芯 PH 成品线单芯 OD≈1.0–1.3，软线经验 4–6×OD → 取 6。到手量了要回填"}
+        R_WRAP_mm:   {v: 13.0, src: "assumed", src_note: "弯关节处线绕过关节硬件的等效半径 = 舵机半宽 10 + 3 间隙"}
+        route_frac:  {v: 0.10, src: "assumed", src_note: "绕行：无锚点/过线口模型，按 d_max 的 10%、下限 5"}
+        twist_joints: "扭（偏航 z）/ 滚（x）关节不吃长度；吃的是寿命 → keepouts.yaml:KO19"
+        worst_hop_check_mm: "7→6：71 + 2·(4+2.86) + 2.04 + 7.1 = 93.9 ≤ 150 ✓（09-21 L_EXIT 4；hr28 方向反过来数值不变）；余 56 缠在头偏航舵机上。S1→S2 延长线：116.5 直线 + 四关节绕行按 ×1.6 ≈ 186 ≤ 250 ✓（实物定）"
+      totals:
+        stock_cables_used: 14
+        stock_cables_spare: 1
+        splitters: 5
+        ph_extensions: 1
+        splitters_note_2026-09-23_hr39c: "5（hr38 的 S6 取消）"
+        new_purchase_2026-09-23_hr39c: "PH2.0 3P 壳-壳双头同向 10 cm ×1（S1 腿① → 嘴下口，60 不够；淘宝现成件）"
+        y_splices: 0
+      repro: "零位 d：./.venv/bin/python 内 lib.sfw(body,i) @ socket_local_mm（本轮 scratch 脚本，20 行；全行程 d_max 按旧 /tmp/duckharness/tree.py 方法重扫是待办，估值已加 9 mm 上界）"
+    # ── 供电：全部经转接板 PH 座（宇树设计：1 口串 15 颗）。两种电流口径都算（0.32 A/颗 客服参数表 vs 3.2 A/颗 疑似笔误），不挑。
+    power_injection:
+      current_per_servo_A:
+        A_0.32: {v: 0.32, src: "datasheet", src_note: "宇树客服参数表『最大线电流 0.32 A』；同表 0.32×0.554=0.177≠堵转 0.6，自相矛盾（docs/重训路线_2026-09-09.md:70）"}
+        B_3.2:  {v: 3.2,  src: "assumed",   src_note: "『0.32 是 3.2 的笔误』假说；03_采购/S288适配器与通信方案.md 估整机瞬时 5–8 A 落在两者之间"}
+      constants:
+        rho_ohm_per_m: {awg28: 0.2129, awg26: 0.1339, awg24: 0.0842, awg22: 0.0530, awg20: 0.0333, awg18: 0.02095, src: "datasheet（铜线通用线规表，20 °C）"}
+        wire_amp_single_in_air: {awg28: 1.4, awg26: 2.2, awg24: 3.5, awg22: 7.0, awg20: 11.0, awg18: 16.0, src: "assumed（通用 chassis-wiring 表，非本项目线材实测；成束要再降额）"}
+        ph_contact_rated_A: {v: 2.0, src: "datasheet", src_note: "JST ePH.pdf：2 A AC/DC (AWG#24)"}
+        ph_contact_R_ohm: {v: 0.020, src: "datasheet", src_note: "JST ePH.pdf 接触电阻初始 20 mΩ max（老化后 40 mΩ max）"}
+        battery_V: {full: 12.6, nominal: 11.1, low: 10.5, src: "datasheet（3S LiPo）"}
+        battery_IR_ohm: {v: 0.045, src: "assumed", src_note: "3 × 15 mΩ，1100 mAh 30C 小包典型值，未测"}
+      branch_current_A:
+        A_0.32: {S1_total: 4.48, head_F: 0.96, S1_to_S2_ext: 3.52, S2: 3.52, neck_E: 0.32, S3: 3.20, S4: 1.60, S5: 1.60, left_leg_B: 1.28, right_leg_D: 1.28, hip_yaw_A_C: 0.32, note: "hr28 根在头里：延长线与 S2/S3 过 3.52/3.20 A"}
+        B_3.2:  {S1_total: 44.8, head_F: 9.6, S1_to_S2_ext: 35.2, S2: 35.2, neck_E: 3.2, S3: 32.0, S4: 16.0, S5: 16.0, left_leg_B: 12.8, right_leg_D: 12.8, hip_yaw_A_C: 3.2}
+      per_contact_check: "串联下第 k 颗的两对 VCC/GND 触点过它下游全部电流：链头（4 颗链）A 口径 1.28 A = 额定 64%；转接板 PH 座与 S1 过 4.48 A = **额定 224%**（A 口径也超）。宇树自己的转接板就是这么设计的（1 口串 15 颗），说明真实持续电流远小于 0.32×N，或者他们只按峰值短时算。**不下结论，等 bench.yaml:BN02 量**：单颗持续/峰值电流 + 转接板 PH 座温升"
+      fallback: "BN02 若量到转接板 PH 座持续 >2 A / 明显发热 / 腿链尾欠压：12 V 不走 PH 链下颈，改在躯干**就地注入**——12 V 从转接板 XT30 扩展口回下来（WAGO 2026-09-22 作废；原『从开关线上分』hr39f 2026-09-23 随开关取消；与转接板 PH VCC 同一电网）→ XT30 一公分二母 → 每条 4 颗链一根『XT30 母转 PH2.0 3P 线（只接 VCC/GND，SIGNAL 针退空）』插进链头舵机的第二口 —— 但那口已被链占用，需改用一分二的第二母口。成品线是否存在待核（淘宝有 XT30 转 PH2.0 的 FPV 灯线）。09-17 的『转接板 PH 口只出 SIGNAL+GND、VCC 针退空』方案作为 fallback 保留"
+      scheme_2026-09-17_no_solder_superseded: "09-17 方案（Y 线分接 + 每支线 XT30→PH 注入）随 Y 拓扑一起作废；不焊接的硬约束不变：本方案全部成品线插接，0 焊点"
+      drop_per_hop_V:
+        note: "dV = I_hop × 2 × L × ρ（VCC + GND 往返）；I_hop = 该跳下游全部舵机；L = 150 mm 原配线（26AWG）；一分二腿按 100 mm 26AWG 估"
+        left_leg_A_0.32:  {S1: {I: 4.48, L_m: 0.100, dV: 0.120}, S1→S2_ext: {I: 3.52, L_m: 0.250, dV: 0.236}, S2: {I: 3.20, L_m: 0.100, dV: 0.086}, S3: {I: 1.60, L_m: 0.100, dV: 0.043}, S4→1: {I: 1.28, L_m: 0.150, dV: 0.051}, 1→2: {I: 0.96, L_m: 0.150, dV: 0.039}, 2→3: {I: 0.64, L_m: 0.150, dV: 0.026}, 3→4: {I: 0.32, L_m: 0.150, dV: 0.013}, plus_contacts: 0.50, worst_total_end: 1.11, note: "hr28：比尾部根方案（0.71）多 0.40 —— 250 延长线 + 一级一分二；BN02 实测门限前不下结论；fallback 见下"}
+        left_leg_B_3.2:   {worst_total_end: 6.6, wire_overload: "S1 44.8 A / 链头 12.8 A 全部超 26AWG 2.2 A 与 PH 2 A —— B 口径下宇树的整套 PH 方案都不成立，见 per_contact_check"}
+        neck_head_A_0.32: {S1: 0.120, S1→8: {I: 0.96, L_m: 0.25, dV: 0.064}, 8→7: 0.026, 7→6: 0.013, plus_contacts: 0.24, worst_total_end: 0.46, note: "hr28 头链只 3 跳、根就在头里，比旧 0.81 好"}
+      end_voltage_V:
+        A_0.32: {full: 11.3, nominal: 9.8, low: 9.2, basis: "hr28 最坏链尾（腿链）1.11 V（含触点）+ 电池内阻 0.045×4.48=0.20 V（旧尾部根 0.81/10.1）。比 09-11 Y 分接方案差 0.6 V（干线不再是 24AWG 汇流排而是 PH 触点链）；舵机欠压门限 unknown（故障码 0x08），BN02 顺带记"}
+        B_3.2:  {full: "<6", basis: "供不出，见 wire_overload"}
+      third_party_claim_12V_insufficient:
+        claim: "docs/reference/s288/宇树舵机问题总结_他人实践_2026-09-10.docx：『当舵机串联使用时，12V 驱动电压不足』"
+        verdict_A_0.32: "串联 + PH 触点链下最坏链尾 ≈0.8 V 压降（比 Y 分接方案的 0.12 V 大得多，主要是触点）；3S 放电大半程本来就 <12 V → 链尾 10 V 上下。欠压门限 unknown，BN02 量到门限前不能说够/不够"
+        verdict_B_3.2:  "**证实**：单链 12.8 A 在 26AWG 上压降 >1 V、触点烧"
+        decides: "bench.yaml:BN02（多舵机峰值电流与母线压降）；BN02 要顺带记欠压故障出现时的舵机端电压（协议里 vol 字段，manual.txt:337）"
+      repro: "公式与常数全在上面"
+    route_polyline:
+      superseded_note_2026-09-25_hr44: "下列折线是 hr28 之前的尾部 hub 口径，早已作废；hr44 起线路实体见 duckstructure/data/wiring_body_v1.json（HB01.route_model），L6 按模型扫掠"
+      frame: "world_zero_pose（派生量：lib.sfw(body,i) @ socket_local_mm；hub 点 = 头里转接板 PH 座（hr28）assumed）"
+      note: "5 条链；每条一段折线。第 6 层的管扫掠还没实现（l6_motion.py:1197），本字段现在只供人读。od 未量 → 扫管无半径"
+      A_left_hip_yaw: [[-52.0, 0.0, 110.0], [-22.5, 0.0, 130.0], [-22.5, 0.0, 150.0], [-3.3, 9.75, 148.0], [-3.3, 9.75, 144.5]]
+      B_left_leg:  [[-52.0, 0.0, 110.0], [-45.0, 20.0, 95.0], [-18.0, 12.0, 93.2], [-11.2, 9.75, 93.2], [-11.2, 25.25, 93.2], [-5.3, 68.0, 110.25], [-5.3, 68.0, 94.75], [-24.03, 68.0, 89.8], [-39.53, 68.0, 89.8], [-39.53, 37.0, 47.8]]
+      C_right_hip_yaw: [[-52.0, 0.0, 110.0], [-22.5, 0.0, 130.0], [-22.5, 0.0, 150.0], [-3.3, -9.75, 148.0], [-3.3, -9.75, 144.5]]
+      D_right_leg: "B 镜像"
+      E_neck_head: [[-52.0, 0.0, 110.0], [-22.5, 0.0, 130.0], [-22.5, 0.0, 150.0], [16.0, -13.0, 161.72], [18.25, -13.0, 161.72], [33.75, -13.0, 161.72], [33.75, -13.0, 193.12], [18.25, -13.0, 193.12], [18.25, -9.3, 253.61], [33.75, -9.3, 253.61], [-17.7, -9.3, 243.36]]
+      waypoint_note: "[-22.5, 0, 130→150] = 顶板后缘中央既有开口（= KO18 出线口；hr38 放大后 x −25.1..−21.1，上段 |y|≤10 × z 137.9..147.9、下段 |y|≤6 × z 124.9..137.9）；[-18,12,93.2] = 电池仓前壁前的空腔"
+    crosses_joints:
+      - "left_hip_yaw"
+      - "left_hip_roll"
+      - "left_hip_pitch"
+      - "left_knee"
+      - "right_hip_yaw"
+      - "right_hip_roll"
+      - "right_hip_pitch"
+      - "right_knee"
+      - "neck_pitch"
+      - "head_pitch"
+      - "head_yaw"
+      - "head_roll"
+    crosses_joints_note: "踝关节所在 body（ankle_left/right）不装舵机，总线到踝舵机（在小腿 leg 里）就结束了，从不跨踝关节。髋偏航单挂从侧腔 S4/S5 到顶板通窗不跨关节（hr28；原写尾部）（同在 trunk_base 刚体）"
+    joint_ranges_ref: "frozen.yaml:joint_axes（不在本文件重复写角度）；线长用的行程是 tools/gate/out/mjcf_ranges.json:collision_free_range_deg（L6 收窄后），不是上游 ±90"
+    anchors:
+      - "每颗舵机机身缠 1 圈胶带/扎带收多余线（第一版；未建模）"
+      - "顶板后缘中央开口（= KO18 出线口；hr38 2026-09-22 放大后 x −25.1..−21.1 × |y|≤10 × z 137.9..147.9）：口袋 S2 ↔ 侧腔 S3 / 头延长线的通道（hr28；原写『尾部 →』作废）。原写『截面 3×14』是顶板厚那一层的旧口（|y|≤7）；放大后同层 3×20。线截面 2026-09-22 已实测（扁排线 4.5×1.5/根），但**口的填充率判据还没建**（hr38_待办交接.md §4 阶段四 wire_through_opening）"
+      - "N01 pocket 型出线槽 = 锚（线弯向侧面、被口袋壁与舵机夹住）"
+    slack_budget_mm:
+      v: "每跳 150 − d_max_est ≥ 79（最坏 6→7）"
+      src: "assumed"
+      src_note: "d_max_est = 旧全行程 d_max + 9（插头参考点位移上界）；R_BEND 取 6 是假设值"
+    keepout_ref:
+      - "KO01"
+      - "KO18"
+      - "KO19"
+    cad_fix_required_ref: "无（09-20 KO01 cad_fix 全部落地；尾部模块 hr28 作废，转接板在头里 H03-F08）"
+    cad_fix_required_ref_2026-09-23_hr39c: "转接板 hr39c 挪到 Radxa 前面竖放（H03-F14 槽 + H05-F06 压筋；H03-F08 tub 删）"
+    usb_link_2026-09-23_hr39c:
+      what: "Radxa USB-C2（下长边，口面 z 234.8 朝 −z）→ 转接板 B 边（−y）Type-C：总线数据上行"
+      problem_2026-09-23_hr39c: "新硬伤 ⑧（交接 #3）：线过不去 —— 转接板底 235.4 到地板顶 233.95 只 1.45，地板 y ≈−16.5 横筋、y −24.5..−25 挡块到 z 237"
+      status: "⑧ 已建线（4a 终版 09-23 21:51，duckstructure/wiring_head.py usb_fpc_a/b）：Radxa 端插头线朝 +x 出 → 贴 USB 井底（H03-F15，z 231.3）沿 +x → R1.25 在 Radxa 背面元件包络（x 70.6）与转接板（x 72.5）之间的 1.9 缝里竖起 → z ≈239.5 处 45° 折（与 CSI 的折叠三角上下错开 ≥8.5）→ 沿 −y（宽向 z 239.5..247.5）→ y −27 R1.5 转 +x 插转接板 B 边 Type-C。H03 槽 −x 壁 y −13.6..−4.4 整段开口、y −24.5..−13.6 削到 z 239（H03-F14.usb_wall_cuts）。原定「朝 −x 出绕 Radxa −y 端外」被常驻 TF 卡包络（y 到 −34.5）+ xt30_12v 占住，作废"
+      route_len_mm: {v: 39, src: derived, src_note: "FPC 段 ≈39（usb_fpc_a 12.9 + 折叠 8 + usb_fpc_b 18.3，hr39c_work/wires/summary.log），两头插头另算"}
+      clearance_mm: "H03 0.50、Radxa 0.65、转接板 0.65、TF 卡 0.94（4a 线束检查：线∩件 0 / 线∩线 0 / 扫掠 0）"
+      purchase_spec:
+        v: "USB-C 公对公 FPC 扁平线，USB 2.0，两头都是 90° 上弯或下弯（线从插头宽面垂直出），总长 5 cm"
+        src: assumed
+        status: "假设，下单核对"
+        check_before_order: "模型按插头 8.9 × 3.5 × 4（wiring_head.USB_PLUG_SLIM）、FPC 宽 8 × 厚 0.3 建的，都是假设值；下单前对商品图核插头外形和两头弯向（Radxa 端装进去后线要朝 +x），到货量尺寸后重核 ⑧ 净空"
+      plug_well: "H03-F15（插头侧 0 交）"
+    usb_link_2026-09-24_hr41:
+      purchase_spec:
+        v: "USB-C 公对公线 15 cm（USB 2.0 即可；两头弯向待 hr43 按 Radxa 后脑位置定）"
+        src: "assumed"
+        src_note: "协调员 09-24 17:15 转用户定：Radxa 搬后脑（hr43），转接板留在 H03 槽，USB 改 15 cm 线。复审 #1 m12（5 cm 规格 vs 模型 FPC 39 对不上）随之作废"
+        was_until_2026_09_24_hr41: "USB-C 公对公 FPC 扁平线，两头 90° 弯，总长 5 cm（assumed）"
+      route: "待 hr43（hr39c 的 usb_fpc_a/b 原位走线随 Radxa 搬走作废；本轮不重走）"
+    usb_c_mass_measured_2026_09_30_hr54b: "2026-09-30 夜用户称：Type-C 弯头线 5.89 g（转接板 ↔ Radxa USB-C2 那根，采购清单『Type-C 弯头公对公 15 cm』）"
+    usb_link_2026-09-25_hr43c: "hr43c：Radxa 板挪 (−0.5, +1.0, −0.5) → USB-C2 90° 弯头随板（wiring_head.HR43C_USB_PLUG_RADXA）；usb_c 重走 usb_c 109.2 mm（买 150.0）R 3.23/10.0（R 声明 10 assumed，头里圆线弯不到，仍待换细线）"
+    usb_link_2026-09-25_hr43:
+      route: "wiring_head usb_c：Radxa USB-C2（板 −x 长边，口朝 −x）90° 弯头线朝 −y 出 → 沿 −y 侧到前口袋 → 从 −x 进转接板 Type-C 90° 弯头；长 108.5 mm（买 150）"
+      bend: "实走最小 R 3.53 < CABLE usb_round 声明 10.0（Ø3.5 × 3，assumed）—— 圆线在头里弯不到；要么买细软线（Ø ≤ 2.5）、要么回到 FPC 扁线（min_bend 1.0 assumed）→ 待主设计定"
+      plugs: "两头 90° 弯头公头包络 12 × 6.5 × 口面外 8（assumed，wiring_head.HR43_USB_PLUG_*）；到货量"
+      slack_note: "15 cm 在头里怎么盘没建模 —— hr43 定 Radxa 位置后建线核"
+    hr43d_route_2026-09-25:
+      what: "hr43d 转接板平放 H08（PH 口挪到 A 边 +y、x 57.8、z 268.35）：S1 公壳插 PH，两腿从口尾面分开出（x ±1.6）—— 腿① 走到 hr43c 旧 PH 口位接旧腿①进原位 S1 转接块（块位 / 嘴舵机 PH 短线 bus_jaw_ph / 嘴原配扁线 bus_jaw_roll 都不动）；腿② 走到旧腿② 第 11 点 (59.3, 23.3, 235.4) 接旧线（贴嘴舵机 +x 端 → 右前耳出头）；USB：Radxa USB-C2 90° 弯头（线朝 −y）→ 转接板 Type-C 90° 弯头（B 边 −y、x 59.9，线从 −x 面进）"
+      wires: "bus_s1_leg1 51.4 mm（买 100.0）R 1.12/2.5 ⚠；bus_s1_leg2_ext 78.8 mm（买 100.0）R 1.63/2.5 ⚠；bus_jaw_ph 81.4 mm（买 100.0）R 3.00/2.5；bus_jaw_roll 116.8 mm（买 200.0）R 3.64/3.0；usb_c 85.6 mm（买 150.0）R 1.68/10.0 ⚠"
+      warning: "弯折低于声明（声明值 assumed）：bus_s1_leg1 R 1.12/2.5 @ 旧 PH 口接旧线处、bus_s1_leg2_ext R 1.63/2.5 @ PH 口出线、usb_c R 1.68/10 @ Radxa 弯头出线（老问题，要换细软线）；腿① 余长 ≈49 没建盘线位（旧 stow_bus_plus_y 已不合用）"
+      check: "hr43_work/wires/check43d_final.json（零位线∩件（非预期）全 ≤0.217，最大 bus_s1_leg1×H01 0.017；线端进自己插的件 ≤0.30；线∩线只 S1 两腿同一公壳出线 0.60 + 基线 bus_jaw_ph×bus_jaw_roll 0.036；头横滚 −30..25 / 偏航 ±95 / 俯仰 −50..97.5 / 嘴 −5..30 扫 0）"
+      model: "duckstructure/wiring_head.py:_HR43D_ROUTES / _apply_hr43d（hr43_work/hr43d/d_route.py → d_fix_bends.py → d_apply_routes.py）"
+    topology_2026-09-25_hr44: "定案（用户 2026-09-25 23:05 拍板，不再讨论）：转接板 1 个 PH2.0 口 ← S1 公壳（头里）；S1 母② → 出头口 R → PH2.0 3P 公母延长线 250 mm（过颈 HB09_R）→ S2（躯干顶口袋）→ S3（+y 侧腔）→ S4（+y 侧腔）/ S5（−y 侧腔）；5 个『一公分二母』一分二 → 6 条串联链：左腿 4 颗 / 右腿 4 颗 / 左髋偏航 1 / 右髋偏航 1 / 颈俯仰 1 / 头链 嘴 + 3。逐跳线路 id = wires_meta 的 bus_* 名；以 wires_meta 为准（hr44 wires_v2 2026-09-26 00:05 导出；线束 agent 还在改）。fixings: [] 留给线束 agent 填扎带位 feature id（颈 / 腿固定点整鸭 ≤12，本登记不登 feature）"
+    chains_2026-09-25_hr44:
+      - id: "A_left_hip_yaw"
+        root: "S4 母①"
+        servos: [{"id": 0, "joint": "left_hip_yaw"}]
+        segments:
+          - {"seg": "bus_S4_hipyaw_L", "from": "S4 母①", "to": "0 left_hip_yaw[-y]（顶板通窗，KO01 #1 只有内侧口）", "cable": "servo_flat", "length_mm": 38.2, "length_mm_was_until_2026_09_26_hr44b": 49.1, "bought_mm": 200.0, "od_mm": 4.743416490252569, "min_bend_R": 4.11, "min_bend_R_was_until_2026_09_26_hr44b": 2.87, "min_bend_limit": 3.0, "crosses": [], "fixings": [], "status": "第二轮：q13 按躯干格（含两髋偏航扫掠体）重路由 + p71 磨圆（净空阈 2.6 = 束外接半径 2.37 + 0.2）；新口径（肢体全关节 + 真实 5601）命中见 wires_check.json / L6", "status_was_until_2026_09_26_hr44b": "v1：零位路由（体素净空 ≥2.4）", "src": "wires_meta.json body.bus_S4_hipyaw_L"}
+      - id: "B_left_leg"
+        root: "S4 母②"
+        servos: [{"id": 1, "joint": "left_hip_roll"}, {"id": 2, "joint": "left_hip_pitch"}, {"id": 3, "joint": "left_knee"}, {"id": 4, "joint": "left_ankle"}]
+        segments:
+          - {"seg": "bus_S4_hiproll_L", "from": "S4 母②", "to": "1 left_hip_roll[-y]", "cable": "servo_flat", "length_mm": 139.6, "length_mm_was_until_2026_09_26_hr44b": 134.5, "bought_mm": 200.0, "od_mm": 4.743416490252569, "min_bend_R": 1.2, "min_bend_limit": 3.0, "crosses": ["left_hip_yaw"], "fixings": [], "status": "v2：扫掠障碍路由（每段避开相对它转动的件在目标区间里的扫掠体）+ 跨关节点在轴线上 [[6.0, 17.5, 75.5]]，服务环 Hermite 线长按目标区间", "src": "wires_meta.json body.bus_S4_hiproll_L"}
+          - {"seg": "bus_L_1to2", "from": "1[+y]", "to": "2 left_hip_pitch[-y]", "cable": "servo_flat", "length_mm": 166.4, "bought_mm": 200.0, "od_mm": 4.743416490252569, "min_bend_R": 0.99, "min_bend_limit": 3.0, "crosses": ["left_hip_roll", "left_hip_pitch"], "fixings": [], "status": "v2：扫掠障碍路由（每段避开相对它转动的件在目标区间里的扫掠体）+ 跨关节点在轴线上 [[-14.0, 17.5, 102.5], [4.0, 74.5, 102.5]]，服务环 Hermite 线长按目标区间", "src": "wires_meta.json body.bus_L_1to2"}
+          - {"seg": "bus_L_2to3", "from": "2[+y]", "to": "3 left_knee[-y]", "cable": "servo_flat", "length_mm": 31.4, "length_mm_was_until_2026_09_26_hr44b": 29.0, "bought_mm": 200.0, "od_mm": 4.743416490252569, "min_bend_R": 3.27, "min_bend_R_was_until_2026_09_26_hr44b": 2.5, "min_bend_limit": 3.0, "crosses": [], "fixings": [], "status": "v1：零位路由（体素，净空 ≥2.4 外接）+ 跨关节 Hermite 服务环；扫掠见 hr44_线束报告", "src": "wires_meta.json body.bus_L_2to3"}
+          - {"seg": "bus_L_3to4", "from": "3[+y]", "to": "4 left_ankle[+y]（前口，链尾）", "cable": "servo_flat", "length_mm": 135.3, "length_mm_was_until_2026_09_26_hr44b": 117.7, "bought_mm": 200.0, "od_mm": 4.743416490252569, "min_bend_R": 0.97, "min_bend_limit": 3.0, "crosses": ["left_knee"], "fixings": [], "status": "v2：扫掠障碍路由（每段避开相对它转动的件在目标区间里的扫掠体）+ 跨关节点在轴线上 [-31.78, 75.0, 80.5]，服务环 Hermite 线长按目标区间", "src": "wires_meta.json body.bus_L_3to4"}
+      - id: "C_right_hip_yaw"
+        root: "S5 母①"
+        servos: [{"id": 9, "joint": "right_hip_yaw"}]
+        segments:
+          - {"seg": "bus_S5_hipyaw_R", "from": "S5 母①", "to": "9 right_hip_yaw[+y]（KO01 #2 镜像）", "cable": "servo_flat", "length_mm": 38.2, "length_mm_was_until_2026_09_26_hr44b": 50.3, "bought_mm": 200.0, "od_mm": 4.743416490252569, "min_bend_R": 4.11, "min_bend_R_was_until_2026_09_26_hr44b": 2.87, "min_bend_limit": 3.0, "crosses": [], "fixings": [], "status": "第二轮：q13 按躯干格（含两髋偏航扫掠体）重路由 + p71 磨圆（净空阈 2.6 = 束外接半径 2.37 + 0.2）；新口径（肢体全关节 + 真实 5601）命中见 wires_check.json / L6", "status_was_until_2026_09_26_hr44b": "v1：零位路由（体素净空 ≥2.4）", "src": "wires_meta.json body.bus_S5_hipyaw_R"}
+      - id: "D_right_leg"
+        root: "S5 母②"
+        servos: [{"id": 10, "joint": "right_hip_roll"}, {"id": 11, "joint": "right_hip_pitch"}, {"id": 12, "joint": "right_knee"}, {"id": 13, "joint": "right_ankle"}]
+        segments:
+          - {"seg": "bus_S5_hiproll_R", "from": "S5 母②", "to": "10 right_hip_roll[+y]", "cable": "servo_flat", "length_mm": 139.6, "length_mm_was_until_2026_09_26_hr44b": 236.2, "bought_mm": 200.0, "od_mm": 4.743416490252569, "min_bend_R": 1.2, "min_bend_limit": 3.0, "crosses": ["right_hip_yaw"], "fixings": [], "status": "v2：扫掠障碍路由（每段避开相对它转动的件在目标区间里的扫掠体）+ 跨关节点在轴线上 [[6.0, -17.5, 75.5]]，服务环 Hermite 线长按目标区间", "src": "wires_meta.json body.bus_S5_hiproll_R"}
+          - {"seg": "bus_R_1to2", "from": "10[-y]", "to": "11 right_hip_pitch[+y]", "cable": "servo_flat", "length_mm": 170.5, "bought_mm": 200.0, "od_mm": 4.743416490252569, "min_bend_R": 0.98, "min_bend_limit": 3.0, "crosses": ["right_hip_roll", "right_hip_pitch"], "fixings": [], "status": "v2：扫掠障碍路由（每段避开相对它转动的件在目标区间里的扫掠体）+ 跨关节点在轴线上 [[-14.0, -17.5, 102.5], [4.0, -74.5, 102.5]]，服务环 Hermite 线长按目标区间", "src": "wires_meta.json body.bus_R_1to2"}
+          - {"seg": "bus_R_2to3", "from": "11[-y]", "to": "12 right_knee[+y]", "cable": "servo_flat", "length_mm": 31.4, "bought_mm": 200.0, "od_mm": 4.743416490252569, "min_bend_R": 3.27, "min_bend_limit": 3.0, "crosses": [], "fixings": [], "status": "v1：零位路由（体素，净空 ≥2.4 外接）+ 跨关节 Hermite 服务环；扫掠见 hr44_线束报告", "src": "wires_meta.json body.bus_R_2to3"}
+          - {"seg": "bus_R_3to4", "from": "12[-y]", "to": "13 right_ankle[-y]（前口，链尾）", "cable": "servo_flat", "length_mm": 135.3, "length_mm_was_until_2026_09_26_hr44b": 117.4, "bought_mm": 200.0, "od_mm": 4.743416490252569, "min_bend_R": 0.97, "min_bend_limit": 3.0, "crosses": ["right_knee"], "fixings": [], "status": "v2：扫掠障碍路由（每段避开相对它转动的件在目标区间里的扫掠体）+ 跨关节点在轴线上 [-31.78, -74.5, 80.5]，服务环 Hermite 线长按目标区间", "src": "wires_meta.json body.bus_R_3to4"}
+      - id: "E_neck_pitch"
+        root: "S2 母①"
+        servos: [{"id": 5, "joint": "neck_pitch"}]
+        segments:
+          - {"seg": null, "from": "S2 母①", "to": "5 neck_pitch[+y]（前口，单挂）", "cable": "舵机原配 PH2.0 3P 200", "length_mm": null, "crosses": ["neck_pitch"], "fixings": [], "status": "未建模：wires_v1（wires_meta.json）没有这一跳；旧估见 bus_tree.hops『S2 → 5 neck_pitch』（折线 ≈70，路径未验证）", "src": "—"}
+      - id: "F_head"
+        root: "S1 母①"
+        servos: [{"id": 14, "joint": "jaw"}, {"id": 8, "joint": "head_roll"}, {"id": 7, "joint": "head_yaw"}, {"id": 6, "joint": "head_pitch"}]
+        segments:
+          - {"seg": "bus_s1_leg1", "from": "S1 母① 腿（一分二自带腿 ≥100 assumed）", "to": "转接块 conn__s1_junction1", "cable": "ph_leg_3c", "length_mm": 51.4, "bought_mm": 100.0, "od_mm": null, "min_bend_R": 1.12, "min_bend_limit": 2.5, "crosses": [], "crosses_note": "无（头内，同在 jaw_soft 刚体）", "fixings": [], "status": "头内线（duckstructure/wiring_head，hr43d/hr44 头内检查；不在 L6 harness_sweep 里）", "src": "wires_meta.json head.bus_s1_leg1"}
+          - {"seg": "bus_jaw_ph", "from": "转接块（PH2.0 3P 双头同向 10 cm）", "to": "14 jaw[+y 下口]", "cable": "ph_leg_3c", "length_mm": 81.4, "bought_mm": 100.0, "od_mm": null, "min_bend_R": 3.0, "min_bend_limit": 2.5, "crosses": [], "crosses_note": "无（同在 jaw_soft 刚体）", "fixings": [], "status": "头内线（duckstructure/wiring_head，hr43d/hr44 头内检查；不在 L6 harness_sweep 里）", "src": "wires_meta.json head.bus_jaw_ph"}
+          - {"seg": "bus_jaw_roll", "from": "14[-y 上口]（嘴原配 200 扁线）", "to": "8 head_roll[+y 下口]", "cable": "ph_servo_flat", "length_mm": 116.8, "bought_mm": 200.0, "od_mm": null, "min_bend_R": 3.64, "min_bend_limit": 3.0, "crosses": [], "crosses_note": "无（同在 jaw_soft 刚体）", "fixings": [], "status": "头内线（duckstructure/wiring_head，hr43d/hr44 头内检查；不在 L6 harness_sweep 里）", "src": "wires_meta.json head.bus_jaw_roll"}
+          - {"seg": null, "from": "8[-y]", "to": "7 head_yaw[+y]", "cable": "舵机原配 PH2.0 3P 200", "length_mm": null, "crosses": ["head_roll"], "fixings": [], "status": "未建模：wires_v1 没有这一段；旧估见 bus_tree.hops『8[-y] → 7[+y]』（零位 37.4 / 全行程 ≈47）", "src": "—"}
+          - {"seg": null, "from": "7[-y]", "to": "6 head_pitch[-y]", "cable": "舵机原配 PH2.0 3P 200", "length_mm": null, "crosses": ["head_yaw", "head_pitch"], "fixings": [], "status": "并在过颈束 HB09_L 里建模（wires_meta body.HB09_L.harness『HB03 12 V 头外段 + HB01 7→6 跳』，成员 servo_flat）；该束线路终点是口袋 S2 不是 6 号前口 → 这一跳自己的长度 / 终点待线束 agent 核", "src": "wires_meta.json body.HB09_L"}
+    trunk_2026-09-25_hr44:
+      - {"seg": "bus_s1_leg2_ext", "from": "S1 母② 腿（一分二自带腿 ≥100 assumed）", "to": "出头口 R（右前耳）：接头外 PH 250 延长线公壳", "cable": "ph_leg_3c", "length_mm": 78.8, "bought_mm": 100.0, "od_mm": null, "min_bend_R": 1.63, "min_bend_limit": 2.5, "crosses": [], "crosses_note": "无（头内段）", "fixings": [], "status": "头内线（duckstructure/wiring_head，hr43d/hr44 头内检查；不在 L6 harness_sweep 里）", "src": "wires_meta.json head.bus_s1_leg2_ext"}
+      - {"seg": "HB09_R（成员 ph_ext_3c）", "from": "出头口 R：延长线公壳 ← S1 母②", "to": "躯干顶口袋：延长线母端 ← S2 公壳", "cable": "PH2.0 3P 公母延长线 250（components.yaml:cable_ph20_ext）", "length_mm": 214.8, "crosses": ["head_roll", "head_yaw", "head_pitch", "neck_pitch"], "fixings": [], "status": "见 HB09_cross_neck.branches_2026-09-25_hr44（HB09_R，v1 未通过）", "src": "wires_meta.json body.HB09_R"}
+      - {"seg": "bus_S2_S34", "from": "S2 母② 腿（一分二自带腿 ≥100 assumed）", "to": "S3 公壳（+y 侧腔下部）", "cable": "ph_ext_3c", "length_mm": 63.5, "length_mm_was_until_2026_09_26_hr44b": 82.1, "bought_mm": 100.0, "od_mm": 3.478505426185217, "min_bend_R": 1.37, "min_bend_R_was_until_2026_09_26_hr44b": 1.03, "min_bend_limit": 2.5, "crosses": [], "fixings": ["T01-FX_S2_T01"], "fixings_src_2026-09-26_hr44b": "第二轮（复审 #3 M1）：T01 侧腔两桥 FX_S34_T01 / FX_S5_T01 删，wire_fixings_v1.json 只剩 FX_S2_T01（两孔扎带，无加料）；S3/S4/S5 改泡棉平贴 T01 内墙 + 扎带（见 splitters.fixation）", "fixings_was_until_2026_09_26_hr44b": ["T01-FX_S2_T01", "T01-FX_S34_T01"], "fixings_was_until_2026_09_26_hr44": [], "fixings_src_2026-09-26_hr44": "wire_fixings_v1.json（build #5 仅剩 T01 三个）→ features.yaml T01-FX_*；站点见 wiring_body_v1.json 该线路 fix_* 标签", "status": "第二轮：q13 按躯干格（含两髋偏航扫掠体）重路由 + p71 磨圆（净空阈 2.6 = 束外接半径 2.37 + 0.2）；新口径（肢体全关节 + 真实 5601）命中见 wires_check.json / L6", "status_was_until_2026_09_26_hr44b": "v1：零位路由（体素净空 ≥2.4）", "src": "wires_meta.json body.bus_S2_S34"}
+      - {"seg": "bus_S3_S4", "from": "S3 母① 腿（一分二自带腿 ≥100 assumed）", "to": "S4 公壳（+y 侧腔）", "cable": "ph_ext_3c", "length_mm": 31.9, "length_mm_was_until_2026_09_26_hr44b": 32.4, "bought_mm": 100.0, "od_mm": 3.478505426185217, "min_bend_R": 3.27, "min_bend_R_was_until_2026_09_26_hr44b": 1.97, "min_bend_limit": 2.5, "crosses": [], "fixings": [], "status": "第二轮：q13 按躯干格（含两髋偏航扫掠体）重路由 + p71 磨圆（净空阈 2.6 = 束外接半径 2.37 + 0.2）；新口径（肢体全关节 + 真实 5601）命中见 wires_check.json / L6", "status_was_until_2026_09_26_hr44b": "v1：零位路由（体素净空 ≥2.4）；S3 → S4 一分二腿（hr44 build #4 后一分二重落位新增段）", "src": "wires_meta.json body.bus_S3_S4"}
+      - {"seg": "bus_S34_S5", "from": "S3 母② 腿（一分二自带腿 ≥100 assumed）", "to": "S5 公壳（−y 侧腔）", "cable": "ph_ext_3c", "length_mm": 86.9, "length_mm_was_until_2026_09_26_hr44b": 260.1, "bought_mm": 100.0, "od_mm": 3.478505426185217, "min_bend_R": 3.12, "min_bend_R_was_until_2026_09_26_hr44b": 2.78, "min_bend_limit": 2.5, "crosses": [], "fixings": [], "fixings_src_2026-09-26_hr44b": "第二轮（复审 #3 M1）：T01 侧腔两桥 FX_S34_T01 / FX_S5_T01 删，wire_fixings_v1.json 只剩 FX_S2_T01（两孔扎带，无加料）；S3/S4/S5 改泡棉平贴 T01 内墙 + 扎带（见 splitters.fixation）", "fixings_was_until_2026_09_26_hr44b": ["T01-FX_S5_T01"], "fixings_was_until_2026_09_26_hr44": [], "fixings_src_2026-09-26_hr44": "wire_fixings_v1.json（build #5 仅剩 T01 三个）→ features.yaml T01-FX_*；站点见 wiring_body_v1.json 该线路 fix_* 标签", "status": "第二轮：q13 按躯干格（含两髋偏航扫掠体）重路由 + p71 磨圆（净空阈 2.6 = 束外接半径 2.37 + 0.2）；新口径（肢体全关节 + 真实 5601）命中见 wires_check.json / L6", "status_was_until_2026_09_26_hr44b": "v1：零位路由（体素净空 ≥2.4）", "src": "wires_meta.json body.bus_S34_S5"}
+    splitters_2026-09-25_hr44:
+      - {"id": "S1", "kind": "splitter", "component": "splitter_ph20_1to2", "male_in": "公壳 → 转接板 PH 座（A 边 +y，转接板平放 H08；插头尾 (57.8, 26.9, 268.35)，wires_meta head.bus_s1_leg1.ends）", "female_out": ["母① ← 腿 bus_s1_leg1 → 转接块 → 头链 F（14 → 8 → 7 → 6）", "母② ← 腿 bus_s1_leg2_ext → 出头口 R → PH 250 延长线（过颈 HB09_R）→ S2"], "where": "头里转接板 PH 座旁", "center_world_zero_mm": {"v": null, "unknown_class": "not_modeled", "unknown_reason": "wires_v1 没有 splitter__S1 本体实体（只有转接块 conn__s1_junction1）；S1 公壳直插转接板 PH 座、两腿从口尾分开出（hr43d）"}, "size_mm": {"v": [14.0, 8.0, 5.0], "src": "assumed", "src_note": "一分二本体 14×8×5（协调员 23:05 定案口径 = wires_meta body.splitter__S2..S5.size），用户买回实测"}, "fixation": {"kind": "zip_tie", "method": "本体平贴 + 扎带（用户规矩：螺丝 > 平粘 + 扎带 > 夹）", "by": ["H08"], "bearing_parts": ["H08"], "feature_ids": [], "note": "assumed：S1 公壳插在 H08 托板上转接板的 PH 座；头内按 22:55 口径不加几何，本体随头内束扎 + 胶带贴，贴哪一面待线束 agent 定"}}
+      - {"id": "S2", "kind": "splitter", "component": "splitter_ph20_1to2", "male_in": "公壳 → PH 250 延长线母端", "female_out": ["母① → 5 颈俯仰原配线（链 E，单挂）", "母② 腿 bus_S2_S34 → S3 公壳"], "where": "躯干顶口袋", "center_world_zero_mm": {"v": [-13.0, 0.0, 153.0], "src": "derived", "src_note": "wires_meta.json body.splitter__S2.center（世界系零位；一分二 S2（口袋）：PH 延长线母端 ← S2 公壳；腿 → 颈俯仰单挂 / S3（hr44 build #4 后零位精确布尔：原位压进 T01 / 壳 → 挪到体素全空位 [-13.0, 0.0, 153.0]））= wires_meta body.splitter__S2.center"}, "size_mm": {"v": [14.0, 8.0, 5.0], "src": "assumed", "src_note": "一分二本体 14×8×5（协调员 23:05 定案口径 = wires_meta body.splitter__S2..S5.size），用户买回实测"}, "fixation": {"kind": "zip_tie", "method": "本体平贴 + 扎带（用户规矩：螺丝 > 平粘 + 扎带 > 夹）", "by": ["T01"], "bearing_parts": ["T01"], "feature_ids": [], "note": "最近件 T01 2.7 / T02 4.27 mm（hr44reg/p01v2 由 placed 推算，derived）；扎带位 feature 由线束 agent 做 → feature_ids 回填"}}
+      - {"id": "S3", "kind": "splitter", "component": "splitter_ph20_1to2", "male_in": "公壳 ← S2 母② 腿（bus_S2_S34）", "female_out": ["母① 腿 bus_S3_S4 → S4 公壳", "母② 腿 bus_S34_S5 → S5 公壳（第二轮实走 86.9 < 腿 100 但余 < 20 → 母②后接 PH2.0 公母延长线 100，见买线表）"], "female_out_was_until_2026_09_26_hr44b": ["母① 腿 bus_S3_S4 → S4 公壳", "母② 腿 bus_S34_S5 → S5 公壳（实走 260.1 > 腿 100 → 不够，见买线表）"], "where": "+y 侧腔下部（build #4 后挪到体素全空位）", "center_world_zero_mm": {"v": [-33.0, 18.0, 113.0], "v_was_until_2026_09_26_hr44b": [-40.0, 22.0, 112.0], "src": "derived", "src_note": "wires_meta.json body.splitter__S3.center（世界系零位；一分二 S3（+y 侧腔）（v2：与 S4 叠放，z 方向 8 高 + 间隙 0.5；v1 重叠 2 mm 已改，协调员 23:00）（hr44 build #4 后零位精确布尔：原位压进 T01 / 壳 → 挪到体素全空位 [-40.0, 22.0, 112.0]））"}, "size_mm": {"v": [14.0, 8.0, 5.0], "src": "assumed", "src_note": "一分二本体 14×8×5（协调员 23:05 定案口径 = wires_meta body.splitter__S2..S5.size），用户买回实测"}, "fixation": {"kind": "foam_tape+zip_tie", "method": "泡棉胶平贴 T01 内墙（盒 14×8 面贴墙，泡棉 1 mm assumed）+ 扎带绕本一分二两侧线束（不锚件）", "by": ["T01"], "bearing_parts": ["T01"], "feature_ids": [], "note": "hr44 第二轮（复审 #3 M1，协调员 02:22）：侧腔桥 FX_S34 / FX_S5 删；T01 内墙 1.9 厚、背后净空 0.6 < 1.5 → 不开 A 两孔；座位 q14（盒全空含两髋偏航扫掠、贴墙比例 ≥0.97）", "was_until_2026_09_26_hr44b": {"kind": "zip_tie", "method": "本体平贴 + 扎带（用户规矩：螺丝 > 平粘 + 扎带 > 夹）", "by": ["T01"], "bearing_parts": ["T01"], "feature_ids": [], "note": "最近件 T01 3.0 / B01 5.1 mm（derived）"}}}
+      - {"id": "S4", "kind": "splitter", "component": "splitter_ph20_1to2", "male_in": "公壳 ← S3 母①", "female_out": ["母① → 0 左髋偏航（bus_S4_hipyaw_L，链 A）", "母② → 1 左髋横滚（bus_S4_hiproll_L，链 B 头）"], "where": "+y 侧腔", "center_world_zero_mm": {"v": [-33.0, 18.0, 141.0], "v_was_until_2026_09_26_hr44b": [-30.0, 22.0, 132.0], "src": "derived", "src_note": "wires_meta.json body.splitter__S4.center（世界系零位；一分二 S4（+y 侧腔）→ 左髋偏航 / 左腿链（hr44 build #4 后零位精确布尔：原位压进 T01 / 壳 → 挪到体素全空位 [-30.0, 22.0, 132.0]））= wires_meta body.splitter__S4.center"}, "size_mm": {"v": [14.0, 8.0, 5.0], "src": "assumed", "src_note": "一分二本体 14×8×5（协调员 23:05 定案口径 = wires_meta body.splitter__S2..S5.size），用户买回实测"}, "fixation": {"kind": "foam_tape+zip_tie", "method": "泡棉胶平贴 T01 内墙（盒 14×8 面贴墙，泡棉 1 mm assumed）+ 扎带绕本一分二两侧线束（不锚件）", "by": ["T01"], "bearing_parts": ["T01"], "feature_ids": [], "note": "hr44 第二轮（复审 #3 M1，协调员 02:22）：侧腔桥 FX_S34 / FX_S5 删；T01 内墙 1.9 厚、背后净空 0.6 < 1.5 → 不开 A 两孔；座位 q14（盒全空含两髋偏航扫掠、贴墙比例 ≥0.97）", "was_until_2026_09_26_hr44b": {"kind": "zip_tie", "method": "本体平贴 + 扎带（用户规矩：螺丝 > 平粘 + 扎带 > 夹）", "by": ["T01", "T02"], "bearing_parts": ["T01", "T02"], "feature_ids": [], "note": "最近件 T01 0.06 / T02 2.74 mm（derived）"}}}
+      - {"id": "S5", "kind": "splitter", "component": "splitter_ph20_1to2", "male_in": "公壳 ← S3 母② 腿（bus_S34_S5）", "female_out": ["母① → 9 右髋偏航（bus_S5_hipyaw_R，链 C）", "母② → 10 右髋横滚（bus_S5_hiproll_R，链 D 头）"], "where": "−y 侧腔", "center_world_zero_mm": {"v": [-33.0, -18.0, 141.0], "v_was_until_2026_09_26_hr44b": [-30.0, -23.0, 132.0], "src": "derived", "src_note": "wires_meta.json body.splitter__S5.center（世界系零位；一分二 S5（−y 侧腔）→ 右髋偏航 / 右腿链（hr44 build #4 后零位精确布尔：原位压进 T01 / 壳 → 挪到体素全空位 [-30.0, -23.0, 132.0]））= wires_meta body.splitter__S5.center"}, "size_mm": {"v": [14.0, 8.0, 5.0], "src": "assumed", "src_note": "一分二本体 14×8×5（协调员 23:05 定案口径 = wires_meta body.splitter__S2..S5.size），用户买回实测"}, "fixation": {"kind": "foam_tape+zip_tie", "method": "泡棉胶平贴 T01 内墙（盒 14×8 面贴墙，泡棉 1 mm assumed）+ 扎带绕本一分二两侧线束（不锚件）", "by": ["T01"], "bearing_parts": ["T01"], "feature_ids": [], "note": "hr44 第二轮（复审 #3 M1，协调员 02:22）：侧腔桥 FX_S34 / FX_S5 删；T01 内墙 1.9 厚、背后净空 0.6 < 1.5 → 不开 A 两孔；座位 q14（盒全空含两髋偏航扫掠、贴墙比例 ≥0.97）", "was_until_2026_09_26_hr44b": {"kind": "zip_tie", "method": "本体平贴 + 扎带（用户规矩：螺丝 > 平粘 + 扎带 > 夹）", "by": ["T03", "T01"], "bearing_parts": ["T03", "T01"], "feature_ids": [], "note": "最近件 T01 0.5 / T03 2.24 mm（derived）"}}}
+    splitters_note_2026-09-25_hr44: "5 个 PH 一分二 = S1..S5 全装（S1 头里：wires_v2 无本体实体，head.bus_s1_leg1.ends『← S1 公壳』；S2–S5 躯干：wires_v2 body.splitter__S2..S5，hr44 build #4 后零位精确布尔挪到体素全空位）；买 6 = 5 + 1 备件。wires_v1 的 splitter__XT30 不是一分二，且与 placed/zz_xt30 重复，wires_v2 已删 → XT30 对插头见 HB03_xt30_12v_main.hr44_2026-09-25.mated_pair"
+    route_model:
+      module: "duckstructure.wiring_body"
+      fn: "sweep_summary"
+      routes: ["bus_S4_hipyaw_L", "bus_S4_hiproll_L", "bus_L_1to2", "bus_L_2to3", "bus_L_3to4", "bus_S5_hipyaw_R", "bus_S5_hiproll_R", "bus_R_1to2", "bus_R_2to3", "bus_R_3to4", "bus_S2_S34", "bus_S3_S4", "bus_S34_S5"]
+      covers_whole_bundle: false
+      uncovered: "头内 bus_s1_leg1 / bus_jaw_ph / bus_jaw_roll / bus_s1_leg2_ext（wiring_head，L6 不扫）；8→7 跳与 S2→5 颈俯仰跳（wires_v1 无此段）；S1→S2 延长线与 7→6 跳在过颈束（HB09_cross_neck.route_model）"
+      l6: "L6/<线路 id>:harness_sweep（tools/gate/layers/l6_motion.py E′；hr44 第二轮复审 #3 M2 起判据：hit_in_target_limb == 0 且 hit_real_poses == 0 且 tension_in_target_limb == 0 且 tension_real_poses == 0 且 min_bend_R ≥ min_bend_limit —— 姿态集 = 线路所在肢体链全部关节（腿 5 / 躯干两髋偏航 / 颈 4）的目标区间 + 真实姿态 5601；缺任一新键 → NOT_RUN(BLOCK)，不回退旧 hit_in_target）"
+      l6_was_until_2026_09_26_hr44b: "L6/<线路 id>:harness_sweep（tools/gate/layers/l6_motion.py E′；判据 hit_in_target == 0 且 tension_in_target == 0 且 min_bend_R ≥ min_bend_limit）"
+    status: "partially_modeled"
+    status_note_2026-09-25_hr44reg: "hr44：躯干 / 腿 13 条线路有 wiring_body 实体模型（route_model），L6 逐条扫掠判；头内 4 条在 wiring_head；8→7、S2→5 两跳没建模；od / min_bend_r_mm 仍按 assumed 口径（wiring_head.CABLE / wiring_body.CABLE_B），bus_tree / route_polyline / hops 的旧推导文字未改（见各自 superseded_note）"
+    status_note_2026-09-20: "拓扑 / ID / 每颗进出口 / 零位跳距 / 供电链路都有了；仍缺：od、min_bend_r（显式 unknown）、按新插座位置的全行程 d_max 重扫（估值 +9 上界代替）、过线口的 CAD（尾部模块 hr28 作废）、第 6 层的管扫掠实现。pin_order 09-20 已实测（转接板侧）"
+    unknown_class: "not_modeled"
+    unknown_reason: "线径与最小弯折半径未量 → 余量模型是 assumed；转接板在头里 H03-F08（hr28，尾部模块作废）；过线口/锚点无模型；转接板 PH 座 4.48 A（A 口径）超 2 A 额定 → BN02 实测定"
+    provenance:
+      - "docs/design_2026-09-17_bearing_rebuild/电子件尺寸核实_2026-09-19.md §7（转接板端口/管脚实测）§8（插座方向实物）"
+      - "duckstructure/s288.py conn_*/plug_*；duckstructure/lib.py CONN_MODE/conn_zone/sfw"
+      - "keepouts.yaml:KO01（每颗每侧 mode）"
+      - "docs/reference/s288/manual.txt:36-60（转接板口）:152（地址）"
+      - "JST ePH.pdf（PHR-3 / B3B-PH-K 尺寸、2 A、20 mΩ）"
+      - "tools/gate/out/mjcf_ranges.json:collision_free_range_deg"
+      - "upstream/microduck_rl/src/mjlab_microduck/robot/microduck/robot_walk.xml <actuator>（ID 规则）"
+      - "docs/reference/s288/宇树舵机问题总结_他人实践_2026-09-10.docx（12 V 不足的说法）"
+      - "V2_S288版发布产物/03_采购/S288适配器与通信方案.md（5–8 A 估计）"
+  - id: "HB02_battery_discharge"
+    name: "电池放电线 → XT30 母头"
+    from: "battery_3s 自带放电线（55 mm 17AWG，花牌这块没量过）+ XT30 母头：hr39f 起母头和平衡头用布基胶带平贴在电池顶前段（x −36..−26，高 ≤152.8），跟着电池一起抽出"
+    from_was_until_2026-09-23_hr39f: "battery_3s 出线口（T01 仓顶 |y|≤10, z 137.9..147.9 —— hr38 2026-09-22 放大 14×7 → 20×10；**电池仓/出线口已由用户 2026-09-22 解冻**，不再是冻结区，见 frozen.yaml:battery_bay_26.unfrozen_2026-09-22）"
+    to: "connector_xt30（XT30 公转母延长线）的**公头**：电池母头 ↔ 延长线公头在电池顶前段对插（对插头沿 y 平放，顶盖 B03 下面，那里有 12–13 高）；断电 = 开顶盖把对插头提出来拔开（hr39f 2026-09-23 取消开关，docs/design_2026-09-17_bearing_rebuild/hr39_电池拔插代替开关.md §3.4 / §4）。延长线往后的走法见 HB03"
+    to_was_until_2026-09-23_hr39f: "connector_xt30 母头（绑 T01 前壁 2×Ø2.2 扎带孔）"
+    conductors:
+      v: 2
+      src: "datasheet"
+    segment_len_mm:
+      v: 55.0
+      src: "assumed"
+    segments_purchased:
+      v: 1
+      src: "datasheet"
+    od_mm:
+      v: 2.8
+      src: "assumed"
+    min_bend_r_mm:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "17AWG 硅胶线最小弯折半径未量；注释只说仓顶净空 5.1 / 前段 12"
+    connector_ends:
+      - "电池 XT30U **母**（2026-09-22 用户看实物确认；此前写『公』是错的）"
+      - "XT30 **公**（connector_xt30 延长线的公头端，插电池母头；hr39f 2026-09-23 起）"
+    connector_ends_was_until_2026-09-23_hr39f: "第二项原为『XT30U 公（插电池的那根线，= 购物车 XT30U-M 公头 18号线 10CM）』—— 那根 10 cm 公头单头线随开关取消作废"
+    connector_gender_2026-09-22: "**公母定案（2026-09-22 用户发实物照片确认，此前已多次口述告知）：宇树转接板上的两个 XT30 板载直角座——主输入口与扩展口——两边都是公头（针）；照片里黑色座内两颗金针清晰可见，旁边是 PH2.0 3 针白座与 USB-C 口。**因此插上去的线/模块一律母头（洞）：过颈到主输入 = XT30U-F 母头单头线 30 cm（购物车已有）；UBEC 输入 = **母头 XT30U-F**（下单让卖家焊；科亿航模客服答『公头』是按通用规矩——公头=取电端——他假设插电池，不适用于我们插扩展口）。通用规矩仅供理解：母头=送电端、公头=取电端，带电端做成洞防短路。**2026-09-22 结案**：用户看实物确认**电池就是母头（两个洞）**，原写『公』作废。全链公母因此闭合：电池母 ← 公头10cm线 → 开关 → 母头30cm线 → 转接板主输入(公针) → 扩展口(公针) ← UBEC 母头。购物车两根 XT30 单头线的公母都买对了。**不要再问用户转接板或电池的公母。**"
+    connector_chain_2026-09-23_hr39f: "取消开关后全链：电池母 ↔ 延长线公（电池顶前段对插，顶盖 B03 下面）…XT30 公转母延长线 40 cm 18AWG…延长线母 → 转接板主输入(公针) → 扩展口(公针) ← UBEC 母头。上一条里『公头10cm线 → 开关 → 母头30cm线』与『购物车两根 XT30 单头线』作废（hr39f 2026-09-23 取消开关，改拔 XT30 断电）"
+    plug_envelope_mm:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "XT30 插合长度/弯曲半径未量"
+      face_dims_2026-09-22: "商品页标注（平安线科技 XT30 公母尺寸图，**标称非实测**）：XT30 **公头 10.2 × 5.1 mm**、**母头 8.9 × 3.8 mm**（插合面宽×高；本体总长/插合深度仍未给）。到货卡尺复核后升级为 measured。"
+    route_polyline: "hr39f：电池自带放电线 + 母头贴在电池顶前段，在那里和延长线公头对插（顶盖 B03 下面）；本束不再出仓（只有注释，无折线模型）"
+    route_polyline_was_until_2026-09-23_hr39f: "仓顶出线口 → 翻到顶板上方 → 前壁扎带孔（只有注释，无折线模型）"
+    crosses_joints: []
+    joint_ranges_ref: null
+    anchors:
+      - "布基胶带把 XT30 母头与平衡头平贴在电池顶前段（hr39f；胶带贴不整齐时每块电池打一个小卡座，hr39 §3.3）"
+    anchors_was_until_2026-09-23_hr39f: "T01 前壁 2×Ø2.2 扎带孔（F27_zip_xt30）—— hr39f 起扎的是延长线，挪到 HB03.anchors"
+    slack_budget_mm:
+      v: null
+      src: null
+      unknown_class: "not_modeled"
+      unknown_reason: "hr39f：55 mm 放电线（Infinity 商品页值，花牌没量过）能不能把母头平贴到电池顶前段 x −36..−26，要看线从电池顶面哪个位置出来 —— 到货量（hr39 §8 第 3 问）。旧口径『55 mm 够不够到 XT30 母头没算过』作废"
+    keepout_ref: []
+    keepout_ref_note_2026-09-23_hr39f: "原 [KO18]：hr39f 起过 T01 出线口的是延长线，KO18 挪到 HB03；电池顶插头通道的新禁入体（keepouts.yaml，hr39 §5.2）登记后补到这里"
+    status: "partially_modeled"
+    provenance:
+      - "duck.py:42-43"
+      - "duck.py:595-597"
+      - "inventory_v2.json:purchased[3]"
+      - "inventory_v2.json:unknowns[6]"
+  - id: "HB03_xt30_12v_main"
+    name: "XT30 12 V 主干 → 舵机总线供电 + 降压输入"
+    route_2026-09-23_hr39c: "头内段：从左前耳（出头口 L）沿 H03 地板直走到转接板 B 边（−y）XT30 主输入（交接 ⑥），头内 ≈68 mm（hr39 190）；xt30_12v 最小弯 2.67（限 6.0 是 12 V 粗线的 assumed 口径）、净空 0.14。过颈段不变（HB09）"
+    from: "电池 XT30 母头（电池顶前段 x −36..−26，和延长线公头对插，顶盖 B03 下面；hr39f）"
+    from_was_until_2026-09-23_hr39f: "电池 XT30 母头（仓前壁顶出线口）"
+    to: "connector_xt30 = XT30 公转母延长线 ×1（18AWG，40 cm）：公头插电池母头（电池顶前段，顶盖 B03 下面）→ 延长线从 T01 出线口（|y|≤10）翻过前壁顶、扎带固定在前壁 Ø2.2 孔 → 进顶板口袋 → 上颈（HB09）进头 → 母头接 bus_adapter XT30 主输入（头里）；UBEC 12 V 输入仍从 **bus_adapter 的 XT30(2+2) 扩展口** 取（HB04）。hr39f 2026-09-23 取消开关，改拔 XT30 断电"
+    to_was_until_2026-09-23_hr39f: "开关（形态未拍板，见 switch_form_undecided_2026-09-22）→ ① XT30U-F 母头单头线 30 cm 过颈上行 → bus_adapter XT30 主输入（头里 H03 口袋，hr28）；② UBEC 12 V 输入改从 **bus_adapter 的 XT30(2+2) 扩展口** 取（HB04）"
+    wago_dropped_2026-09-22: "**WAGO 221-412 全部作废，一只不用**（hr38 拍板 5 / 购物车 5→0）：hr37 探测两个侧腔都塞不下（20.9 长 > 腔 x 向可用 17；+y 腔 z≥142.2 是开关端子；−y 腔与 BEC 并排超宽），duckstructure/electronics.py:wago_boxes() 已 return None。12 V 分接改走转接板 XT30 扩展口 + 开关线压接端子，0 焊点仍成立。原链『XT30U-M → WAGO → 2.8 插簧 → 开关 → 插簧 → WAGO → XT30U-F』作废"
+    switch_form_undecided_2026-09-22: "**【作废】hr39f 2026-09-23 用户定取消开关、改拔电池 XT30 断电，甲/乙两案都不做；下面原文只留作沿革。** 开关形态**未最终拍板**（等平安线科技客服）：甲 = 成品『XT30 公—开关—母』延长线（现货 65 mm 线上开关太大，要定制小号）；乙 = 4 脚面板开关 KCD1-101 + 两根定制『XT30 → 2.8 插簧』线（复用现有 T02 collar 19×13 孔）。hr38_待办交接.md §4 阶段三。**本条不要按任一方案写死**"
+    route_2026-09-23_hr39f: "电池母头 ↔ 延长线公头：对插头沿 y 平放在电池顶前段（x −36..−26）、顶盖 B03 下面（那里 12–13 高；平衡头放在它后面或旁边）→ 延长线从 T01 出线口（x −25.1..−21.1, |y|≤10, z 137.9..147.9）翻过前壁顶，扎带固定在前壁现有 2×Ø2.2 孔（F27_zip_xt30，trunk.py:45）→ 进顶板口袋 |y|≤10 → 上颈（HB09）进头 → 头内段同 route_2026-09-23_hr39c → 母头接转接板 XT30 主输入。多出来的线盘在原开关空出来的 +y 侧腔（x −43.5..−25 × y 15.2..27.5 × z 137..150，约 18×12×13）。长度估算（hr39 §3.4）：头外 ≈160–190 + 头内 ≈68 + 开盖提出对插头的余量 30–40 ≈ 260–300 → 买 40 cm。拔开后公头的停放夹（前壁顶，hr39 §3.3）未建模"
+    route_2026-09-22_hr38_superseded: "出线口（x −25.1..−21.1, |y|≤10, z 137.9..147.9）→ 电池顶上方空腔（z 147..152）→ +y 侧腔（若走乙方案，开关端子在 x −41/−28、y ≈19、z 142..147）→ 12 V 单头线回到顶板口袋 |y|≤10 → 过颈上行（HB09）→ 头里转接板 XT30 主输入。路径 ≈120，XT30U-M 10 cm ×1（电池侧）+ XT30U-F 30 cm ×1（过颈到转接板）。**开关段的接线件随开关形态定**（见 switch_form_undecided_2026-09-22）—— hr39f 2026-09-23 取消开关后作废，仅留作沿革"
+    route_2026-09-21_hr28_superseded: "出线口（x −24, z 141..148）→ … → +y 侧腔 → WAGO → 12 V 单头线回到顶板口袋 |y|≤10 → 过颈上行（HB09）→ 头里转接板 XT30 入口。旧 09-20 路径（门顶缝 → B02 托架）已作废；本条 09-21 版也因 WAGO 作废 + 出线口放大而作废，仅留作沿革"
+    injection_ref_2026-09-11: "HB01_servo_bus.power_injection —— 0.32 A 口径整机 4.48 A / 3.2 A 口径 44.8 A（后者电池 30C×1.1 Ah=33 A 供不出）；本束 18AWG 在 4.48 A 下压降 ≈0.02 V/100 mm"
+    conductors:
+      v: 2
+      src: "assumed"
+    segment_len_mm:
+      v: null
+      src: null
+      unknown_class: "not_modeled"
+      unknown_reason: "无 CAD 位置"
+    segments_purchased:
+      v: 1
+      src: "datasheet"
+      src_note_2026-09-23_hr39f: "XT30 公转母延长线 40 cm ×1（18AWG；下单核对：标的长度含不含插头、公母方向、是不是 XT30U）"
+      was_until_2026-09-23_hr39f: "2（XT30U-M 公头 10 cm + XT30U-F 母头 30 cm 两根单头线，中间接开关）—— 随开关取消作废"
+    od_mm:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "18AWG 外径未量"
+    min_bend_r_mm:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "未量"
+    connector_ends:
+      - "电池侧 = 延长线 XT30 **公头**（插电池的母头；在电池顶前段对插，顶盖 B03 下面）"
+      - "转接板侧 = 延长线 XT30 **母头**（插转接板主输入的公针）"
+    connector_ends_was_until_2026-09-23_hr39f: "『电池侧 = XT30U-M 公头（购物车 XT30U-M 公头 18 号线 10 cm）』『转接板侧 = XT30U-F 母头（购物车 XT30U-F 30 cm）』—— 两根单头线 + 中间开关段 hr39f 2026-09-23 作废，改 1 根 XT30 公转母延长线（公母方向不变，仍 0 焊点）"
+    connector_ends_note_2026-09-22: "原写『XT30 公 / 焊接·端子（未定）』作废：公母已于 2026-09-22 结案（HB02.connector_gender_2026-09-22），且用户 09-17 硬约束**不焊接** → 两端都是成品单头线，中间开关段用压接端子或成品开关线。两根线的公母购物车都买对了"
+    plug_envelope_mm:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "未量"
+    route_polyline: null
+    crosses_joints: []
+    joint_ranges_ref: null
+    anchors:
+      - "T01 前壁 2×Ø2.2 扎带孔（F27_zip_xt30）：延长线翻过前壁顶后扎在这里（hr39f；原 anchors: null）"
+    slack_budget_mm:
+      v: null
+      src: null
+      unknown_class: "not_modeled"
+      unknown_reason: "未建模"
+    keepout_ref:
+      - "KO18"
+    keepout_ref_note_2026-09-23_hr39f: "原 []：hr39f 起延长线过 T01 出线口（KO18，从 HB02 挪来）"
+    bend_2026-09-24_hr41:
+      wire: "xt30_12v（头内段）"
+      min_bend_r_model_mm: 4.83
+      limit_mm: {v: 6.0, src: "assumed", src_note: "wiring_head 里 12 V 粗线的口径（18AWG 软线 ≈4–6×OD，OD 未量）；**下限 assumed、待实测**。本条 min_bend_r_mm 仍是 null（没量过），不拿 6.0 冒充实测"}
+      status: "低于 assumed 下限（4.83 < 6.0；hr39c 2.65）。hr41 重走路点（wiring_head._HR41_ROUTES）已尽量放大，受 H03 地板与转接板 B 边位置限制；实测 18AWG 最小弯半径后再判：≤4.8 → 通过，否则换更软的硅胶线或改转接板朝向"
+      evidence: "hr41_work/wires/check41_final.json（Catmull-Rom 线模型最小弯半径）"
+    hr43d_route_2026-09-25:
+      what: "12 V 主干：出头口 L（左前耳）沿旧线头 6 点 → 路由 → 转接板 XT30 主输入插头尾（B 边 −y、x 74.4、y −33、z 268.6）沿 +y 进"
+      wires: "xt30_12v 73.0 mm（买 300.0）R 1.88/6.0 ⚠"
+      warning: "R 1.87/6.0 @ 插头尾（插头尾到 H05 壁只 ≈4，18AWG 在那里转不开；hr43c 基线同样超）"
+      check: "hr43_work/wires/check43d_final.json（零位线∩件（非预期）全 ≤0.217，最大 bus_s1_leg1×H01 0.017；线端进自己插的件 ≤0.30；线∩线只 S1 两腿同一公壳出线 0.60 + 基线 bus_jaw_ph×bus_jaw_roll 0.036；头横滚 −30..25 / 偏航 ±95 / 俯仰 −50..97.5 / 嘴 −5..30 扫 0）"
+      model: "duckstructure/wiring_head.py:_HR43D_ROUTES / _apply_hr43d（hr43_work/hr43d/d_route.py → d_fix_bends.py → d_apply_routes.py）"
+    hr44_2026-09-25:
+      head_external_segment: "12 V 头外段（出头口 L → 过颈 → 躯干顶口袋）并入过颈束 HB09_L（wires_meta body.HB09_L.members 含 xt30_18awg_pair；束径 5.96、长 219.7，见 HB09_cross_neck.branches_2026-09-25_hr44）；头内段 = wires_meta head.xt30_12v（73.0，wiring_head）；躯干段 = body.xt30_battery_pocket（19.8）。以 wires_meta 为准（hr44 wires_v2 2026-09-26 00:05 导出；线束 agent 还在改）"
+      torso_segment: {"seg": "xt30_battery_pocket", "from": "电池顶 XT30 对插头（延长线公头侧）", "to": "躯干顶口袋（接 HB09_L 上颈）", "cable": "xt30_18awg_pair", "length_mm": 19.8, "bought_mm": 400.0, "od_mm": 4.0, "min_bend_R": 3.52, "min_bend_limit": 6.0, "crosses": [], "fixings": [], "status": "v1：零位路由（体素净空 ≥2.4）", "src": "wires_meta.json body.xt30_battery_pocket"}
+      mated_pair: {"id": "XT30", "what": "电池 XT30 母头 ↔ XT30 公转母延长线公头 对插头（沿 y 平放）", "where": "电池顶前段，顶盖 B03 下面", "entity": "placed/zz_xt30（assembly 步 21 parts: zz_xt30）—— wires_v1 的 splitter__XT30（26×10.2×5.1 assumed）与它重复，wires_v2 已删", "bbox_center_world_zero_mm": {"v": [-30.6, 0.0, 151.8], "src": "derived", "src_note": "placed/zz_xt30.stl 包围盒中心（hr44reg/p01v2）"}, "bbox_extents_mm": {"v": [10.2, 20.1, 11.0], "src": "derived", "src_note": "placed/zz_xt30.stl 包围盒（件尺寸口径见 components.yaml:connector_xt30）"}, "nearest_parts": "zz_battery 0.0 / battery_lid 0.81 / trunk 0.9 mm（derived）"}
+      length_total_mm: {"v": 312.5, "src": "derived", "src_note": "xt30_battery_pocket + HB09_L + head.xt30_12v 三段 wires_meta 当前值之和；≤ 延长线 400（segments_purchased）→ 余 87.5"}
+    route_model:
+      module: "duckstructure.wiring_body"
+      fn: "sweep_summary"
+      routes: ["xt30_battery_pocket"]
+      covers_whole_bundle: false
+      uncovered: "头内 xt30_12v（wiring_head）；过颈段在 HB09_L（HB09_cross_neck.route_model）"
+    status: "unmodeled"
+    unknown_class: "not_modeled"
+    unknown_reason: "降压模块 UBEC 定在 T01 −y 侧腔（09-20 / hr28，扎带环扎住），无独立 CAD 实体；原写『拟放躯干上部口袋』作废"
+    provenance:
+      - "inventory_v2.json:purchased[10]"
+      - "inventory_v2.json:purchased[12]"
+      - "comparison_original_vs_v2.md:B8"
+  - id: "HB04_sbc_5v"
+    name: "5 V → Radxa ZERO 3W 40 针 pin 4/6（09-19 起走排针；原 USB-C1 供电口作废）"
+    route_2026-09-23_hr39c: "UBEC-3A 在头里 H03-F13 座（hr39c 平移 T_UBEC → 模块 x 84.37..90.37 × y −37.29..−25.29 × z 235.46..261.46）。**assumed：输入/输出两组线都从顶端出**（商品页没说，用户未回）。线长 ubec_in 74.2/100（转接板 XT30 扩展口 → UBEC 输入）、ubec_out_5v 75.5/100（→ Radxa pin 4）、ubec_out_gnd 55.9/100（→ pin 34）；余长进盘线区 stow_ubec_top"
+    from: "buck_12v_5v（UBEC 5V/3A，T01 −y 侧腔）输出 JR 插头"
+    to: "sbc_radxa_zero3w 40 针 5V/GND（pin 4/6；2026-09-19 建议走排针供电，省掉 USB-C 插头空间）"
+    route_2026-09-22_hr38: "bus_adapter 的 **XT30(2+2) 扩展口（公针）** → UBEC 输入 XT30U-F 母头（卖家代焊，线 10 cm）→ UBEC 输出 1P 母头 ×2（正/负各一，线 10 cm）→ Radxa 40 针 pin4(5V)/pin6(GND)。三者（转接板 H03 口袋 / UBEC / Radxa）都在头内，10 cm 已核算：输入需 86.8（余 13.2）、输出需 64.1（余 35.9）。依据 components.yaml:buck_12v_5v.connectors_2026-09-22 + hr38_待办交接.md §2.2"
+    route_2026-09-21_hr28_superseded: "『开关后的 WAGO（+y 侧腔）→ XT30/插簧线 → UBEC（−y 侧腔；**不再**从转接板拓展口取 12 V）→ JR → 杜邦公对母 40 cm → 顶板口袋 → 颈后 → 头，路径 ≈250 < 300』—— 2026-09-22 全部作废：WAGO 不用；12 V 改回从转接板扩展口取；输出由 JR 3P 改 1P ×2（防插反），杜邦公对母 40 cm 退为备用线"
+    ubec_location_pending_2026-09-22: "UBEC 的**落位**还没建进 CAD：现役 duckstructure/electronics.py:UBEC_BOX 仍是电池仓 −y 侧腔的腔包络（x −40..−25 × |y| 22.7..27.2 × z 132..150 = 15×4.5×18），而 hr38 计划位是 H01 前立板背面（x 39..46 × y −16..11 × z 251..264，hr38_待办交接.md §6）。本 route 按『UBEC 在头里』写 —— 若最终留在躯干侧腔，12 V 取电点与线长都要重算"
+    conductors:
+      v: 2
+      src: "assumed"
+    segment_len_mm:
+      v: null
+      src: null
+      unknown_class: "not_modeled"
+      unknown_reason: "无路径"
+    segments_purchased:
+      v: null
+      src: null
+      unknown_class: "not_selected"
+      unknown_reason: "未采购/未定"
+    od_mm:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "未量"
+    min_bend_r_mm:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "未量"
+    connector_ends:
+      - "端子（未定）"
+      - "40PIN 或 USB-C（未定）"
+    plug_envelope_mm:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "未量"
+    route_polyline: null
+    crosses_joints:
+      - "neck_pitch"
+      - "head_pitch"
+      - "head_yaw"
+      - "head_roll"
+    joint_ranges_ref: "frozen.yaml:joint_axes"
+    anchors: null
+    slack_budget_mm:
+      v: null
+      src: null
+      unknown_class: "not_modeled"
+      unknown_reason: "过颈线束无模型"
+    keepout_ref:
+      - "KO19"
+    bend_2026-09-24_hr41:
+      wires:
+      - {wire: "ubec_in（转接板扩展口 → UBEC 输入 XT30U-F，卖家代焊 10 cm）", min_bend_r_model_mm: 2.62, limit_mm: {v: 4.0, src: "assumed"}, status: "**低于下限，下限 assumed、待实测**（hr39c 1.58）。hr41 UBEC +y 窗改 U 槽后线从上放进槽，弯已从 1.58 放到 2.62；实测卖家线最小弯半径后再判"}
+      - {wire: "ubec_out_5v", min_bend_r_model_mm: 4.02, limit_mm: {v: 4.0, src: "assumed"}, status: "达标"}
+      - {wire: "ubec_out_gnd", min_bend_r_model_mm: 4.06, limit_mm: {v: 4.0, src: "assumed"}, status: "达标"}
+      evidence: "hr41_work/wires/check41_final.json（Catmull-Rom 线模型最小弯半径）"
+      note: "hr41 UBEC 已在头里 H03-F13（本条 unknown_reason「−y 侧腔」是旧口径，未改原句）"
+    hr43_route_2026-09-25:
+      what: "UBEC 输出两根（5V → pin 4、GND → pin 34）一端改到 Radxa 40P 直角转接横针（盒 B 尾 x 44）；5V 手定（R ≥ 4.0：UBEC 顶 R4.5 弯朝 −x → 沿 y −31.8 → 水平 R5 转 +y 沿 x 69（H05 压筋/叉齿以外）→ R5 转 −x 沿 y 17 → 进 pin 4 下排），GND 路由"
+      wires: "ubec_out_5v 92.4 mm（买 100.0）R 4.42/4.0；ubec_out_gnd 52.2 mm（买 100.0）R 4.15/4.0"
+      check: "hr43_work/wires/check43_final.json（零位线∩件只剩线头进自己插的件 ≤0.217；头横滚 −30..25 / 偏航 ±95 / 俯仰 −50..97.5 / 嘴 −5..30 扫 0）"
+      model: "duckstructure/wiring_head.py:_HR43_ROUTES（hr43_work/scripts/route43_run.py → fix_bends.py）"
+    hr43c_route_2026-09-25:
+      what: "UBEC 输出两根直插 Radxa 排针（40P 直角转接作废）：5V → pin 4（后排 3 号从它上面跨）、GND → pin 34；UBEC 线 OD 1.6 / min_bend 4.0 都 assumed —— 34 号出壳 Rc 4.0（余 +1.31），4 号只能 Rc 2.0（Rc 4.0 会逼 3 号余 −0.97），**< 声明 4.0，到货确认**"
+      wires: "ubec_out_5v 98.8 mm（买 100.0）R 3.76/4.0；ubec_out_gnd 81.6 mm（买 100.0）R 4.18/4.0（长度不含壳顶弯段 ≈3.1 / 6.3）"
+      length_warning: "ubec_out_5v 98.8 + 壳顶弯段 ≈3.1 ≈ 102 > 卖家 10 cm 线 → 不够，要加一根 2.54 杜邦公母延长（或 UBEC 换长线）；报告「未做项」"
+      check: "hr43_work/wires/check43c_csi.json（零位线∩件 ≤0.091（限 0.217）；线端进杜邦占位 ≤0.021；头横滚 −30..25 / 偏航 ±95 / 俯仰 −50..97.5 / 嘴 −5..30 扫 0）"
+      model: "duckstructure/wiring_head.py:_HR43C_ROUTES（hr43_work/hr43c/c5_route.py → c6_fix_bends.py）；Radxa 端弯段在 electronics.gpio_dupont_boxes（zz_gpio_dupont）"
+    hr43d_route_2026-09-25:
+      what: "UBEC 输入：底端 +y 墙口出（旧线头 8 点）→ 路由 → XT30(2+2) 扩展口插头尾（A 边 +y、x 71.7、y 33、z 268.6）沿 −y 进；UBEC 输出两根同 hr43c 起点（顶端 R4.5 弯朝 −x）→ Radxa pin 4 / 34（腿朝 +x 不变）重走"
+      wires: "ubec_in 86.0 mm（买 100.0）R 1.75/4.0 ⚠；ubec_out_5v 102.8 mm（买 100.0）R 2.45/4.0 ⚠；ubec_out_gnd 81.3 mm（买 100.0）R 4.19/4.0（Radxa 端不含壳顶弯段 ≈3.1 / 6.3）"
+      warning: "ubec_out_5v 102.8 + 壳顶弯段 ≈3.1 ≈ 106 > 卖家 10 cm（hr43c 已 ≈102）→ 必须加 2.54 公母延长或换长线；ubec_in 86.0 + 插头段 < 100 余 ≈10；弯折 ubec_in 1.75/4.0（插头尾）、ubec_out_5v 2.45/4.0（Radxa 端接路由段）"
+      check: "hr43_work/wires/check43d_final.json（零位线∩件（非预期）全 ≤0.217，最大 bus_s1_leg1×H01 0.017；线端进自己插的件 ≤0.30；线∩线只 S1 两腿同一公壳出线 0.60 + 基线 bus_jaw_ph×bus_jaw_roll 0.036；头横滚 −30..25 / 偏航 ±95 / 俯仰 −50..97.5 / 嘴 −5..30 扫 0）"
+      model: "duckstructure/wiring_head.py:_HR43D_ROUTES / _apply_hr43d（hr43_work/hr43d/d_route.py → d_fix_bends.py → d_apply_routes.py）"
+    status: "unmodeled"
+    unknown_class: "not_modeled"
+    unknown_reason: "UBEC 在 −y 侧腔无独立 CAD 实体；过颈段无锚点"
+    provenance:
+      - "inventory_v2.json:purchased[10]"
+      - "inventory_v2.json:unknowns[8]"
+  - id: "HB05_imu_i2c"
+    name: "IMU Adafruit 4438 LSM6DSOX → Radxa 40PIN 3/4/5/6 脚（I²C3 + 5 V；两根现成线公母对插，不焊不压；hr29）"
+    bench_2026-09-30: "台架（主控板会话）：VIN → 1（3.3 V）/ SDA → 3 / SCL → 5 / GND → 14（1 号 = micro HDMI 端、内列）；设计口径仍按 hr52_route（V+ 17 / 3、5 一分二 IMU 腿 / GND 14）。**QT 线不是标准色**：黄 GND / 蓝 VIN / 红 SDA / 黑 SCL（黑为排除法），见 components.yaml:cable_qt_dupont_m.colors_measured_2026-09-30；按标准色接过一次 → IMU 没地、I²C3 被拽住超时，拔掉即恢复，IMU 未见烧毁、待重接验证。中途公母对插（QT 公头 + 40 cm 母母）就是本条设计口径；用户打算换「QT 转杜邦母头」直出线：颜色到货重量；长度（09-30 晚按模型实走重算，hr53_work/a06）：按模型实走：躯干段 74.6 + 过脖子 218.5 + 头内 98.6..105.9 + 壳顶弯 ≈3 ≈ 395–402 mm（直线距离只有 ≈173，绕路是躯干穿缝 + 颈部给头转动留的下垂环）→ **买 50 cm**；40 cm 一根到底不够"
+    head_segment_2026-09-23_hr39c: "头内 4 根（pin1 3.3 V / pin3 SDA / pin5 SCL / pin6 GND；杜邦单针壳经 H01-F17 整段缺口套针）：59.2 / 81.4 / 94.4 / 99.4 mm（40 cm 母母撕 4 根，过颈段另算），经出头口 R 下行"
+    from: "imu_icm42688（= Adafruit 4438，T01 前壁前面，STEMMA QT +y 侧插座）"
+    to: "sbc_radxa_zero3w（头内）"
+    conductors:
+      v: 4
+      src: "datasheet"
+      src_note: "STEMMA QT：GND / V+ / SDA / SCL"
+    segment_len_mm:
+      v: [150, 400]
+      src: "datasheet"
+      src_note: "段 1（IMU → 顶板口袋/侧腔对插点）需 ≈80：SH 出线 4 + 贴墙上行 9 + 横到中央 14 + 穿缝 5 + 中央槽 21 + 进前壁缺口/穿顶板 9 + 到侧腔 ≈20；段 2（对插点 → Radxa）需 ≈250–315：口袋→颈后 35 + 过颈 186–250（116.5 直线 ×1.6，未验证）+ 头腔到缺口 30"
+    segments_purchased:
+      v: "components.yaml:cable_qt_dupont_m（150）+ cable_dupont_ff（400，撕 4 根）"
+      src: "datasheet"
+    od_mm:
+      v: 1.2
+      src: "assumed"
+      src_note: "28 AWG 单线 ≈1.0–1.3；4 根散线"
+    min_bend_r_mm:
+      v: 3.0
+      src: "assumed"
+    connector_ends:
+      - "JST-SH 1.0 4P 母壳（IMU 板 +y 短边侧插座；壳 7×5×2.8，插入方向 −y）"
+      - "4×2.54 杜邦母 1P（Radxa 3=SDA / 4=5V / 5=SCL / 6=GND，2×2 块 5.08×5.08×14，经 H01-F17 缺口从上面套针）"
+    plug_envelope_mm:
+      v: "SH 壳 7×5×2.8；杜邦 1P 壳 2.54×2.54×14（中途公母对插 4 对：10×2.5×~28）"
+      src: "datasheet"
+    route_polyline:
+      frame: "world_zero_pose"
+      trunk_segment_verified: true
+      points:
+        - [-17.9, 16.0, 105.3]
+        - [-18.5, 19.5, 106.8]
+        - [-19.3, 20.3, 110.3]
+        - [-19.6, 20.0, 116.0]
+        - [-19.6, 10.0, 117.2]
+        - [-19.9, 0.5, 117.6]
+        - [-20.1, 0.0, 119.5]
+        - [-20.3, 0.0, 138.0]
+        - [-21.6, 0.0, 141.5]
+        - [-23.1, 0.0, 149.0]
+        - [-13.0, 0.0, 150.8]
+      rules: "① 出插座立刻贴墙向上拐（离墙 ≤3.6）；② 不走板前方（离墙 >4.6 那层 2653 姿态撞 L01/髋横滚舵机）；③ 不往外侧兜（|y|>19 且离墙 >3.6 被 L01 扫到）；④ 4 个杜邦壳错开逐个穿 T01-F30 缝（4×9）；⑤ 对插点放侧腔（宽 14）或顶板口袋（高 5）"
+      neck_head_segment: "未验证（同 HB01 S1→S2 延长线，hr26 复审 F-03）；头腔内到 H01-F17 缺口、板后 x<47 全空（射线核过）"
+    crosses_joints:
+      - "neck_pitch"
+      - "head_pitch"
+      - "head_yaw"
+      - "head_roll"
+    joint_ranges_ref: "frozen.yaml:joint_axes"
+    anchors: "IMU 板（2×M2×4）；对插点用胶带缠一圈；头腔内余线折起扎在 H03 口袋 ±y 侧空间"
+    slack_budget_mm:
+      v: [70, 85]
+      src: "assumed"
+      src_note: "段 1 150−80；段 2 400−315（最坏）；头偏航 ±170° 的松量吃段 2 余量，实物定"
+    keepout_ref:
+      - "KO17"
+      - "KO19"
+    hr43_route_2026-09-25:
+      what: "IMU 头内段（pin 1/3/5/6）：出头口到 z≈244 沿用旧线，之后重走到直角转接横针（盒 B 前竖段在同列下排线拐弯外侧，R2.5 弯进上排）"
+      wires: "imu_pin1 117.3 mm（买 400.0）R 2.6/2.0；imu_pin3 119.0 mm（买 400.0）R 2.48/2.0；imu_pin5 133.7 mm（买 400.0）R 2.11/2.0；imu_pin6 116.2 mm（买 400.0）R 2.04/2.0"
+      check: "hr43_work/wires/check43_final.json（零位线∩件只剩线头进自己插的件 ≤0.217；头横滚 −30..25 / 偏航 ±95 / 俯仰 −50..97.5 / 嘴 −5..30 扫 0）"
+      model: "duckstructure/wiring_head.py:_HR43_ROUTES（hr43_work/scripts/route43_run.py → fix_bends.py）"
+    hr43c_route_2026-09-25:
+      what: "IMU 头内段改 R2 针位：SDA 3 / SCL 5 不动；GND 6 → 14；V+ 1 → 17（与麦 VDD 合用，一分二 母对二公上腿）；Radxa 端直插杜邦壳顶即弯 Rc 2.0（3 号跨 4 号多走 1.5）"
+      pins: {V+: 17, SDA: 3, SCL: 5, GND: 14}
+      pins_was_until_2026_09_25_hr43c: {V+: 1, SDA: 3, SCL: 5, GND: 6}
+      wires: "imu_pin17_splitleg 118.8 mm（买 400.0）R 1.79/2.0；imu_pin3 94.4 mm（买 400.0）R 2.22/2.0；imu_pin5 102.1 mm（买 400.0）R 2.42/2.0；imu_pin14 96.5 mm（买 400.0）R 2.12/2.0"
+      bend_warning: "imu_pin17_splitleg R 1.79 < 2.0（assumed）：在 x≈15 排针直段接路由段处被下腿 mic17 与邻线夹住（c6_fix_bends 4 轮最好值）"
+      check: "hr43_work/wires/check43c_csi.json（零位线∩件 ≤0.091（限 0.217）；线端进杜邦占位 ≤0.021；头横滚 −30..25 / 偏航 ±95 / 俯仰 −50..97.5 / 嘴 −5..30 扫 0）"
+      model: "duckstructure/wiring_head.py:_HR43C_ROUTES（hr43_work/hr43c/c5_route.py → c6_fix_bends.py）；Radxa 端弯段在 electronics.gpio_dupont_boxes（zz_gpio_dupont）"
+    hr52_route_2026-09-29:
+      what: "3 / 5 号改杜邦一分二（母对二公，件同 17 号那根）单母头：IMU SDA / SCL 与 ToF（HB12）共用 I²C3；3 号两腿横排（IMU 腿出壳点 y 20.59 → 19.89，仍竖直 1.5 跨 4 号）、5 号两腿横排朝 −45°（s 0：抬起来会切 CSI 排线边、且不跨新插的 6 号壳）；只改排针端那一小段（imu_pin3 ≈7 mm y −0.7 渐变、imu_pin5 同心 R 3.4 回正 + 下潜，x ≥ 15.1 接回原线），出头口 → 过颈段不动"
+      pins: {V+: 17, SDA: "3（一分二 IMU 腿）", SCL: "5（一分二 IMU 腿）", GND: 14}
+      wires: "imu_pin3 101.1 mm（hr44 101.4，买 400.0）R 2.97/2.0；imu_pin5 98.9 mm（hr44 97.7，买 400.0）R 2.46/2.0"
+      splitter_note: "IMU 40 cm 撕线的 Radxa 端母头改插一分二 IMU 腿公头（中途公母对插接头未建模）；路径多一段一分二腿（商品腿长未知，bought_plan 按 200 assumed）→ 余长比 hr44 口径（≈80）多，盘线位置未建模"
+      check: "hr52_work/harness/h21_final_check.json（build 后精确布尔：线束实体 × 件相对基线无新增 —— 只有 4 根 ToF 线头进自己排针腿的接续重叠 0.014..0.030 mm³（同基线 amp_GND_pin25 0.087 那类）；mic_pin12 × H10 3.52 / × zz_tof 2.41 归零；线 × 线无新增跨束）+ h23_clearance.json（净空）"
+      model: "duckstructure/wiring_head.py:_apply_hr52（duckstructure/data/wiring_head_hr52.json routes.imu_pin3 / imu_pin5；hr52_work/harness/scripts/h10_reroute_starts.py）；Radxa 端腿在 electronics.GPIO_DUP_SPLIT_SIDE / GPIO_DUP_LEG_DIR（hr52）"
+    route_model:
+      module: "duckstructure.wiring_body"
+      fn: "sweep_summary"
+      routes: ["imu_seg1"]
+      covers_whole_bundle: false
+      uncovered: "段 2 过颈（杜邦 ×4）在 HB09_R（HB09_cross_neck.route_model）；头内 imu_pin3 / 5 / 14 / 17（wiring_head）"
+    status: "trunk_route_verified_offline_neck_head_unverified"
+    unknown_class: "route_unverified"
+    unknown_reason: "hr29：躯干段折线按 5601 真实姿态 + 髋扫描核过（scratch imu2/sweep*.py），各通道口径对插头核过（缝加宽 T01-F30）；过颈段与头腔段同 HB01/HB09 等实物；主控端要 H01-F17 缺口（hr29 件）。原文『这条线在任何文件里都没有』已过时"
+    provenance:
+      - "duck.py:658"
+      - "comparison_original_vs_v2.md:A1"
+      - "inventory_original.json:harness_and_power.notes"
+  - id: "HB06_camera_csi"
+    name: "摄像头 CSI 排线"
+    cable_2026-09-23_hr39c:
+      chosen: "金色 22→15 pin 同面 FPC（摄像头随机附）；白色 15→15 不用（主 agent 09-23 确认）"
+      ends: ["Radxa ZERO 3W CSI 座 22P 0.5（CSI 面朝 +x，座在 +y 短边，components.yaml:sbc_radxa_zero3w.board_faces_2026-09-23）", "摄像头 8M 219 背面 FPC 翻盖座 15P（实测高 5.1、宽 20.1）"]
+      segment_len_mm: {v: 142, src: measured, src_note: "用户 09-23 实测 ≈142（线身丝印 L150mm）；4b 写的「待测」由 4c 按 wiring_head.py 记的实测补上"}
+      problem_2026-09-23_hr39c: "新硬伤 ⑦（交接 #3）：正装时摄像头翻盖座开口朝 −z，座后只有 1.17 / 0.54 的缝，16 宽 FPC 回折不出来"
+      route: "⑦ 已建线（4a 终版 09-23 21:51，duckstructure/wiring_head.py csi_fpc_a/b）：摄像头倒装 180°（绕光轴转，图像软件翻转；electronics.CAM_FLIPPED），翻盖座（实测 高 5.1 × 宽 20.1，深 6 按照片取大，与板边齐平）换到背面顶边 → 排线从座顶竖直出，硬补强段 6（离顶壳 3.59、脸板 5.71）→ 在摄像头和转接板上方走平缓波浪（4 个 180° + 2 个 90° 软弯，R ≥1.51）收余长 → 进 Radxa 背面元件包络（x 70.6）与转接板（x 72.5）之间的 1.9 缝下行 → 唯一硬折痕：缝里 45° 折（y −8..8、z 243..259）→ 沿 +y → 座口外直 2.0 → U 弯 R1.55 → 沿 −y 插 Radxa CSI 22P 座 4。净空：转接板 0.59、Radxa 0.59、脸板 0.95、顶壳 1.15；翻盖座离 H05 压筋 0.95、转接板 2.54。bus_jaw 前段改道让出座口（转接块挪到 PH 口外 +y 直段）"
+      route_len_mm: {v: 96.0, src: derived, src_note: "最短走法（座顶 → 缝 → 折 → U 弯 → 进座，含两端插入）≤ 实测 142；按标称 150 余长 54 收在波浪里（模型总长 149.6 = csi_fpc_a 93.6 + csi_fpc_b 37.0 + 折叠 16 + 摄像头端插入 3）"}
+      contact_parity: "同面线 + 1 道 45° 折：两端触点面分别朝各自的板（按两个座都是下接触算，assumed，到货核；若有一端是上接触要多一道折，重核）"
+      open_items: "22P 端紫色补强外露长度没量（模型座口外直 2.0 才弯；更长就要把 U 弯外移，外面到 bus_jaw_ph 还有 2.86）；摄像头翻盖座槽口离 PCB 背面多高没量（按座高中间 2.55）"
+    from: "camera_csi（hr41：PCB 贴 H04 内面 x 90.57..92.17，背面 FPC 翻盖座 15P）"
+    to: "sbc_radxa_zero3w CSI 口 22P 0.5（hr43 Radxa 搬后脑，位置待定）"
+    conductors:
+      v: 22
+      src: "datasheet"
+      src_note: "22→15 pin 同面 FPC（Radxa 端 22P 0.5）；原 v 12 assumed 是占位"
+      was_until_2026_09_24_hr41: {v: 12, src: assumed}
+    segment_len_mm:
+      v: 150
+      src: "datasheet"
+      src_note: "hr41 用户定规格：150 长 / 线身 11.3 宽 / 摄像头端 16 宽 × 5 长（线身丝印 L150mm；用户 09-23 实测 ≈142 记在 cable_2026-09-23_hr39c，按标称 150 登顶层，实长以到货复量为准）。复审 #1 m7：顶层与 hr39c 块矛盾的问题本条一并解决"
+      body_width_mm: {v: 11.3, src: "assumed", src_note: "用户 09-24 给定规格（未注明是否实测）"}
+      camera_end_width_mm: {v: 16.0, src: "assumed", src_note: "用户 09-24 给定规格", len_mm: 5.0}
+      was_until_2026_09_24_hr41: {v: null, unknown_class: not_selected, unknown_reason: 型号未选}
+    segments_purchased:
+      v: 1
+      src: "datasheet"
+      src_note: "摄像头随机附金色 22→15 pin 同面线（hr39c 选定）"
+      was_until_2026_09_24_hr41: {v: null, unknown_class: not_selected}
+    od_mm:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "FPC 厚度未量"
+    min_bend_r_mm:
+      v: 2.5
+      src: "assumed"
+      src_note: "hr41 wiring_head.CSI_BEND_R（FPC 常见 ≥10×厚，厚未量）；原顶层 5.0 assumed 是占位口径"
+      was_until_2026_09_24_hr41: {v: 5.0, src: assumed}
+    connector_ends:
+      - "摄像头端 FPC 15P 1.0（翻盖座，实测高 5.1 × 宽 20.1）"
+      - "Radxa 端 FPC 22P 0.5"
+    hr41_route_2026-09-24:
+      status_note: "协调员 09-24 17:15：Radxa 在 hr43 搬后脑顶 → **原位 CSI 完整走线登记作废**。hr41 wiring_head.csi_route() 只作「摄像头前移后不撞」的占位（发夹弯 y 参数化，最短 L_min 102.04；119 需发夹弯 y≈42.7；100 不够；150 在原位收不下）"
+      reusable_for_hr43: "wiring_head.csi_route(hairpin_y) / csi_length() —— 线身 11.3 + 16 宽头段 5 已在 build_wire 的 wide_head 分支"
+    plug_envelope_mm:
+      v: null
+      src: null
+      unknown_class: "not_selected"
+      unknown_reason: "未选型"
+    route_polyline: null
+    route_polyline_was_until_2026_09_24_hr41: "12×1 弯 R5 U 形通路（头扩展检查里的占位）"
+    crosses_joints: []
+    joint_ranges_ref: null
+    anchors: null
+    slack_budget_mm:
+      v: null
+      src: null
+      unknown_class: "not_modeled"
+      unknown_reason: "跨颈线束寿命未证"
+    keepout_ref:
+      - "KO14"
+      - "KO15"
+    hr43d_route_2026-09-25:
+      what: "CSI 200 排线（hr43c 候选路径）：转接板平放后板顶 273.5 在它下面 → 板上方那段（x 62..88）整体抬 0.35（274.5 → 274.85），折 1 / 折 2 从 x 62.5 挪到 64.5（让开喇叭背面焊片凸台 x ≤ 58.18）；折 3 与 Radxa 端不动"
+      wires: "csi43c_a..d 合计 ≈ hr43c（段 a −2 / 段 c +2，z 只抬 0.35）≈191.8；离板顶 ≥1.05（折处双层）、离喇叭焊片 ≥0.25（x 错开）、离喇叭前挡 / +y 导轨 ≥0.4"
+      warning: "仍是候选（3 折奇数、触点朝向到货核、板边 U 弯 R 1.2..1.5 < 复审建议 2.5）；两条转接板扎带只能放 −y 半边（y −9.0 / −16.5）让出 CSI 带"
+      check: "hr43_work/wires/check43d_final.json（零位线∩件（非预期）全 ≤0.217，最大 bus_s1_leg1×H01 0.017；线端进自己插的件 ≤0.30；线∩线只 S1 两腿同一公壳出线 0.60 + 基线 bus_jaw_ph×bus_jaw_roll 0.036；头横滚 −30..25 / 偏航 ±95 / 俯仰 −50..97.5 / 嘴 −5..30 扫 0）"
+      model: "duckstructure/wiring_head.py:_HR43D_ROUTES / _apply_hr43d（hr43_work/hr43d/d_route.py → d_fix_bends.py → d_apply_routes.py）"
+    status: "hr43c 候选路径已建（模型级：3 折 0 扭，对件 / 线 0 交，三关节扫 0；触点朝向 / 板边 U 弯半径 / 买不买 200 待定）"
+    status_was_until_2026_09_25_hr43c: "hr43 未闭合（CSI 排线走线没建成；见 hr43_改件报告 §5 / csi_analysis）"
+    status_was_until_2026_09_25_hr43: "走线待 hr43 按后脑位置重走"
+    status_was_until_2026_09_24_hr41: "placeholder"
+    hr43_2026-09-25:
+      purchase: "22→15 pin 同向排线 200 mm —— **用户未答买不买**（设计稿 §1 / 物料记录 决定 4）"
+      radxa_end: "Radxa CSI 22P 座新位：板底 +y 端 x −11.2..5.0 × y 24.5..30.25 × z 254.7..256.2，线从 +y 沿 −y 插（槽中面 z 255.45，线宽沿 x −8.65..2.65）"
+      camera_end: "摄像头翻盖座顶（x 88.02，z 273.94，线朝 +z 出，宽头 16 × 5）"
+      straight_distance_mm: 97.7
+      blocked_by: "设计稿示意线（≈172.4）从喇叭卡座肩/导轨里穿（后挡 x 39.5..41、喇叭顶面贴顶壳肩 → 喇叭上方没空）；喇叭下方 z ≈274 有喇叭背面焊片凸台 (x 52..58, y 1..5, z 275.25..) 与喇叭线；后脑 +y 侧被盒 A（到 y 24、顶 279.8）+ 吊柱/筋（y 24..30）+ 陡顶（y 32 处 z ≈266..276）夹住，扁线 11.3 宽转不过去"
+      connector_end_fold_found: "座口端可行：线在 z 255.45 平躺（宽沿 y，y 30.3..41.6）从 +x（x 2.65..16）来，45° 折（折痕 (2.65, 41.6) → (−8.65, 30.3)，外角三角空）转 −y 进座；前一段只能从 x≈16 处竖着下来（z ≤ 264，宽沿 y）"
+      next: "要主设计定：①喇叭挪位或背面焊片朝向；②盒 A 在 +y 端收窄（按实物量）；③改 2 折 + 扭转走 +x 前面 → +y 侧 → 后脑；到货量线长后再建"
+    hr43c_2026-09-25:
+      method: "hr43_work/hr43c/c11_csi_ribbon.py：hr43c 体素（件 + 扫掠 + 现有线全占，腐蚀 0.5）上 1 mm 排线状态格搜索（截面沿宽向两侧各 ≥ 5.65 + 0.3；软弯 / 45° 折 / 扭转）→ c14 平带盒复核 → wiring_head._hr43c_csi（csi43c_a..d + 3 折 plug）→ check43c_csi"
+      route: "摄像头座顶竖出 → R≈1.4 弯朝 −x 在 z 275.5 从 H05-F06 两道压筋之间过转接板 / H06 上方 → 缓降 274.5 钻喇叭前挡 / 喇叭底 → 折 1 (62.5, −0.5) 朝 +y → 折 2 (62.5, 12.5) 朝 −x → x 36 前缓升 279.5 从杜邦线上方过排针区 → x 1.5 竖直下到 261.5 → 折 3 (−3.6, 12.5) 朝 +y 过两根 y 28 吊柱中间 → 绕板 +y 边 U 弯到板底 → 沿 −y 插 Radxa CSI 座 4"
+      check: "wires/check43c_csi.json：csi43c_a..d 对件只有插进 CSI 座 13.56 mm³（= 插入 4 × 11.3 × 0.3，预期）；对别的线 0；头横滚 / 偏航 / 俯仰 / 嘴扫 0；最近：H05 0.48、喇叭 0.60、摄像头座口 0.015（出口）"
+      bend_R: {"csi43c_a": 1.42, "csi43c_b": Infinity, "csi43c_c": 2.0, "csi43c_d": 2.27}
+      length_mm: "各段 154.9 + 3 折 × 线宽 11.3 + 摄像头端插入 3 = 191.8 → 200 线余 ≈8；原配 150 不够"
+      open_items: "① 3 折为奇数：两端触点面朝向按两座「上/下接触」到货核，不对再加 1 折；② 板边 U 弯与摄像头出口弯 R 1.4..2.3 ≥ CABLE min_bend 1.0（assumed），< 复审建议 2.5（assumed）；③ 用户未答买 200；④ 余长 ≈8 没放盘线位"
+    provenance:
+      - "docs/design_2026-09-17_bearing_rebuild/hr41_头部阶段二.md §2 M5 / §7"
+      - "docs/reports/头部扩展防御性检查_2026-09-09.md"
+      - "inventory_v2.json:purchased[6]"
+  - id: "HB07_display"
+    name: "1.9\" 表情屏线束 —— **2026-09-19 屏幕取消，本束作废**（display_lcd qty 0）"
+    from: "display_lcd（前脸下部；已取消）"
+    to: "sbc_radxa_zero3w SPI"
+    conductors:
+      v: null
+      src: null
+      unknown_class: "not_selected"
+      unknown_reason: "屏未选型"
+    segment_len_mm:
+      v: null
+      src: null
+      unknown_class: "not_selected"
+      unknown_reason: "未选型"
+    segments_purchased:
+      v: null
+      src: null
+      unknown_class: "not_selected"
+      unknown_reason: "未采购"
+    od_mm:
+      v: null
+      src: null
+      unknown_class: "not_selected"
+      unknown_reason: "未选型"
+    min_bend_r_mm:
+      v: null
+      src: null
+      unknown_class: "not_selected"
+      unknown_reason: "未选型"
+    connector_ends: []
+    plug_envelope_mm:
+      v: null
+      src: null
+      unknown_class: "not_selected"
+      unknown_reason: "未选型"
+    route_polyline: null
+    crosses_joints: []
+    joint_ranges_ref: null
+    anchors: null
+    slack_budget_mm:
+      v: null
+      src: null
+      unknown_class: "not_modeled"
+      unknown_reason: "未建模"
+    keepout_ref: []
+    status: "placeholder"
+    budget_ref: "frozen.yaml:C6_interface_budgets"
+    provenance:
+      - "comparison_original_vs_v2.md:B7"
+      - "comparison_original_vs_v2.md:C6"
+      - "inventory_v2.json:purchased[7]"
+  - id: "HB08_mic_i2s"
+    name: "方型 I²S 数字麦克风 10×10（敏芯 MSM261S 系）I2S"
+    head_segment_2026-09-23_hr39c: "麦克风平移 T_MIC 后 6 根：pin38 79.4 / pin17 61.3 / pin39 90.3（最紧，余 10）/ pin9 56.8（10 cm 母母）+ pin12 / pin35 一分二腿 67.5 / 89.3（与功放共用母头，两腿终点同一 pin_exit，按构造贴着）"
+    name_was_until_2026-09-22: "INMP441 麦克风 I2S —— 型号已换（components.yaml:mic_inmp441.model / model_was_until_2026-09-22_hr37），组件 id 沿用 mic_inmp441 不改"
+    from: "mic_inmp441（**H03 麦克风台 H03-F12**，台顶 z **234.2**（hr38：台加厚 1.2 给芯片面短针 2.5 开让位槽，head.MIC_PAD / electronics.MIC_Z0），x 70.6..80.6 × y 24..34；原写『H01 后部横梁上方』是 hr37 之前的占位说法，见 components.yaml:mic_inmp441.housed_by_was_until_2026-09-22_hr37）"
+    to: "sbc_radxa_zero3w I2S"
+    shared_pins_2026-09-23: "与 HB10 功放共用 I²S 时钟两根：pin12 SCLK（麦克风 SCK）、pin35 LRCK（麦克风 WS）。用『杜邦线 一分二 母对二母』×2 分出，见 HB10.from；麦克风 SD → pin38 独占，VDD → pin1/17（3.3 V），GND / L-R → 任一 GND 针"
+    conductors:
+      v: 6
+      src: "assumed"
+    segment_len_mm:
+      v: null
+      src: null
+      unknown_class: "not_modeled"
+      unknown_reason: "未建模"
+    segments_purchased:
+      v: null
+      src: null
+      unknown_class: "not_selected"
+      unknown_reason: "未采购"
+    od_mm:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "未量"
+    min_bend_r_mm:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "未量"
+    connector_ends: []
+    plug_envelope_mm:
+      v: null
+      src: null
+      unknown_class: "not_measured"
+      unknown_reason: "未量"
+    route_polyline: null
+    crosses_joints: []
+    joint_ranges_ref: null
+    anchors: null
+    slack_budget_mm:
+      v: null
+      src: null
+      unknown_class: "not_modeled"
+      unknown_reason: "未建模"
+    keepout_ref:
+      - "KO16"
+    hr43_route_2026-09-25:
+      what: "麦克风 6 腿（38/17/39/9 + 一分二 12/35）从麦克风针向上 → 头顶下方往后到直角转接横针；pin 17 正前方是功放端子块 → 在盒 B 线弯区里弯朝上、从端子块上方斜进"
+      wires: "mic_pin38 76.5 mm（买 100.0）R 2.33/2.0；mic_pin17 59.8 mm（买 100.0）R 2.54/2.0；mic_pin39 82.1 mm（买 100.0）R 2.77/2.0；mic_pin9 54.8 mm（买 100.0）R 2.31/2.0；mic_pin12_splitleg 60.6 mm（买 150.0）R 2.73/2.0；mic_pin35_splitleg 81.3 mm（买 150.0）R 2.45/2.0"
+      check: "hr43_work/wires/check43_final.json（零位线∩件只剩线头进自己插的件 ≤0.217；头横滚 −30..25 / 偏航 ±95 / 俯仰 −50..97.5 / 嘴 −5..30 扫 0）"
+      model: "duckstructure/wiring_head.py:_HR43_ROUTES（hr43_work/scripts/route43_run.py → fix_bends.py）"
+    hr43c_route_2026-09-25:
+      what: "麦克风 6 腿改 R2：GND 39 → 20；VDD 17 改一分二下腿（与 IMU V+ 合用）；38 / 9 / 一分二 12 / 35（上腿）不变针；Radxa 端直插杜邦壳顶即弯 Rc 2.0"
+      pins: {VDD: 17, GND: 20, L/R: 9, SD: 38, SCK: 12, WS: 35}
+      pins_was_until_2026_09_25_hr43c: {VDD: 17, GND: 39, L/R: 9, SD: 38, SCK: 12, WS: 35}
+      wires: "mic_pin38 98.9 mm（买 100.0）R 2.69/2.0；mic_pin17_splitleg 89.7 mm（买 100.0）R 2.25/2.0；mic_pin20 90.9 mm（买 100.0）R 2.78/2.0；mic_pin9 86.1 mm（买 100.0）R 2.38/2.0；mic_pin12_splitleg 90.4 mm（买 150.0）R 2.73/2.0；mic_pin35_splitleg 108.3 mm（买 150.0）R 2.42/2.0"
+      length_warning: "10 cm 线：mic_pin38 98.9 + 壳顶弯段 ≈3.1 ≈ 102 > 100 → 不够；mic_pin20 90.9 / mic_pin17 89.7 / mic_pin9 86.1 余 ≈6..11 偏紧 —— 建议麦 4 根改 15 cm（同一分二腿）"
+      check: "hr43_work/wires/check43c_csi.json（零位线∩件 ≤0.091（限 0.217）；线端进杜邦占位 ≤0.021；头横滚 −30..25 / 偏航 ±95 / 俯仰 −50..97.5 / 嘴 −5..30 扫 0）"
+      model: "duckstructure/wiring_head.py:_HR43C_ROUTES（hr43_work/hr43c/c5_route.py → c6_fix_bends.py）；Radxa 端弯段在 electronics.gpio_dupont_boxes（zz_gpio_dupont）"
+    hr43d_route_2026-09-25:
+      what: "麦克风 6 根：麦板排针壳顶竖直 3.0（hr43c 1.5）→ 路由（转接板平放后从板上方 / 旁边绕）→ Radxa 端（腿朝 +x 不变）"
+      wires: "mic_pin38 98.1 mm（买 100.0）R 1.50/2.0 ⚠；mic_pin17_splitleg 93.5 mm（买 100.0）R 1.71/2.0 ⚠；mic_pin20 92.4 mm（买 100.0）R 1.39/2.0 ⚠；mic_pin9 88.1 mm（买 100.0）R 2.02/2.0；mic_pin12_splitleg 93.9 mm（买 150.0）R 2.94/2.0；mic_pin35_splitleg 112.0 mm（买 150.0）R 2.64/2.0（不含壳顶弯段 ≈3.1）"
+      warning: "mic_pin38 98.1 + 3.1 ≈ 101 > 10 cm、mic_pin17 93.5 + 3.1 ≈ 97（余 3）、mic_pin20 92.4 + 3.1 ≈ 96（余 4）→ 同 hr43c 建议 4 根换 15 cm；弯折 38 / 17 / 20 在麦壳顶出线拐角 R 1.39..1.71 < 2.0"
+      check: "hr43_work/wires/check43d_final.json（零位线∩件（非预期）全 ≤0.217，最大 bus_s1_leg1×H01 0.017；线端进自己插的件 ≤0.30；线∩线只 S1 两腿同一公壳出线 0.60 + 基线 bus_jaw_ph×bus_jaw_roll 0.036；头横滚 −30..25 / 偏航 ±95 / 俯仰 −50..97.5 / 嘴 −5..30 扫 0）"
+      model: "duckstructure/wiring_head.py:_HR43D_ROUTES / _apply_hr43d（hr43_work/hr43d/d_route.py → d_fix_bends.py → d_apply_routes.py）"
+    hr52_route_2026-09-29:
+      what: "麦克风束起头让开 ToF（HB12）：原 6 根车道 x 74..80 在 ToF SDA / SCL 杜邦壳底下（mic_pin12 车道穿 zz_tof 2.41、尾线穿 H10 压条 3.52 mm³，hr52 v6_check）→ 车道 x > 66 段整体平移 (0, −2.0, −0.2)（x 66 → 72.5 smoothstep 过渡；截面 6 根最密堆不变），6 根车道在干线第 4 点同一截面截断、引入段 2.5 平行干线，尾线从麦排针重走（先低走 H10 压条下方再上到束，占用含 ToF 4 根，逐根占用 + 联合修弯 + 中心线分开 ≥1.4）；麦束第 1 道扎带 tie__mic_1 从干线 s 11.9 (70.0, 26.5, 274.5) 挪到 s 19.5 (62.6, 24.9, 274.4)（原位的环套住 ToF SDA 进壳段 −0.59）"
+      wires: "mic_pin38 114.7 mm（hr44 115.3，买 100.0）R 3.39/2.0；mic_pin17_splitleg 106.0（107.4，买 100.0）R 2.87/2.0；mic_pin20 106.2（106.4，买 100.0）R 3.64/2.0；mic_pin9 112.7（111.4，买 100.0）R 1.73/2.0（最小弯在 Radxa 端未改段，基线 1.74）；mic_pin12_splitleg 114.9（113.0，买 150.0）R 2.55/2.0；mic_pin35_splitleg 120.5（120.3，买 150.0）R 3.31/2.0"
+      clearance: "改过的尾线 / 平移段：到 zz_tof ≥ 0.46、H10 压条 ≥ 0.49、H04 ≥ 0.99、XT30 扩展口插头 ≥ 0.42；6 根尾线之间中心距 ≥ 1.436（不互穿）"
+      length_warning: "10 cm 那 4 根仍 > 100（结论同 hr44：换 15 cm）"
+      check: "hr52_work/harness/h21_final_check.json（build 后精确布尔：线束实体 × 件相对基线无新增 —— 只有 4 根 ToF 线头进自己排针腿的接续重叠 0.014..0.030 mm³（同基线 amp_GND_pin25 0.087 那类）；mic_pin12 × H10 3.52 / × zz_tof 2.41 归零；线 × 线无新增跨束）+ h23_clearance.json（净空）"
+      model: "duckstructure/wiring_head.py:_apply_hr52（duckstructure/data/wiring_head_hr52.json routes.mic_* / tie_override.mic / mic_start_shift；hr52_work/harness/scripts/h18_mic_bundle.py）"
+    status: "placeholder"
+    budget_ref: "frozen.yaml:C6_interface_budgets"
+    provenance:
+      - "docs/reports/头部扩展防御性检查_2026-09-09.md"
+      - "inventory_v2.json:purchased[8]"
+  - id: "HB09_cross_neck"
+    name: "过颈总束（hr28：总线下行 3 芯 + 12 V 上行 2 芯 + 5 V 上行 2 芯 + IMU 信号上行 4 芯；USB 留在头里）"
+    from: "T01 躯干侧顶板口袋 |y|≤10（无显式过线口）"
+    to: "头内 H01/H03 口袋"
+    conductors:
+      v: null
+      src: null
+      unknown_class: "not_modeled"
+      unknown_reason: "根数取决于 HB01/HB04/HB05 的最终方案"
+    segment_len_mm:
+      v: null
+      src: null
+      unknown_class: "not_modeled"
+      unknown_reason: "未建模"
+    segments_purchased:
+      v: null
+      src: null
+      unknown_class: "not_selected"
+      unknown_reason: "未定"
+    od_mm:
+      v: null
+      src: null
+      unknown_class: "not_modeled"
+      unknown_reason: "束径未定"
+    min_bend_r_mm:
+      v: null
+      src: null
+      unknown_class: "not_modeled"
+      unknown_reason: "未定"
+    connector_ends: []
+    plug_envelope_mm:
+      v: null
+      src: null
+      unknown_class: "not_modeled"
+      unknown_reason: "未定"
+    route_polyline: null
+    crosses_joints:
+      - "neck_pitch"
+      - "head_pitch"
+      - "head_yaw"
+      - "head_roll"
+    joint_ranges_ref: "frozen.yaml:joint_axes（head_yaw ±170° 是最严的一条）"
+    anchors: null
+    slack_budget_mm:
+      v: null
+      src: null
+      unknown_class: "not_modeled"
+      unknown_reason: "头偏航 ±170° 的线束扭转余量无模型"
+    keepout_ref:
+      - "KO19"
+    branches_2026-09-25_hr44:
+      - {"id": "HB09_R", "side": "+y", "content": "IMU 4 杜邦（HB05 段 2）+ PH 总线延长线 250（HB01 S1→S2）", "members": ["dupont", "dupont", "dupont", "dupont", "ph_ext_3c"], "od_mm": 5.26, "od_src": "assumed：束径 = 成员截面积 ÷ 填充率 0.6 + 缠绕管壁 2×0.35（wiring_body.FILL / WRAP）", "length_mm": 218.5, "length_mm_was_until_2026_09_26_hr45n01": 215.1, "length_mm_src_2026-09-26_hr45n01": "build #3 export_all wires_meta（N01 右钩站 fix_N01_hook_in/out + 躯干顶 7 站外移 y 21.75）", "length_mm_was_until_2026_09_26_hr44": 214.8, "min_bend_R": 1.02, "min_bend_R_was_until_2026_09_26_hr45n01": 0.99, "min_bend_R_was_until_2026_09_26_hr44": 1.02, "min_bend_at": [23.8, 25.5, 198.2], "min_bend_at_was_until_2026_09_26_hr45n01": [24.0, 25.6, 198.3], "min_bend_at_was_until_2026_09_26_hr44": [23.4, 24.9, 198.2], "min_bend_limit": 2.0, "crosses": ["head_roll", "head_yaw", "head_pitch", "neck_pitch"], "flex": [{"k": 0, "state": "ok", "L": 71.1}, {"k": 1, "state": "ok", "L": 10.6}, {"k": 2, "state": "ok", "L": 14.0}], "head_yaw_wrap": {"model": "wrap（绕头偏航轴螺旋，wiring_body.flex_wrap）", "L_mm": 71.1, "target_range_deg": [-116.4, 95.4], "pm170_need_mm": "≈88（wires_v1 note，p16 第 1 版）", "src": "wires_meta.json body.HB09_R.flex[k=0].L + note『v2 sideLow：偏航+横滚服务环挂颈两侧低位（头侧下垂 7 mm、hpow 4 快降，N02 侧锚 z 200.5 |y| 22.8）；躯干段扫掠障碍路由不穿壳（p33b）』"}, "check_coarse": {"n_poses": 664, "hit_in_target": 53, "tension_in_target": 1, "min_bend_R": 1.02, "min_bend_limit": 2.0, "src": "hr44/wires_v2/wires_check.json summary（coarse=True）"}, "fixings": ["N01-FX_HB09R_HOOK_N01", "T02-FX_HB09R_HOOK_T02"], "fixings_was_until_2026_09_26_hr45n01": ["T02-FX_HB09R_HOOK_T02"], "fixings_src_2026-09-26_hr45n01": "hr45n01（用户 06:40 定 N01 颈柱非闭合挂钩）：+y 前唇双指卡槽，站点 fix_N01_hook_in / fix_N01_hook_out (26.5, 15.13, 185.5 / 176.3)，束心贴槽底；躯干顶 7 站（x 6.65 … −3.85）外移到 y 21.75 躲钩尖（颈俯仰翻身段 ② 归 0）；服务环搭指尖（①）主设计已接受", "fixings_was_until_2026_09_26_hr45": [], "fixings_src_2026-09-26_hr45": "hr45（2026-09-26，用户 06:30 定开口挂钩，不用扎带）：颈根 T02 肩唇上开口挂钩，腔心 = wiring_body_v1.json 站点 fix_FX_HB09R_HOOK_T02；几何 duckstructure/trunk.py:wire_hook，锚点 wire_fixings_v1.json FX_HB09R_HOOK_T02（type hook），装配见 assembly.yaml 步 19 harness_steps 19d", "status": "外观不可接受，待 hr44neck 专项（协调员 00:45：sideLow 两支在 z 200–207、x 30–49 外鼓到 |y| 53–56，颈缝无壳遮挡，≈30 mm 线圈悬在脖子两侧；偏航余量须绕偏航轴附近 wrap 存 r ≤14、|y| ≤26、x 10..50、环顶 z ≤204）。v2 未通过（区内残余，待用户定）：全集 4745 姿态命中 922，区内 187、区内张紧 10。trunk_base×trunk 50 姿态深 1.50（例 [{'neck_pitch': 60.0}, {'neck_pitch': 60.0, 'head_pitch': -50.0}]）；jaw_soft×jaw 40 姿态深 0.99（例 [{'head_roll': 20.0}, {'head_roll': 22.5}]）；neck×servo__neck_neck 95 姿态深 9.53（例 [{'head_pitch': 50.0, 'head_yaw': -115.0}, {'head_pitch': 55.0, 'head_yaw': -115.0}]）；neck_pitch×neck_pitch 29 姿态深 1.53（例 [{'head_yaw': -115.0, 'head_roll': 25.0}, {'head_yaw': -110.0, 'head_roll': 25.0}]）。根因：偏航目标 −116..95 要 71 mm 服务环，零位外鼓到 |y|≈40–53", "src": "wires_meta.json body.HB09_R"}
+      - {"id": "HB09_L", "side": "−y", "content": "12 V 一对（HB03 头外段，XT30 延长线 18AWG）+ 舵机扁线（HB01 7→6 跳）", "members": ["xt30_18awg_pair", "servo_flat"], "od_mm": 5.96, "od_src": "assumed：束径 = 成员截面积 ÷ 填充率 0.6 + 缠绕管壁 2×0.35（wiring_body.FILL / WRAP）", "length_mm": 221.3, "length_mm_was_until_2026_09_26_hr45n01": 218.6, "length_mm_src_2026-09-26_hr45n01": "build #3 export_all wires_meta（N01 左钩站 fix_N01_hookL_in/out + 躯干顶 9 站按 T03 轮廓外移）", "length_mm_was_until_2026_09_26_hr44": 219.7, "min_bend_R": 1.0, "min_bend_R_was_until_2026_09_26_hr45n01": 1.01, "min_bend_R_was_until_2026_09_26_hr44": 0.92, "min_bend_at": [22.9, -23.4, 199.3], "min_bend_at_was_until_2026_09_26_hr45n01": [28.3, -22.4, 150.3], "min_bend_at_was_until_2026_09_26_hr44": [22.9, -23.4, 198.6], "min_bend_limit": 3.0, "crosses": ["head_roll", "head_yaw", "head_pitch", "neck_pitch"], "flex": [{"k": 0, "state": "ok", "L": 71.1}, {"k": 1, "state": "ok", "L": 10.6}, {"k": 2, "state": "ok", "L": 14.0}], "head_yaw_wrap": {"model": "wrap（绕头偏航轴螺旋，wiring_body.flex_wrap）", "L_mm": 71.1, "target_range_deg": [-116.4, 95.4], "pm170_need_mm": "≈88（wires_v1 note，p16 第 1 版）", "src": "wires_meta.json body.HB09_L.flex[k=0].L + note『v2 sideLow：偏航+横滚服务环挂颈两侧低位（头侧下垂 7 mm、hpow 4 快降，N02 侧锚 z 200.5 |y| 22.8）；躯干段扫掠障碍路由不穿壳（p33b）』"}, "check_coarse": {"n_poses": 664, "hit_in_target": 331, "tension_in_target": 0, "min_bend_R": 0.92, "min_bend_limit": 3.0, "src": "hr44/wires_v2/wires_check.json summary（coarse=True）"}, "fixings": ["N01-FX_HB09L_HOOK_N01", "T03-FX_HB09L_HOOK_T03"], "fixings_was_until_2026_09_26_hr45n01": ["T03-FX_HB09L_HOOK_T03"], "fixings_src_2026-09-26_hr45n01": "hr45n01（用户 08:1x 拍板'左勾先做吧，我用不上再说'，可选用）：−y 背板外面双指卡槽，站点 fix_N01_hookL_in / fix_N01_hookL_out (26.5, −19.28, 186.5 / 177.3)；躯干顶 9 站（x 7.77 … −7.29）按 T03 轮廓外移（线束外缘 −28.78）；用户接受：服务环搭钩（①）与颈俯仰翻身段残余压线（②，真实 5 条、最深 1.15 mm）", "fixings_was_until_2026_09_26_hr45": [], "fixings_src_2026-09-26_hr45": "hr45（2026-09-26，用户 06:30 定开口挂钩，不用扎带）：颈根 T03 肩唇上开口挂钩，腔心 = wiring_body_v1.json 站点 fix_FX_HB09L_HOOK_T03；几何 duckstructure/trunk.py:wire_hook，锚点 wire_fixings_v1.json FX_HB09L_HOOK_T03（type hook），装配见 assembly.yaml 步 19 harness_steps 19d", "status": "外观不可接受，待 hr44neck 专项（协调员 00:45：sideLow 两支在 z 200–207、x 30–49 外鼓到 |y| 53–56，颈缝无壳遮挡，≈30 mm 线圈悬在脖子两侧；偏航余量须绕偏航轴附近 wrap 存 r ≤14、|y| ≤26、x 10..50、环顶 z ≤204）。v2 未通过（区内残余，待用户定）：全集 4745 姿态命中 1031，区内 195、区内张紧 0。trunk_base×shell_R 31 姿态深 0.77（例 [{'neck_pitch': 57.5}, {'neck_pitch': 60.0}]）；jaw_soft×jaw 44 姿态深 1.00（例 [{'head_roll': -25.0}, {'head_roll': -22.5}]）；neck×servo__neck_neck 96 姿态深 9.59（例 [{'head_pitch': 55.0, 'head_yaw': 95.0}, {'head_pitch': 60.0, 'head_yaw': 85.0}]）；neck_pitch×neck_pitch 28 姿态深 1.47（例 [{'head_yaw': -90.0, 'head_roll': -25.0}, {'head_yaw': -85.0, 'head_roll': -25.0}]）。根因：偏航目标 −116..95 要 71 mm 服务环，零位外鼓到 |y|≈40–53", "src": "wires_meta.json body.HB09_L"}
+    branches_note_2026-09-25_hr44: "过颈两束（用户 23:05 定案）：+y = IMU 4 杜邦 + 总线延长线（束径 5.26）、−y = 12 V 一对 + 舵机扁线（束径 5.96）；束径 = 面积 ÷ 填充率 0.6 + 缠绕管壁（assumed）。固定点 = 两孔扎带位（Ø2.6×2、孔距 6）或扎带桥（8×3×2.5、隧道 3.2×1.5），几何与 feature 由线束 agent 做 → fixings 回填。以 wires_meta 为准（hr44 wires_v2 2026-09-26 00:05 导出；线束 agent 还在改）"
+    branches_note_2026-09-26_hr44_build5: "hr44 build #5（协调员 01:45 拍板）：过颈两束并回 hr44neck v1（目标区间·下垂环 wiring_body flex bulge=sag，偏航环线长 R 79.6 / L 72.9；实走 R 215.1 / L 218.6（头出口对齐头内线端后）；环外缘 |y| 25.2 / 25.7）；build #4 颈部 8 个扎带桥整组作废 → 颈部不固定：头出口头内胶带（不登几何），N02 / N01 / 躯干处为贴件自由过点 via_*。状态 = 未通过：目标区间内空间不足（hr44neck/过颈线束研究.md §1.3），待用户定（收窄偏航 / 接受残余 / 偏航改空心轴）。v1 全采样区内 2837：R 命中 505（>1 mm 412 含躯干 132、夹压 22、最深 8.63）、L 2460（>1 mm 353 含躯干 67、夹压 13、最深 9.98）；偏航收窄 ±20 时 R 环本身只剩擦碰 ≤0.63 + 夹压 3 处 ≤1.05，L 颈柱压 2.5–4.6（研究 §3 / §5）；fixings = []（无固定点）"
+    note_2026-09-29_hr52: "HB09_R 里 IMU 4 根中的 SDA / SCL 在 Radxa 端改插 3 / 5 号杜邦一分二（母对二公）的 IMU 腿（HB12 ToF 共用 I²C3，HB05.hr52_route_2026-09-29）；过颈段几何不变，只是头内多一个中途公母对插接头 + 一分二腿长的余量（都未建模）"
+    route_model:
+      module: "duckstructure.wiring_body"
+      fn: "sweep_summary"
+      routes: ["HB09_R", "HB09_L"]
+      covers_whole_bundle: true
+      uncovered: "无（出头口 → 躯干顶口袋全段；头内段属 HB01/HB03/HB05 的 wiring_head 线）"
+      l6: "L6/HB09_R、L6/HB09_L:harness_sweep；两条都判了 → L6/HB09_cross_neck 的『没有折线』unknown 不再发"
+    status: "partially_modeled"
+    status_was_until_2026_09_25_hr44reg: "unmodeled"
+    status_note_2026-09-25_hr44reg: "hr44：两支按 wiring_body 实体模型扫掠（wires_v2 sideLow 未通过：外观不可接受，待 hr44neck 专项；线束 agent 修中）；conductors / segments_purchased 等字段仍是旧 null（见 branches 与 purchase_table）"
+    unknown_class: "not_modeled"
+    unknown_reason: "N01 颈部无显式过线口：线束从载体开口 +z 侧/背板两侧自由走（未建模）；第 6 层的'线束沿路径扫管'无输入"
+    bench_ref: "bench.yaml:BN05"
+    provenance:
+      - "duck.py:721-726"
+      - "inventory_v2.json:printed_parts[11].notes"
+      - "inventory_v2.json:unknowns[5]"
+  - id: "HB10_amp_i2s_5v"
+    name: "MAX98357A 功放 ← Radxa 40PIN：I²S3_M0（pin12 SCLK / pin35 LRCK / pin40 SDO→DIN）+ 5 V/GND"
+    bench_2026-09-30: "台架（主控板会话）：Vin → 4 / GND → 6 / BCLK → 12 / LRC → 35 / DIN → 40，GAIN / SD 悬空；Vin–GND 实测 5.15 V，放音端子有输出 → 功放 + I²S 接对。台架只接了功放；麦克风（HB08）同时接时 12 / 35 一根针插不下两个杜邦壳 —— 本条 09-23 已定案（杜邦一分二 母对二母 ×2：单母头插 Radxa、两母头分给麦 SCK / WS 与功放 BCLK / LRC；hr43c 起 12、35 下腿给功放，assembly 18d′ 的 16 壳里 12 / 35 就是一分二单壳两线），台架再次确认，不另改"
+    name_note_2026-09-23_hr38: "引脚按 Radxa 官方 40PIN 表核过（docs.radxa.com/en/zero/zero3/hardware-design/hardware-interface）：**I²S3 只有 M0 一组齐活** —— M0 = 11 MCLK / 12 SCLK / 35 LRCK / 38 SDI / 40 SDO；M1 只有 19 SCLK / 21 SDO / 23 MCLK / 24 SDI，**表里没有 I2S3_LRCK_M1** → 换针位这条路不通。麦克风（HB08）走 SDI pin38，功放走 SDO pin40，SCLK/LRCK 两家共用"
+    head_segment_2026-09-23_hr39c: "功放平移 T_AMP 后：LRC(pin35 腿) 69.5 / BCLK(pin12 腿) 79.8 / DIN pin40 65.7 / GND pin25 64.2 / VIN pin2 79.0（hr39c_work/wires/summary.log）；⑤ H05 +y 导轨开窗后喇叭线进端子 0 交"
+    from: "sbc_radxa_zero3w 40PIN pin12/35/40（与 HB08 麦克风共用 pin12/35，两根杜邦母壳并插不了 → **定案 2026-09-23 用户：买『杜邦线 一分二 母对二母 2.54』×2**，pin12 一根、pin35 一根：单母头插 Radxa，两个母头分别插麦克风 SCK/WS 与功放 BCLK/LRC；不焊、不压接）；5 V/GND 从 HB04 的 1P 母头那路（UBEC 5 V → pin4/6）并出"
+    to: "amp_max98357a 的 7P 直排针（LRC/BCLK/DIN/VIN/GND；GAIN/SD 按商品页跳线或空着），套 2.54 单针杜邦母壳"
+    conductors: {v: 5, src: "design"}
+    segment_len_mm: {"v": 90, "src": "assumed", "src_note": "功放弯针壳口 (0, −23, 255) → Radxa 排针 pin12/35/40 壳端 (x 43.5..57.5, y 11.4/−19.05/−24.13, z 258..262)：沿头腔 −y 内壁向 +x 再上到排针，直线 ≈60，留弯折与冗余 ×1.5"}
+    segments_purchased: {v: null, src: null, unknown_class: "not_selected", unknown_reason: "拟用已有 40P 杜邦母母 40 cm 撕 5 根；**不焊**（整鸭不焊接）"}
+    od_mm: {v: null, src: null, unknown_class: "not_measured", unknown_reason: "未买"}
+    min_bend_r_mm: {v: null, src: null, unknown_class: "not_measured", unknown_reason: "未量"}
+    connector_ends: ["Radxa 端：2.54 单针杜邦母壳 ×5（14 长）。**pin12 的壳原来撞 H01 前立板顶（x 47..52，顶 262）** —— hr38 在前立板顶边加了第三个缺口 x 46.5..52.5 × y 9.4..13.5 × z≥257.6（与 hr29 的 IMU 缺口 H01-F17 同款），另把 −y 侧缺口从 y −23.8 放到 −26.0 兜住 pin39/40（y −24.13，壳到 −25.40）", "功放端：2.54 单针杜邦母壳 ×5 套直排针"]
+    plug_envelope_mm: {v: "2.54×2.54×14 ×5（两端）", src: "datasheet"}
+    route_polyline: null
+    crosses_joints: []
+    joint_ranges_ref: null
+    anchors: null
+    slack_budget_mm: {v: null, src: null, unknown_class: "not_modeled", unknown_reason: "头内线未建模（阶段四线束建模）"}
+    keepout_ref: []
+    hr43_route_2026-09-25:
+      what: "功放 5 腿（LRC/BCLK 一分二 + DIN/GND/VIN）：直角转接横针出 5 mm 直 → 绕功放 ±y 侧往下 → 从 −x 贴 z 238.2 进功放板底杜邦壳下方 → R2.5 弯朝 +z 进壳尾线弯区（241.7）"
+      wires: "amp_LRC_pin35_splitleg 50.6 mm（买 150.0）R 2.0/2.0；amp_BCLK_pin12_splitleg 52.7 mm（买 150.0）R 2.26/2.0；amp_DIN_pin40 51.9 mm（买 100.0）R 2.35/2.0；amp_GND_pin25 55.6 mm（买 100.0）R 2.04/2.0；amp_VIN_pin2 48.4 mm（买 150.0）R 2.57/2.0"
+      check: "hr43_work/wires/check43_final.json（零位线∩件只剩线头进自己插的件 ≤0.217；头横滚 −30..25 / 偏航 ±95 / 俯仰 −50..97.5 / 嘴 −5..30 扫 0）"
+      model: "duckstructure/wiring_head.py:_HR43_ROUTES（hr43_work/scripts/route43_run.py → fix_bends.py）"
+    hr43c_route_2026-09-25:
+      what: "功放 5 腿针不变（VIN 2 / GND 25 / DIN 40 / 一分二 12、35 下腿）；Radxa 端改直插壳顶即弯；功放端随功放 −y 2.0（复审 #2 B1）"
+      wires: "amp_LRC_pin35_splitleg 77.5 mm（买 150.0）R 2.58/2.0；amp_BCLK_pin12_splitleg 76.9 mm（买 150.0）R 2.58/2.0；amp_DIN_pin40 78.3 mm（买 100.0）R 2.61/2.0；amp_GND_pin25 81.8 mm（买 100.0）R 2.58/2.0；amp_VIN_pin2 77.4 mm（买 150.0）R 2.59/2.0"
+      check: "hr43_work/wires/check43c_csi.json（零位线∩件 ≤0.091（限 0.217）；线端进杜邦占位 ≤0.021；头横滚 −30..25 / 偏航 ±95 / 俯仰 −50..97.5 / 嘴 −5..30 扫 0）"
+      model: "duckstructure/wiring_head.py:_HR43C_ROUTES（hr43_work/hr43c/c5_route.py → c6_fix_bends.py）；Radxa 端弯段在 electronics.gpio_dupont_boxes（zz_gpio_dupont）"
+    hr43d_route_2026-09-25:
+      what: "功放挪后脑 +y（H09 支架，板竖放元件面 +x、杜邦壳挂板背朝 −x）：Radxa 端 5 根（2 / 12 下腿 / 25 / 35 下腿 / 40）「出壳即弯」改朝 −x（electronics.GPIO_DUP_LEG_DIR）→ 路由过 Radxa 顶面上方往后 → （40 号斜 45° 朝 (−x, +y)）→ 功放壳尾线弯区 −x 面（x −32.1，y 21.65，z = LRC 243.42 / BCLK 240.88 / DIN 238.34 / GND 230.72 / VIN 228.18）沿 +x 进；BCLK（y 10.43 在 CSI 带里）绕开 CSI 竖直下行段"
+      wires: "amp_LRC_pin35_splitleg 67.1 mm（买 150.0）R 2.61/2.0；amp_BCLK_pin12_splitleg 63.2 mm（买 150.0）R 1.99/2.0 ⚠；amp_DIN_pin40 74.2 mm（买 100.0）R 2.91/2.0；amp_GND_pin25 71.6 mm（买 100.0）R 2.88/2.0；amp_VIN_pin2 67.3 mm（买 150.0）R 3.21/2.0（不含壳顶弯段 ≈3.1）"
+      warning: "全部 ≤ 买的长度（100 / 150 余 ≥20）；amp_BCLK R 1.99/2.0 @ Radxa 腿弯完接路由处（天花板压着只能马上下坡）；Radxa 端腿弯顶 → H05 内面余量（hr43d/d06_pin_margin.json，线管顶竖直射线）：pin 2 1.39 / 12 3.75 / 25 3.63 / 35 1.51 / 40 1.57（40 号朝正 −x 时只 0.68 → 改斜 45° 朝 (−x, +y)）"
+      check: "hr43_work/wires/check43d_final.json（零位线∩件（非预期）全 ≤0.217，最大 bus_s1_leg1×H01 0.017；线端进自己插的件 ≤0.30；线∩线只 S1 两腿同一公壳出线 0.60 + 基线 bus_jaw_ph×bus_jaw_roll 0.036；头横滚 −30..25 / 偏航 ±95 / 俯仰 −50..97.5 / 嘴 −5..30 扫 0）"
+      model: "duckstructure/wiring_head.py:_HR43D_ROUTES / _apply_hr43d（hr43_work/hr43d/d_route.py → d_fix_bends.py → d_apply_routes.py）"
+    hr52_route_2026-09-29:
+      what: "2 号（功放 VIN）腿先竖直 1.4 再弯（跨新插的 1 号 ToF VIN 出壳，同 3 跨 4 机制），腿方向偏 −y 10°（朝 (−cos10°, −sin10°)，让 1 号腿的挤点多 ≈0.04）；出腿即 R 2 下潜（平走会碰 H05 内面台阶），x ≤ 0.95 接回原线"
+      wires: "amp_VIN_pin2 86.5 mm（hr44 86.0，买 150.0）R 2.29/2.0（最小弯在原线段）；排针端下潜段到 H05 ≥ 0.45、到 zz_gpio_dupont（1 号 / 3 号腿）0.24"
+      check: "hr52_work/harness/h21_final_check.json（build 后精确布尔：线束实体 × 件相对基线无新增 —— 只有 4 根 ToF 线头进自己排针腿的接续重叠 0.014..0.030 mm³（同基线 amp_GND_pin25 0.087 那类）；mic_pin12 × H10 3.52 / × zz_tof 2.41 归零；线 × 线无新增跨束）+ h23_clearance.json（净空）"
+      model: "duckstructure/wiring_head.py:_apply_hr52（duckstructure/data/wiring_head_hr52.json routes.amp_VIN_pin2；hr52_work/harness/scripts/h10_reroute_starts.py）；Radxa 端腿在 electronics.GPIO_DUP_STACK_OVER / STACK_S / LEG_DIR（hr52）"
+    status: "placeholder"
+    budget_ref: "frozen.yaml:C6_interface_budgets"
+    provenance: ["docs/design_2026-09-17_bearing_rebuild/hr38_顶壳与扬声器.md §6.5", "docs.radxa.com/en/zero/zero3/hardware-design/hardware-interface（40PIN 表，hr38 核）"]
+  - id: "HB11_amp_speaker"
+    name: "功放螺丝端子 → 喇叭（喇叭自带 2 线）"
+    bench_2026-09-30: "台架（主控板会话）：放音时功放端子有输出，喇叭没响 = 喇叭线压在胶皮上（没剥到铜）；待用户买剥线钳后按 components.yaml:speaker 口径剥 5 mm 捻紧对折重接"
+    head_segment_2026-09-23_hr39c: "spk_pair 70.9/100（喇叭平移 T_SPK 后），净空 1.43"
+    from: "amp_max98357a 2P 螺丝端子"
+    to: "speaker 背面焊片（出厂焊好的两根线）"
+    conductors: {v: 2, src: "design"}
+    segment_len_mm: {"v": 80, "src": "assumed", "src_note": "功放 +y 端子 (0, 6, 262) → 喇叭背面焊片 (50, 2.5, 264)：沿顶壳内面 |y|≤8、z≥262 那条直线 50，留冗余；中段 x 12..40 顶下只有 4..11 mm（N03 横滚扫掠体），线必须贴内面走。**到货核**"}
+    segments_purchased: {v: null, src: null, unknown_class: "not_selected", unknown_reason: "喇叭自带线，长度看商品页；到货量"}
+    od_mm: {v: null, src: null, unknown_class: "not_measured", unknown_reason: "未买"}
+    min_bend_r_mm: {v: null, src: null, unknown_class: "not_measured", unknown_reason: "未量"}
+    connector_ends: ["功放端：螺丝端子（**不焊**，拧）", "喇叭端：焊片（出厂焊好）"]
+    plug_envelope_mm: {v: null, src: null, unknown_class: "not_applicable", unknown_reason: "无插头"}
+    route_polyline: null
+    crosses_joints: []
+    keepout_ref: []
+    hr43_route_2026-09-25:
+      what: "喇叭两根：凸台底往下 → 从端子块下方 x 43.95 竖着上来 R2 弯朝 +x 进端子块 −x 面线口（z 266.3，板顶 + 2.5 assumed）；身后 x ≤ 44 是盒 B 线弯区"
+      wires: "spk_pair 25.5 mm（买 100.0）R 2.49/2.0"
+      check: "hr43_work/wires/check43_final.json（零位线∩件只剩线头进自己插的件 ≤0.217；头横滚 −30..25 / 偏航 ±95 / 俯仰 −50..97.5 / 嘴 −5..30 扫 0）"
+      model: "duckstructure/wiring_head.py:_HR43_ROUTES（hr43_work/scripts/route43_run.py → fix_bends.py）"
+    hr43c_route_2026-09-25:
+      what: "喇叭两根：端子块随功放 −y 2.0 → 尾段跟着挪（凸台底往下 → 端子块下方 x 43.95 竖上来 R2 弯朝 +x 进线口）"
+      wires: "spk_pair 25.3 mm（买 100.0）R 2.47/2.0"
+      check: "hr43_work/wires/check43c_csi.json（零位线∩件 ≤0.091（限 0.217）；线端进杜邦占位 ≤0.021；头横滚 −30..25 / 偏航 ±95 / 俯仰 −50..97.5 / 嘴 −5..30 扫 0）"
+      model: "duckstructure/wiring_head.py:_HR43C_ROUTES（hr43_work/hr43c/c5_route.py → c6_fix_bends.py）；Radxa 端弯段在 electronics.gpio_dupont_boxes（zz_gpio_dupont）"
+    hr43d_route_2026-09-25:
+      what: "喇叭两根：喇叭背面焊片凸台 −x 面出（出线朝 −x assumed）→ 过 N03 上方 → 后脑 +y 功放端子接线口（端子块 +y 面，y 38.35，z ≈235.8）沿 −y 进；端子螺丝朝 +x，在 H03 台面工位先接"
+      wires: "spk_pair 89.2 mm（买 100.0）R 1.56/2.0 ⚠；直线距离 ≈81（焊片 (52.2, 3.1, 276.0) → 端子口 (−5.75, 38.35, 235.8)）"
+      warning: "喇叭自带线 ≈100 **未实量（assumed）**：走线 89.2 + 端子剥线 / 余量 ≈5 → 余 ≈6，可能刚好；到货量线长，不够就加 2P 延长（不焊接前提下要能插接，assumed）；R 1.56/2.0 @ 进端子处"
+      check: "hr43_work/wires/check43d_final.json（零位线∩件（非预期）全 ≤0.217，最大 bus_s1_leg1×H01 0.017；线端进自己插的件 ≤0.30；线∩线只 S1 两腿同一公壳出线 0.60 + 基线 bus_jaw_ph×bus_jaw_roll 0.036；头横滚 −30..25 / 偏航 ±95 / 俯仰 −50..97.5 / 嘴 −5..30 扫 0）"
+      model: "duckstructure/wiring_head.py:_HR43D_ROUTES / _apply_hr43d（hr43_work/hr43d/d_route.py → d_fix_bends.py → d_apply_routes.py）"
+    status: "placeholder"
+    budget_ref: "frozen.yaml:C6_interface_budgets"
+    provenance: ["docs/design_2026-09-17_bearing_rebuild/hr38_顶壳与扬声器.md §6.5"]
+  - id: "HB12_tof_i2c"
+    name: "ToF「v6-VL53L5CX 雷达」→ Radxa 40PIN：I²C3（3 SDA / 5 SCL，与 IMU 一分二共用）+ 1 号 3.3 V + 6 号 GND（hr52，2026-09-29）"
+    from: "tof_vl53l5cx（左脸 H04 贴面、H10 压条；背面 6P 直排针右边 4 根套杜邦母壳 SDA / SCL / GND / VIN，壳尾 x 73.87、线沿 −x 出，最后 2 mm 沿 +x 直进壳；INT / LPn 空）"
+    to: "sbc_radxa_zero3w 40PIN：VIN → 1（3.3 V，原空）、GND → 6（原空）、SDA → 3、SCL → 5（3 / 5 改杜邦『一分二 母对二公』单母头直插，两腿分给 IMU（HB05）与 ToF，同 17 号那根）"
+    pins: {VIN: 1, GND: 6, SDA: 3, SCL: 5}
+    conductors: {v: 4, src: "design"}
+    segment_len_mm:
+      v: [66.3, 68.6]
+      src: "derived"
+      src_note: "wiring_head 模型线长（wires_meta head.tof_*.length_mm，hr52 build）：SDA 66.3 / SCL 68.6 / GND 66.8 / VIN 68.2；不含 Radxa 端壳顶弯段（在 zz_gpio_dupont 里：3 号 4.6、1 / 5 / 6 号 3.1）"
+    segments_purchased:
+      v: "4 × 杜邦 母对母 10 cm（VIN / GND 直通 1 / 6；SDA / SCL 母头插在 3 / 5 号一分二的 ToF 腿公头上）+ 2 × 杜邦一分二 母对二公（3 / 5 号，件同 17 号那根）"
+      src: "assumed"
+      src_note: "商品规格与一分二腿长未定；见 purchase_table_2026-09-25_hr44 两行【hr52 新增】"
+    od_mm: {v: 1.4, src: "datasheet", src_note: "components.yaml:cable_dupont_ff 线 OD 1.4（商品页，hr43c 口径）"}
+    min_bend_r_mm: {v: 2.0, src: "assumed", src_note: "wiring_head.CABLE dupont min_bend（中心线，出壳即弯 Rc 口径）"}
+    connector_ends:
+      - "ToF 端：2.54 杜邦母壳 1P ×4（2.54×2.8×14，套模块背面直排针到底顶住塑座；壳在 zz_tof 里）"
+      - "Radxa 端：1 / 6 号杜邦母壳 1P 直插；3 / 5 号一分二单母头直插（electronics.GPIO_DUP_* hr52：1 号腿朝 37°、2 号抬 1.4 偏 −y 10°、3 号两腿横排 y ±0.7、5 号两腿横排朝 −45°、6 号朝 +x；壳与出壳弯段在 zz_gpio_dupont）"
+      - "3 / 5 号：一分二 ToF 腿公头 ↔ 母对母 10 cm 母头，中途公母对插接头（≈2.6×2.6×~28，未建模）"
+    plug_envelope_mm: {v: "杜邦母壳 2.54×2.8×14：ToF 端 4 + Radxa 端 4（1 / 6 号 + 3 / 5 号一分二单母头）；中途对插接头 2 个未建模", src: "datasheet"}
+    route_polyline: null
+    crosses_joints: []
+    joint_ranges_ref: null
+    anchors: "x 33.6..61.6 四根扎成 tof 束（2×2 最密堆，束径 3.38）；扎带 2 道 tie__tof_1 (43.5, 24.7, 276.5)（环离 H05 2.0）/ tie__tof_2 (54.0, 28.1, 276.3)（环离麦束线 0.85）（wiring_head_hr52.json bundles.tof.ties，扎带 2.5 × 1.0 assumed）；头内不加扎带座（hr44 口径：胶带 / 泡棉胶贴 H05 内面，assembly 写位置）"
+    slack_budget_mm:
+      v: [28.7, 30.1]
+      src: "derived"
+      src_note: "VIN / GND（10 cm 直通）：100 − (模型长 + 壳顶弯段) = VIN 28.7 / GND 30.1；SDA / SCL 物理 = 一分二腿（腿长未知）+ 10 cm，比路径 ≈71 长得多，余长要在头里盘，盘线位置未建模"
+    keepout_ref: []
+    route_model_head_2026-09-29_hr52:
+      module: "duckstructure.wiring_head"
+      fn: "build"
+      wires: ["tof_SDA_pin3_splitleg", "tof_SCL_pin5_splitleg", "tof_GND_pin6", "tof_VIN_pin1"]
+      data: "duckstructure/data/wiring_head_hr52.json（tof_wires / bundles.tof）"
+      covers_whole_bundle: true
+      uncovered: "3 / 5 号一分二中途公母对插接头 + 余长盘线"
+      why_not_route_model: "L6 E′（harness_sweep）把 route_model.routes 当 duckstructure.wiring_body.sweep_summary 的线路 id；头内线登进 route_model，E′ 恢复时会判 MissingRoute（NOT_RUN BLOCK）→ 头内模型另起这个键（同 HB05 / HB08 头内段只写在 hrXX_route.model）"
+    hr52_route_2026-09-29:
+      what: "排针端（0.2 mm 细网格最短路 + 弹性带，逐根占用）：SDA 3 号 ToF 腿 y 21.29 直走到 x 20 再抬；GND 6 号经 (15.2, 19.7, 278.85) 从 IMU / ToF 两根 SDA 上方过；VIN 1 号腿朝 37° 后 R 2 回正，从 2 号竖直段与 H05 +y 吊柱削平面之间挤出；SCL 5 号 ToF 腿（朝 −45°）R 2 回正后经 (19, 16.9, 278) 走 CSI 排线下、IMU 两根下潜段之上，从 UBEC 5V 线上方跨过 → x 33.6..61.6 扎成 2×2 束（头腔体素最短路 + 弹性带，束心 EDT ≥ 2.3；车道 0 上−y SDA / 1 下−y SCL / 2 下+y VIN / 3 上+y GND）走在麦克风束上方 → x 61.6 起四根同步三次 Hermite 扇出到四个壳尾（不交叉），最后 2 mm 沿 +x 直进"
+      wires: "tof_SDA_pin3_splitleg 66.3 mm（买 100.0）R 6.35/2.0；tof_SCL_pin5_splitleg 68.6 mm（买 100.0）R 3.14/2.0；tof_GND_pin6 66.8 mm（买 100.0）R 4.12/2.0；tof_VIN_pin1 68.2 mm（买 100.0）R 5.34/2.0（wires_meta 2 mm 窗口口径；排针端腿后回正弧按构造 R 2.0 = 下限）"
+      clearance: "到件最近：VIN 0.096（H05 +y 吊柱削平面，1 号腿后回正弧挤点）、SCL 0.105（6 号腿弯线管）、SDA 0.25（zz_gpio_dupont）、GND 0.54；束段 / 扇出段到 H05 ≥ 0.55、到 zz_tof 壳 0.55；到别束线最近：SCL × UBEC 5V 0.29、SDA × UBEC 5V 0.34、GND × IMU SDA 0.42；与 IMU 同一个一分二的那根（3 / 5 号横排）出壳即贴着（0.00）"
+      check: "hr52_work/harness/h21_final_check.json（build 后精确布尔：线束实体 × 件相对基线无新增 —— 只有 4 根 ToF 线头进自己排针腿的接续重叠 0.014..0.030 mm³（同基线 amp_GND_pin25 0.087 那类）；mic_pin12 × H10 3.52 / × zz_tof 2.41 归零；线 × 线无新增跨束）+ h23_clearance.json（净空）"
+      model: "duckstructure/wiring_head.py:_apply_hr52 + duckstructure/data/wiring_head_hr52.json（hr52_work/harness/scripts/h10..h20）；Radxa 端腿在 electronics.GPIO_DUP_*（hr52）"
+    status: "modeled_unverified_physical"
+    status_note: "模型建完（线 × 件 0、弯半径 ≥ 2.0、跨束不互穿）；实物未验证：模块 / 一分二 / 10 cm 母对母都没下单，一分二腿长未知，SDA / SCL 余长盘线与中途对插接头没建模；VIN / SCL 排针端挤点只有 ≈0.1"
+    unknown_class: "not_measured"
+    unknown_reason: "到货后量：ToF 排针实测位置（tof.PIN_B assumed）、一分二腿长、10 cm 线实长；再复核"
+    budget_ref: "frozen.yaml:C6_interface_budgets"
+    provenance:
+      - "components.yaml:tof_vl53l5cx.wiring_plan_2026-09-29_hr52"
+      - "duckstructure/wiring_head.py:_apply_hr52 / duckstructure/data/wiring_head_hr52.json"
+      - "docs/design_2026-09-17_bearing_rebuild/hr52_work/harness/线束报告.md"
+purchase_table_2026-09-25_hr44:
+  note: "买线表（hr44reg 登记，2026-09-25）：规格 × 长度 × 数量 × 依据；实走长度 = wires_meta length_mm，以 wires_meta 为准（hr44 wires_v2 2026-09-26 00:05 导出；线束 agent 还在改）。余 = 买的长度 − 实走；≥ margin 够 / 0..margin 紧 / < 0 不够（要买）。只按 meta 算长度，不编商品规格"
+  margin_mm: {"v": 20.0, "src": "assumed", "src_note": "同 HB10 口径『余 ≥20』（harness.yaml:HB10 warning）"}
+  rows:
+    - {"item": "舵机原配 PH2.0 3P 壳-壳扁线 200（4.5×1.5，measured）", "len_mm": 200, "qty_need": 14, "qty_have": 15, "buy": 0, "qty_basis": "链内跳数 = 每链颗数 − 1：左腿 3 + 右腿 3 + 头链 3（14→8→7→6）+ 三条单挂 0 = 9；+ 链头（一分二母口 → 首颗）5（S4→0、S4→1、S5→9、S5→10、S2→5；头链链头走 PH 10 cm）= 14 ≤ 随舵机 15（余 1 备用）", "check": [{"wire": "bus_S4_hipyaw_L", "length_mm": 38.2, "bought_mm": 200.0, "spare_mm": 161.8, "verdict": "够", "length_mm_was_until_2026_09_26_hr44b": 49.1}, {"wire": "bus_S4_hiproll_L", "length_mm": 139.6, "bought_mm": 200.0, "spare_mm": 60.4, "verdict": "够", "length_mm_was_until_2026_09_26_hr44b": 134.5}, {"wire": "bus_L_1to2", "length_mm": 166.4, "bought_mm": 200.0, "spare_mm": 33.6, "verdict": "够"}, {"wire": "bus_L_2to3", "length_mm": 31.4, "bought_mm": 200.0, "spare_mm": 168.6, "verdict": "够", "length_mm_was_until_2026_09_26_hr44b": 29.0}, {"wire": "bus_L_3to4", "length_mm": 135.3, "bought_mm": 200.0, "spare_mm": 64.7, "verdict": "够", "length_mm_was_until_2026_09_26_hr44b": 117.7}, {"wire": "bus_S5_hipyaw_R", "length_mm": 38.2, "bought_mm": 200.0, "spare_mm": 161.8, "verdict": "够", "length_mm_was_until_2026_09_26_hr44b": 50.3}, {"wire": "bus_S5_hiproll_R", "length_mm": 139.6, "bought_mm": 200.0, "spare_mm": 60.4, "verdict": "够", "length_mm_was_until_2026_09_26_hr44b": 236.2}, {"wire": "bus_R_1to2", "length_mm": 170.5, "bought_mm": 200.0, "spare_mm": 29.5, "verdict": "够"}, {"wire": "bus_R_2to3", "length_mm": 31.4, "bought_mm": 200.0, "spare_mm": 168.6, "verdict": "够"}, {"wire": "bus_R_3to4", "length_mm": 135.3, "bought_mm": 200.0, "spare_mm": 64.7, "verdict": "够", "length_mm_was_until_2026_09_26_hr44b": 117.4}, {"wire": "bus_jaw_roll", "length_mm": 116.8, "bought_mm": 200.0, "spare_mm": 83.2, "verdict": "够"}], "worst": {"wire": "bus_R_1to2", "length_mm": 170.5, "bought_mm": 200.0, "spare_mm": 29.5, "verdict": "够"}, "worst_was_until_2026_09_26_hr44b": {"wire": "bus_S5_hiproll_R", "length_mm": 142.0, "bought_mm": 200.0, "spare_mm": 58.0, "verdict": "够", "length_mm_was_until_2026_09_26_hr44b": 236.2}, "unmodeled_hops": ["S2→5（颈俯仰）", "8→7", "7→6（并在 HB09_L）"], "src": "HB01.segment_len_mm（用户卡尺 200）/ HB01.segments_purchased 15", "to_buy_was_until_2026_09_26_hr44": "bus_S5_hiproll_R 实走 236.2 > 200 → 差 36.2（wires_v2：S5 重落位后右髋横滚一跳变长）→ 要么该跳接 1 根 PH2.0 3P 公母延长线（规格未定），要么把 S5 挪近髋横滚 —— 待线束 agent / 协调员定", "to_buy": "定（hr44 第二轮 build #6，复审 #3 M5）：右髋横滚 = 左侧镜像实走 139.6 ≤ 原配 200 → 用原配线（build #5 的 30 cm 双头行作废）", "to_buy_was_until_2026_09_26_hr44b": "定（hr44 build #5，协调员 01:45 二选一 → 换 300 线）：S5 母② → 10 右髋横滚这一跳不用原配 200，改 1 根 PH2.0 3P 壳-壳双头同向 30 cm（300 − 236.2 = 63.8 ≥ 20）；原配线实用 13 / 有 15 —— 见本表新增行"}
+    - {"item": "PH2.0 3P 公母延长线 250（转接板 → S2 一段；components.yaml:cable_ph20_ext）", "len_mm": 250, "qty_need": 1, "buy": 1, "check": [{"wire": "HB09_R（出头口 R → 躯干顶口袋）", "length_mm": 218.5, "bought_mm": 250.0, "spare_mm": 31.5, "verdict": "够", "length_mm_was_until_2026_09_26_hr45n01": 215.1, "spare_mm_was_until_2026_09_26_hr45n01": 34.9, "note_2026-09-26_hr45n01": "N01 钩 + 躯干顶外移 +3.4 mm，买线长度不变仍有余量（31.5 ≥ 20）", "length_mm_was_until_2026_09_26_hr44": 214.8, "src_2026-09-26_hr44_build5": "HB09 v1 下垂环（build #5 wires_meta）"}], "src": "用户 23:05 定案 250 mm", "note": "口径：S1 腿②（≥100 assumed）在头内走 78.8、够到出头口，延长线只管出头口 → 口袋 = HB09_R 214.8 → 余 35.2。若 S1 腿②不到出头口、头内段也由延长线承担则需 78.8 + 214.8 = 293.6 > 250 → 不够（hr44_线束报告 §5 按这个口径写『需 ≈294 → 300』）；HB09 v2 sideLow 待 hr44neck，长度还会变 → 250 / 300 待用户定"}
+    - {"item": "PH2.0 3P 一公分二母（比地亚；components.yaml:splitter_ph20_1to2）", "len_mm": "腿 ≥100（assumed，商品页）", "qty_need": 5, "buy": 6, "qty_basis": "S1..S5 全装 5 只（wires_v2：S2–S5 有本体实体，S1 在头内无实体）+ 1 备件（memory 口径：一分二 5 只（+1 备））", "check": [{"wire": "bus_s1_leg1", "length_mm": 51.4, "bought_mm": 100.0, "spare_mm": 48.6, "verdict": "够"}, {"wire": "bus_s1_leg2_ext", "length_mm": 78.8, "bought_mm": 100.0, "spare_mm": 21.2, "verdict": "够"}, {"wire": "bus_S2_S34", "length_mm": 63.5, "bought_mm": 100.0, "spare_mm": 36.5, "verdict": "够", "length_mm_was_until_2026_09_26_hr44b": 82.1}, {"wire": "bus_S3_S4", "length_mm": 31.9, "bought_mm": 100.0, "spare_mm": 68.1, "verdict": "够", "length_mm_was_until_2026_09_26_hr44b": 32.4}, {"wire": "bus_S34_S5", "length_mm": 86.9, "bought_mm": 100.0, "spare_mm": 13.1, "verdict": "紧", "length_mm_was_until_2026_09_26_hr44b": 260.1}], "worst": {"wire": "bus_S34_S5", "length_mm": 86.9, "bought_mm": 100.0, "spare_mm": 13.1, "verdict": "紧", "length_mm_was_until_2026_09_26_hr44b": 260.1}, "to_buy_was_until_2026_09_26_hr44": "S3 → S5 腿 bus_S34_S5 实走 260.1 > 腿 100 → 差 160.1（+ 余量 20 assumed）：要么 S3 母②后接 1 根 PH2.0 3P 公母延长线（≥ 180.1，规格未定），要么把 S5 / S3 挪近 —— 待线束 agent / 协调员定", "to_buy": "定（hr44 第二轮 build #6，复审 #3 M5）：S3→S5 实走 86.9（删 FX_S5 + 一分二贴 T01 内墙新座后）< 腿 100 但余 < 20 → S3 母②后接 1 根 PH2.0 3P 公母延长线 100（见本表新增行）", "to_buy_was_until_2026_09_26_hr44b": "定（hr44 build #5，协调员 01:45 二选一 → 换 300 线）：S3 母②后接 1 根 PH2.0 3P 公母延长线 300（腿 100 + 300 = 400 ≥ 实走 260.1 + 余量 20）；不挪一分二（S5 往 S3 挪会把右髋横滚一跳再拉长）—— 见本表新增行", "qty_check_2026-09-26_hr44_build5": "协调员 01:45 问『15 颗 = 左腿 4 + 右腿 4 + 髋偏航 1+1 + 颈头链 5 → 5 链只要 4 个？』核对：按用户 23:05 定案拓扑（本文件 topology_2026-09-25_hr44，不再讨论）颈俯仰是单挂链 E（S2 母①出），头链 = 嘴 + 3（S1 母①出），6 链：4 + 4 + 1 + 1 + 1 + 4 = 15 → 一分二 = 链数 − 1 = 5（S1 头里无实体 + S2–S5 躯干 4 实体，wires 实体 4 个是因为 S1 不建实体），不是多算；要改成 5 链 / 4 个得把颈俯仰接到头俯仰(6)后面当头链尾（6→5 同在 N01 里一跳），属拓扑改动 → 未改，列给协调员 / 用户定。买 6 留 1 备不变", "src": "wires_meta 腿长 bought 100（assumed）"}
+    - {"item": "PH2.0 3P 公母延长线 100（S3 母② → S5；hr44 第二轮 build #6：替 build #5 的 300 行）", "len_mm": 100, "qty_need": 1, "buy": 1, "check": [{"wire": "bus_S34_S5（S3 腿 100 + 延长 100）", "length_mm": 86.9, "bought_mm": 200.0, "spare_mm": 113.1, "verdict": "够", "length_mm_was_until_2026_09_26_hr44b": 90.6}], "src": "复审 #3 M5：260.1 是绕 FX_S5 的伪长；删桥 + 一分二贴 T01 内墙新座后实走 86.9 < 腿 100 但余 < 20 → 加短延长（协调员 02:22 口径：一分二挪近或加短延长）", "was_until_2026_09_26_hr44b": "PH2.0 3P 公母延长线 300（S3 母② → S5；hr44 build #5 新增）×1"}
+    - {"item": "【作废 hr44 第二轮】PH2.0 3P 壳-壳双头同向 30 cm（S5 母② → 10 右髋横滚）", "len_mm": 300, "qty_need": 0, "buy": 0, "why_void": "复审 #3 M5：236.2 是 FX_S5 挡路逼出的绕行伪长；删桥后右髋横滚 = 左侧镜像实走 139.6 ≤ 舵机原配 200（余 60.4），用原配线", "why_void_note_2026-09-26_hr44b_p71": "数字随 p71 躯干磨圆重算（磨圆前 142.0 / 余 58.0）", "was_until_2026_09_26_hr44b": "PH2.0 3P 壳-壳双头同向 30 cm ×1（hr44 build #5 新增）"}
+    - {"item": "PH2.0 3P 壳-壳双头同向 10 cm（S1 转接块 → 14 嘴下口）", "len_mm": 100, "qty_need": 1, "buy": 1, "check": [{"wire": "bus_jaw_ph", "length_mm": 81.4, "bought_mm": 100.0, "spare_mm": 18.6, "verdict": "紧"}], "src": "HB01.bus_tree.totals.new_purchase_2026-09-23_hr39c"}
+    - {"item": "CSI 200 mm（22→15 同面）", "len_mm": 200, "qty_need": 1, "buy": "已定（memory 口径）", "check": [{"wire": "csi43c_a+b+c+d（同一根）", "length_mm": 154.7, "bought_mm": 200.0, "spare_mm": 45.3, "verdict": "够"}], "src": "wires_meta head.csi43c_a..d"}
+    - {"item": "杜邦 40P 母对母 400（撕用：IMU 段 2 ×4，口袋对插点 → 过颈 HB09_R → 头内 Radxa 排针）", "len_mm": 400, "note_2026-09-26_hr45n01": "HB09_R 215.1 → 218.5（N01 钩 + 躯干顶外移 +3.4 mm）：下面各 check 的 length 应各加 3.4，最差 HB09_R + imu_pin17_splitleg 320.7 → 324.1、余量 79.3 → 75.9，买线长度不变仍够", "qty_need": "4 根（撕自 1 排）", "buy": "已有", "check": [{"wire": "HB09_R + imu_pin17_splitleg", "length_mm": 320.7, "bought_mm": 400.0, "spare_mm": 79.3, "verdict": "够"}, {"wire": "HB09_R + imu_pin3", "length_mm": 316.2, "bought_mm": 400.0, "spare_mm": 83.8, "verdict": "够"}, {"wire": "HB09_R + imu_pin5", "length_mm": 312.5, "bought_mm": 400.0, "spare_mm": 87.5, "verdict": "够"}, {"wire": "HB09_R + imu_pin14", "length_mm": 313.4, "bought_mm": 400.0, "spare_mm": 86.6, "verdict": "够"}], "worst": {"wire": "HB09_R + imu_pin17_splitleg", "length_mm": 320.7, "bought_mm": 400.0, "spare_mm": 79.3, "verdict": "够"}, "src": "HB05（QT→杜邦公 150 + 杜邦母母 40 cm）/ wires_meta head.imu_pin*.bought_src"}
+    - {"item": "杜邦 母对母 10 cm（mic 那批）", "len_mm": 100, "buy": "已有", "check": [{"wire": "mic_pin38", "length_mm": 115.3, "bought_mm": 100.0, "spare_mm": -15.3, "verdict": "不够"}, {"wire": "mic_pin17_splitleg", "length_mm": 107.4, "bought_mm": 100.0, "spare_mm": -7.4, "verdict": "不够"}, {"wire": "mic_pin20", "length_mm": 106.4, "bought_mm": 100.0, "spare_mm": -6.4, "verdict": "不够"}, {"wire": "mic_pin9", "length_mm": 111.4, "bought_mm": 100.0, "spare_mm": -11.4, "verdict": "不够"}, {"wire": "amp_DIN_pin40", "length_mm": 82.6, "bought_mm": 100.0, "spare_mm": 17.4, "verdict": "紧"}, {"wire": "amp_GND_pin25", "length_mm": 74.2, "bought_mm": 100.0, "spare_mm": 25.8, "verdict": "够"}], "to_buy": "要买：母对母 ≥ 135.3 mm × 4 根（mic_pin38 / mic_pin17_splitleg / mic_pin20 / mic_pin9；= 最长 115.3 + 余量 20 assumed；商品规格未定）", "note_2026-09-29_hr52": "hr52 麦束起头平移后（HB08.hr52_route_2026-09-29）：mic_pin38 114.7 / mic_pin17_splitleg 106.0 / mic_pin20 106.2 / mic_pin9 112.7 —— 仍 > 100，结论不变（最长 114.7 + 20 → ≥ 134.7）", "src": "wires_meta head.mic_* / amp_*（bought_src『购物车 10 cm 母对母』）"}
+    - {"item": "杜邦 一分二腿 15 cm / 15 cm 母对母（hr39 推荐）", "len_mm": 150, "buy": "按 hr39 推荐", "check": [{"wire": "mic_pin12_splitleg", "length_mm": 113.0, "bought_mm": 150.0, "spare_mm": 37.0, "verdict": "够"}, {"wire": "mic_pin35_splitleg", "length_mm": 120.3, "bought_mm": 150.0, "spare_mm": 29.7, "verdict": "够"}, {"wire": "amp_LRC_pin35_splitleg", "length_mm": 72.4, "bought_mm": 150.0, "spare_mm": 77.6, "verdict": "够"}, {"wire": "amp_BCLK_pin12_splitleg", "length_mm": 65.7, "bought_mm": 150.0, "spare_mm": 84.3, "verdict": "够"}, {"wire": "amp_VIN_pin2", "length_mm": 86.0, "bought_mm": 150.0, "spare_mm": 64.0, "verdict": "够"}], "worst": {"wire": "mic_pin35_splitleg", "length_mm": 120.3, "bought_mm": 150.0, "spare_mm": 29.7, "verdict": "够"}, "src": "wires_meta head bought_src", "note_2026-09-29_hr52": "hr52：mic_pin12_splitleg 114.9 / mic_pin35_splitleg 120.5 / amp_VIN_pin2 86.5 —— 都 ≤ 150 − 20，结论不变"}
+    - {"item": "杜邦 40P 母对公", "buy": "已有（memory 口径）", "check": [], "note": "wires_meta 里没有线路标注用母对公（备用 / 用途待主设计确认）"}
+    - {"item": "XT30 公转母延长线 40 cm 18AWG（HB03）", "len_mm": 400, "qty_need": 1, "buy": "已定（HB03.segments_purchased）", "check": [{"wire": "xt30_battery_pocket + HB09_L + head.xt30_12v", "length_mm": 315.2, "bought_mm": 400.0, "spare_mm": 84.8, "verdict": "够", "length_mm_was_until_2026_09_26_hr45n01": 312.5, "note_2026-09-26_hr45n01": "HB09_L 218.6 → 221.3（N01 左钩 + 躯干顶外移 +2.7 mm），买线长度不变仍有余量（84.8）"}], "src": "HB03.segments_purchased；head.xt30_12v.bought_src 写的『XT30U-F 30 cm』是开关方案旧口径（hr39f 作废）"}
+    - {"item": "QT→杜邦公 150（components.yaml:cable_qt_dupont_m）", "len_mm": 150, "qty_need": 1, "buy": "已有", "check": [{"wire": "imu_seg1", "length_mm": 74.6, "bought_mm": 150.0, "spare_mm": 75.4, "verdict": "够"}], "src": "wires_meta body.imu_seg1"}
+    - {"item": "UBEC 自带线 10 cm（卖家定长）", "len_mm": 100, "buy": "随件", "check": [{"wire": "ubec_in", "length_mm": 86.0, "bought_mm": 100.0, "spare_mm": 14.0, "verdict": "紧"}, {"wire": "ubec_out_5v", "length_mm": 102.2, "bought_mm": 100.0, "spare_mm": -2.2, "verdict": "不够"}, {"wire": "ubec_out_gnd", "length_mm": 94.3, "bought_mm": 100.0, "spare_mm": 5.7, "verdict": "紧"}], "worst": {"wire": "ubec_out_5v", "length_mm": 102.2, "bought_mm": 100.0, "spare_mm": -2.2, "verdict": "不够"}, "note": "ubec_out_5v 不够 → 要么换 ≥ 122.2 的线（= 102.2 + 余量 20 assumed），要么改路由；卖家定长能不能换未知", "src": "components.yaml:buck_12v_5v.connectors_2026-09-22"}
+    - {"item": "USB-C 公对公 15 cm（HB01.usb_link）", "len_mm": 150, "buy": "已定（assumed 规格）", "check": [{"wire": "usb_c", "length_mm": 85.6, "bought_mm": 150.0, "spare_mm": 64.4, "verdict": "够"}], "note": "长度够；弯 R 1.68 < 声明 10（assumed）是另一件事（换细软线）"}
+    - {"item": "喇叭自带线 ≈100（assumed，未实量）", "len_mm": 100, "buy": "随件", "check": [{"wire": "spk_pair", "length_mm": 89.2, "bought_mm": 100.0, "spare_mm": 10.8, "verdict": "紧"}]}
+    - {"item": "尼龙扎带 2.5×100（components.yaml:consumables.zip_tie_2p5，宽 2.5 × 厚 1.1 assumed）", "qty_need": "≈30（hr44_线束报告 §5）", "qty_basis": "头内扎束 tie__ 10 道 + 几何固定点 11（颈 8 桥 / 躯干 2 桥 + 1 两孔，features FX_*）+ 腿绕件 6 道（hr44/p47_leg_ties.json）+ 一分二 S1–S5 + 既有（转接板 2 道 H08、XT30 延长线前壁 1 道、UBEC 细扎带）", "note": "腿绕件粗段可能要 150 长（assumed，hr44_线束报告 §4）", "buy": "采购清单:75 有条目（wiring_head.HR44_TIE『已有』；hr44_线束报告 §5『数量 —，assumed 未买』→ 以采购清单为准）"}
+    - {"item": "螺旋缠绕管（components.yaml:consumables.spiral_wrap_d4，PE，壁 0.35 assumed）", "len_mm": 473.7, "len_mm_was_until_2026_09_26_hr44": 474.5, "qty_need": "过颈两束 215.1 + 218.6 + 两头余量 20×2（assumed；hr44 build #5 v1 下垂环）", "buy": "未见采购记录 → 要买（hr44_线束报告 §5：PE Ø6 × 0.5 m，assumed，可选）", "note": "束芯 = od − 2×0.35 = 4.56 / 5.26 > Ø4 标称 → Ø4 还是 Ø6 待定（wiring_body.WRAP：内径按束径选 Ø4 / Ø6）"}
+    - {"item": "【建议 hr44 第二轮·头部复审 M3；不下单，用户定】杜邦 母对母 15 cm × 3（功放 DIN / GND、UBEC GND 改用）", "len_mm": 150, "qty_need": 3, "buy": "建议（用户定）", "hover_check_18d": [{"wire": "amp_DIN_pin40", "lift_mm": 40, "straight_mm": 98.4, "bought_mm": 100.0, "spare_mm": 1.6}, {"wire": "amp_GND_pin25", "lift_mm": 40, "straight_mm": 97.2, "bought_mm": 100.0, "spare_mm": 2.8}, {"wire": "ubec_out_gnd", "lift_mm": 40, "straight_mm": 91.6, "bought_mm": 100.0, "spare_mm": 8.4}], "criterion": "复审复核口径：买 − 抬后直线 ≥ 翻转弧长 + 10；三根都 < 10（翻转弧长还没算：18d 翻转铰点 / 悬空高度待主设计写成可核动作）", "why": "18d：H05 子总成悬在头上方 ≈40 接各线前端再翻正盖下；功放那头 18c′ 已在台面插好 → 抬起时这几根几乎拉直", "src": "hr44_review_head.md M3（h12_hover_slack.py：H05 侧线端抬 +40 后两端直线距；未计翻转与绕件）", "note": "同批：麦克风 4 根（零位走线 115.3 / 111.4 / 107.4 / 106.4 > 100）已在『杜邦 母对母 10 cm』行判不够、换 15 cm；UBEC 5V（零位 102.2 > 100）复审建议加 1 根 2.54 公母延长"}
+    - {"item": "【建议 hr44 第二轮·头部复审 M4；不下单，用户定】USB-C 线换 Ø≤2.5 细软线或 FPC 扁线（替 HB01.usb_link 圆线 15 cm）", "len_mm": "≥ 走线 85.6 + 余量（换线后按实物线径重走再定）", "qty_need": 1, "buy": "建议（用户定）", "bend_check": {"wire": "usb_c", "min_bend_R_mm": 1.68, "at_world_mm": [-23.7, -19.0, 258.9], "where": "Radxa USB-C2 弯头出线处", "declared_min_bend_R_mm": 10, "declared_src": "assumed", "cable_od_mm": "3.0–4.0（A）", "verdict": "1.68 < 声明 10，且不大于线半径 1.5–2.0 → 圆线在头里弯不过去"}, "src": "hr44_review_head.md M4（wires_meta head.usb_c：走线 85.6 / 买 150）；harness.yaml HB01 usb_link 自注『圆线在头里弯不到』", "note": "长度不是问题（上面 USB-C 15 cm 行余 64.4）；换线后按实物线径重走、重核与 H05 / Radxa 间隙"}
+    - {"item": "【hr52 新增】杜邦 一分二 母对二公 ×2（3 / 5 号：I²C3 SDA / SCL 分给 IMU（HB05）与 ToF（HB12）；件同 17 号那根）", "qty_need": 2, "buy": "要买 2 根（商品腿长未定，assumed）", "note": "单母头插 Radxa 3 / 5；IMU 腿公头 ← IMU 40 cm 撕线母头、ToF 腿公头 ← ToF 母对母 10 cm 母头（两处中途对插接头未建模）；ToF 路径才 ≈71 mm → 腿越短余长越少，挑最短腿的", "src": "components.yaml:cable_dupont_ff.splitter_1to2_qty（3 → 5）"}
+    - {"item": "【hr52 新增】杜邦 母对母 10 cm ×4（ToF：VIN / GND 直通 Radxa 1 / 6；SDA / SCL 接一分二 ToF 腿公头）", "len_mm": 100, "qty_need": 4, "buy": "要买 4 根（assumed 规格；同『杜邦 母对母 10 cm（mic 那批）』，那批剩几根未登记）", "check": [{"wire": "tof_VIN_pin1", "length_mm": 68.2, "radxa_leg_mm": 3.1, "total_mm": 71.3, "bought_mm": 100.0, "spare_mm": 28.7, "verdict": "够"}, {"wire": "tof_GND_pin6", "length_mm": 66.8, "radxa_leg_mm": 3.1, "total_mm": 69.9, "bought_mm": 100.0, "spare_mm": 30.1, "verdict": "够"}, {"wire": "tof_SDA_pin3_splitleg", "length_mm": 66.3, "radxa_leg_mm": 4.6, "total_mm": 70.9, "bought_mm": "100 + 一分二腿（腿长未知）", "spare_mm": "≥ 29.1", "verdict": "够（余长多，要盘）"}, {"wire": "tof_SCL_pin5_splitleg", "length_mm": 68.6, "radxa_leg_mm": 3.1, "total_mm": 71.7, "bought_mm": "100 + 一分二腿（腿长未知）", "spare_mm": "≥ 28.3", "verdict": "够（余长多，要盘）"}], "margin_note": "余 ≥ margin 20 → 够（本表口径）；radxa_leg_mm = Radxa 端壳顶弯段（在 zz_gpio_dupont 里）", "src": "wires_meta head.tof_*（hr52 build）+ electronics.gpio_dup_leg_path"}
+deliberately_absent:
+  - id: "original_single_dynamixel_bus"
+    comparison: "A1"
+    was: "原版单条 Dynamixel TTL 1 Mbps 总线：Radxa UART2-M0 → HAT → id200 IMU 板 + 15 颗舵机；IMU 不需要单独走线"
+    replaced_by: "HB01（S288 6 Mbps 一线制私有协议，14 节点）+ HB05（IMU 单独一条到 SBC）"
+    reason: "协议不兼容（comparison A1）"
+    side_effect: "多出 HB05 这条跨 4 个关节的独立信号线，原版没有这条 —— 线束根数增加，且目前完全没有模型"
+    provenance:
+      - "comparison_original_vs_v2.md:A1"
+      - "inventory_original.json:harness_and_power.bus_topology"
+  - id: "original_hat_power_path"
+    comparison: "A8"
+    was: "原版电池 7.4 V 经颈上行到头内 HAT，HAT 上降压出 5 V 给 SBC；舵机总线电路也在 HAT 上"
+    replaced_by: "HB03/HB04：降压模块拟放躯干上部口袋（无 CAD 位置）"
+    reason: "HAT 拆成分立件（comparison A8）"
+    side_effect: "降压点从头内挪到躯干，过颈段从'电池电压上行'变成'5 V 上行'；两种方案的线径与压降都没算过"
+    provenance:
+      - "comparison_original_vs_v2.md:A8"
+      - "inventory_original.json:harness_and_power.head_wiring"
+      - "inventory_original.json:harness_and_power.sbc_power"
