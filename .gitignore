@@ -5,17 +5,22 @@ __pycache__/
 .DS_Store
 .idea/
 
-# ── 上游第三方仓库（各自 clone，不进本仓库）
+# ── 上游第三方仓库：scripts/fetch_upstream.sh 拉到 upstream/，不进本仓库
 upstream/
 参考/
 
-# ── CAD 生成产物：由 duckstructure/build.py 重新生成；发布用的那一份放 release/ 并明确纳入
+# ── CAD 生成产物：由 duckstructure 重新生成；STL 到里程碑 3 再明确纳入
 /cad/
 
-# ── 日志、切片产物、训练日志与视频
+# ── Gate 检查结果、临时目录、切片日志
+tools/gate/out*/
+tools/gate/scratch/
+tools/gate/slicing/logs/
 *.log
 *.gcode
 *.3mf.bak
+
+# ── 训练日志与视频
 sim/runs/**/events.out.tfevents.*
 sim/runs/**/*.mp4
 

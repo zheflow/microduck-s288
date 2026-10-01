@@ -1,0 +1,15 @@
+# 2026-10-01 开发机实际版本（Python 3.12）。CAD 生成与 Gate 的核心依赖：
+numpy==2.5.2
+trimesh==5.1.0
+manifold3d==3.5.3
+shapely==2.1.2
+PyYAML==6.0.3
+scipy==1.18.1
+networkx==3.6.1
+rtree==1.4.1
+pillow==12.3.0
+# tools/sim（MJCF 生成、真实姿态采样）：
+mujoco==3.13.0
+onnxruntime==1.30.0
+# 可选：L1 可打印性检查要本机装 PrusaSlicer（tools/gate/slicing/slice_l1.py --exe 指定路径）；
+# 可选：embreex 能把 L6 扫掠加速几倍（装在单独目录，见 tools/gate/README.md）

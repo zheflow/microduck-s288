@@ -29,3 +29,7 @@ microduck-s288 建立在下列开源工作之上。分发本仓库或其衍生�
 
 - 仿真：[MuJoCo](https://mujoco.org/)（Apache 2.0）、[mjlab](https://github.com/mujocolab/mjlab)
 - 几何：[trimesh](https://trimesh.org/)、[manifold3d](https://github.com/elalish/manifold)
+
+## three.js
+
+- `docs/explode.html` 内嵌 [three.js](https://threejs.org/)（MIT License，© 2010–2021 Three.js Authors），用于零件爆炸动画的网页渲染。
